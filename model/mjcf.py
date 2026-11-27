@@ -51,6 +51,12 @@ FINE_MM = {
 # pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read
 # the core 1.6 mm deep in it
 MAX_PIECES = dict.fromkeys((f"{p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
+# The parts CoACD cuts as they are meshed. Its "auto" preprocess rebuilds from voxels a mesh it takes for no manifold,
+# 0.55 of a voxel fatter all round, a voxel 1/100 of the part's longest side (docs/research/2026-11-01-coacd-tuning.md
+# 1). The jaw's mesh is closed, but its triangles cross where its Bones join, so its pieces came out 0.5 mm fat: its
+# bosses, which turn flush between the walls of the frame's notches, sat 0.53 mm in them at rest and read 0.06 mm
+# deeper as the jaw opened, where the exact meshes keep one gap (#850)
+AS_MESHED = {f"jaw{g.MECHANICAL}"}
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
@@ -141,6 +147,8 @@ def convex(file, clip=None):
     settings = {**COACD, "threshold": FINE_MM[stem], "real_metric": True} if stem in FINE_MM else COACD
     if stem in MAX_PIECES:
         settings = {**settings, "max_convex_hull": MAX_PIECES[stem]}
+    if stem in AS_MESHED:
+        settings = {**settings, "preprocess_mode": "off"}
     seen = mesh.vertices.tobytes() + mesh.faces.tobytes() + json.dumps([settings, version("coacd")]).encode()
     key = hashlib.sha256(seen).hexdigest()
     folder = os.path.join(CONVEX, stem)
