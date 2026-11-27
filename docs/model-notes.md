@@ -223,14 +223,16 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
   marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
   report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). The shell the gates measure is `base.DOME`, the realistic skull's box (#838; model/skeleton/test_skeleton.py holds
-  it to the finished bones), whose bones ride the realistic documents alone.
+  (#705). The shell the gates measure is `base.DOME`, the compact head's box, which the realistic skull filled until its limit
+  became Morty's skin (#874); the bones ride the realistic documents alone.
   Since #838 the realistic Skeleton has bones of its own (docs/adr/0023; since #873 authored in the Skeleton scene,
   model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): since #874
-  BodyParts3D's skull, mandible and C1 to C7, each region resized uniformly and the skull and mandible warped by one
-  smooth field each (model/skeleton/fit.py) within the confirmed local length budget: the orbits on the eyes, the
-  condyles on the jaw's hinge, the occipital condyles on the tilt axis, the skull filling the compact head's box
-  (`base.DOME`), and the vertebrae stacked down the cervical canal's path, the atlas round the pan axis. `just ours` has Blender
+  BodyParts3D's skull, mandible and C1 to C7, each region resized uniformly (about life-size) and warped by one
+  smooth field (model/skeleton/fit.py) within the confirmed local length budget: the orbits on the eyes, the
+  condyles on the jaw's hinge, the occipital condyles on the tilt axis, the vertebrae down the cervical canal's path,
+  the atlas round the pan axis, and every bone at least 2.1 mm under Morty's skin, the Sculpt's surface
+  (model/skeleton/envelope.py, docs/adr/0025: the skull's limit where the compact head's box was), the cranium drawn
+  out toward it so the vault closes over the mechanism. `just ours` has Blender
   finish them on a 0.8 mm SDF grid: the cranium shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
   under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
