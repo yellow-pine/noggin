@@ -51,8 +51,9 @@ _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 
 **Shell**:
 One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
-Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). *Upcoming (#850):
-today's Shells are still drawn by hand (the head, an eyeball cap, a pupil, a lid cover, the collar).*
+Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). None is drawn by
+hand: the eyeball caps, the mechanism's own, are the only Shells in the Model. *Upcoming (#850): Morty's Shells are cut
+from his Sculpt.*
 _Avoid_: cover, cosmetic
 
 **Seat**:
@@ -62,8 +63,9 @@ _Avoid_: mount, socket, pad
 
 **Skin**:
 Every Shell of one Character, pulled off and pressed on together to swap Characters: its outside is the Character's
-Sculpt, its silhouette exactly (docs/adr/0027). A Theme category: its Shape morty, bart or cansin, or none: the
-Skeleton bare, its full bones on; its Palette morty, bart or Default.
+Sculpt, its silhouette exactly (docs/adr/0027). A Theme category: its Shape morty, or none: the Skeleton bare, its
+full bones on; its Palette morty or default. *Upcoming (#913): Bart returns when he has a sculpt to be cut from.*
+*Upcoming (#917): Cansin returns when he has a sculpt to be cut from.*
 _Avoid_: shell set, character shells, kit, costume
 
 **Sculpt**:
@@ -79,7 +81,7 @@ the same regions.
 _Avoid_: band, section (a Colour group's), zone
 
 **Character**:
-Who the Mech looks like, Morty or Bart: its Skin and its gaze speed, picked in the noggin service's settings.
+Who the Mech looks like, Morty today: its Skin and its gaze speed, picked in the noggin service's settings.
 _Avoid_: persona, theme
 
 **Theme**:
@@ -89,18 +91,17 @@ look in the Model, the Web viewer and every picture; the Default build unless an
 _Avoid_: look (Blender's style B is the look), style
 
 **Shape**:
-The form one Theme category's parts are drawn in: the Skeleton's realistic or mechanical, a Skin's morty, bart or
-cansin. Blender draws each Shape; any Palette of its category paints it.
+The form one Theme category's parts are drawn in: the Skeleton's realistic or mechanical, a Skin's morty or none.
+Blender draws each Shape; any Palette of its category paints it.
 _Avoid_: style, model (the Model is the digital Mech)
 
 **Palette**:
 The filament each Colour group of one Theme category prints in: the Skeleton's anatomical, robot or black, a Skin's
-morty, bart or default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure).
+morty or default (Milky Pink, Apricot, Pure White and Absolute Black PLA Pure).
 _Avoid_: colour scheme, theme (for one category's colours)
 
 **Preset**:
-A named Theme, what the site's Theme bar picks: the Default build, Morty (realistic, anatomical, morty, morty) or Bart
-(realistic, anatomical, bart, bart).
+A named Theme, what the site's Theme bar picks: the Default build or Morty (realistic, anatomical, morty, morty).
 _Avoid_: theme (for the named set), skin (for the whole look)
 
 **Default build**:
@@ -115,7 +116,7 @@ paints any Shape of its category.
 _Avoid_: spool, colour (for the group)
 
 **Face**:
-A Skin's flesh-coloured Colour group: the head, the ears, the nose and the lid covers (Bart's spikes too).
+A Skin's flesh-coloured Colour group: the head under the hair, the ears and the nose.
 _Avoid_: skin (for the colour), flesh
 
 **Core**:
@@ -367,7 +368,8 @@ A part we print, by our name (model/printed); the Skeleton's:
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their
   licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
   post on the pan yoke; the mechanical Skeleton has none. Worn skull, worn mandible: the skull and mandible carved
-  round a Skin's Shells too, printed to wear a Skin; bare, the Skeleton shows the full ones.
+  round a Skin's Shells too (the eyeball caps alone, while they are the only Shells), printed to wear a Skin; bare,
+  the Skeleton shows the full ones.
 _Avoid_: the designer's file names, version suffixes, earlier part names (git history)
 
 **Coupon**:

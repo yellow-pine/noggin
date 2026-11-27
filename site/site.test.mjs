@@ -191,7 +191,7 @@ test("every page's header has the Theme bar: one labelled select of the model's 
       const selects = bar.querySelectorAll('label > select');
       expect(selects.map((s) => s.parentNode.querySelector('span').text), f).toEqual(['Preset']);
       expect(selects[0].querySelectorAll('option').map((o) => [o.getAttribute('value'), o.text])).toEqual([
-        ['default-build', "Default build"], ['morty', 'Morty'], ['bart', 'Bart'],
+        ['default-build', "Default build"], ['morty', 'Morty'],
       ]);
     }
     expect(doc.toString(), f).toContain(':root[data-preset="morty"] [data-presets]:not([data-presets~="morty"])');
@@ -206,9 +206,9 @@ test("each Preset's pictures and filaments are marked with it, the default's sho
   ]);
   const pictures = page(route('docs/pictures.md'));
   expect(home.querySelector('p[data-presets="default-build"] em')).toBeNull();  // #843: no Skin on the home
-  expect(pictures.querySelector('p[data-presets] em')).toBeNull();  // every Skin has its Shells: no stand-in (#813)
+  expect(pictures.querySelector('p[data-presets] em')).toBeNull();  // no stand-in text for a Skin (#813)
   expect(parts.querySelectorAll('li[data-presets]').map((l) => l.text.split(':')[0])).toEqual([
-    "Default build", 'Morty', 'Bart',
+    "Default build", 'Morty',
   ]);
 });
 

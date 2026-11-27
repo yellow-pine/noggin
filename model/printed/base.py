@@ -20,7 +20,7 @@ ROUND = 12.0  # as Bones (#704): the test stand's upright edges round by a third
 CORNER = 4.0  # as Bones: the Torso's upright corners round
 # the pedestal's look as Bones (#838): the plaque sunk 1 mm in its front, (x, z), and the lid's panel inside a border
 # 1 mm down, BORDER in from its edge
-PLAQUE, BORDER = ((-16.0, 16.0), (-168.0, -158.0)), 9.0  # under the shirt's Seats
+PLAQUE, BORDER = ((-16.0, 16.0), (-168.0, -158.0)), 9.0
 LEDGE, FIT = 3.0, 0.3  # the ledge inside the walls the lid lies on, flush with their top; its room inside them
 
 

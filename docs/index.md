@@ -42,7 +42,8 @@ desk.
 - **Stage 2: neck.** The eye block on a pan-and-tilt neck over the Torso, the boards in the back of the head: two more
   servos on the neck Core. *Upcoming (#902): both neck servos ride inside the skull.*
   [Build Stage 2](build/stage-2.md)
-- **Stage 3: mouth.** A jaw under the eyes: the seventh servo, the whole Mech. Then a character's Shells on magnets.
+- **Stage 3: mouth.** A jaw under the eyes: the seventh servo, the whole Mech. *Upcoming (#850): then Morty's Shells
+  on magnets.*
   [Build Stage 3](build/stage-3.md)
 
 ## Where next

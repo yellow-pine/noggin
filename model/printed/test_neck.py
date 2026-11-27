@@ -169,6 +169,16 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
     assert weak == []
 
 
+@pytest.mark.model
+def test_the_jaw_carriers_chains_meet_at_the_chin_without_a_sliver():
+    """#850: the two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a
+    document's STEP as an invalid jaw (model/test_ours.py), once nothing fused onto the chin covered it. No edge of the
+    Bone jaw within 9 mm of the chin is that marginal."""
+    chin = np.array(nk.JAW_CHIN)
+    edges = [e for e in _built("jaw").Edges() if np.linalg.norm(np.array(e.Center().toTuple()) - chin) < 9.0]
+    assert edges and min(e.Length() for e in edges) > 0.5
+
+
 @pytest.fixture(scope="module")
 def saddle():
     return _built("nod plate")
@@ -395,13 +405,9 @@ def posed(request):
 @pytest.mark.model
 def test_the_head_clears_the_neck_and_the_jaw_the_head_at_each_end_of_their_ranges(posed):
     """#708: the shorter neck and the jaw under the eyes, at each end of the drive's range, in the mechanical Back (its
-    Bones lie inside it): no two parts the drive moves apart overlap, as MuJoCo's sweep checks between them on main, but
-    the hair's KNOWN_HAIR meetings #850 clears."""
-    from model.printed.test_skin import _known
-
+    Bones lie inside it): no two parts the drive moves apart overlap, as MuJoCo's sweep checks between them on main."""
     solids, pairs = posed
-    overlaps = _overlaps(solids, [(a, b) for a, b in pairs if not (_known(a, b) or _known(b, a))])
-    assert overlaps == [], "\n".join(overlaps)
+    assert (overlaps := _overlaps(solids, pairs)) == [], "\n".join(overlaps)
 
 
 @pytest.fixture(
@@ -410,7 +416,7 @@ def test_the_head_clears_the_neck_and_the_jaw_the_head_at_each_end_of_their_rang
     ids=lambda p: f"pan{p[0]:g}-tilt{p[1]:g}-jaw{p[2]:g}",
 )
 def mechanism_pose(request):
-    """Actual new mechanism against every mechanical part over combined commands; the Shell gate above remains."""
+    """Actual new mechanism against every mechanical part over combined commands."""
     from model import skin
 
     stage = stages.STAGES[DOC]

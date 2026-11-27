@@ -34,6 +34,10 @@
 > viewer's GLB for that Skin shape; a Skin shape without Shells wears Morty's. Physics runs on Morty's Skin alone:
 > every Skin sits on the same Seats, so another Skin's Shells are held at the peak accelerations the sim reads for
 > Morty's there.
+> Amended 2026-11-27 (#850, ADR 0027): no Shell is drawn by hand, so the Skin's Shapes are none and morty (his
+> Shells cut from his Sculpt; until they are, the shape draws the document as it is), its Palettes morty and default,
+> and the Presets the Default build and Morty. No Skin shape has Shells (`SKINS`), so no document is drawn dressed
+> (`DRESSED`). Bart (#913) and Cansin (#917) return when each has a Sculpt to be cut from.
 
 The Mech's look is a Theme (GLOSSARY): one value of each category, today the Skeleton (the PETG parts:
 `realistic`, every part drawn as Bones, or `mechanical`, ADR 0020's plain style) and the Skin (the magnetic PLA Shells:

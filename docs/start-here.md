@@ -37,8 +37,8 @@ noggin service and the hooks on the Mac. What is still to come, and the issue th
    ([Calibration](build/calibration.md)).
 6. **Stage 2, the neck**: the head on the neck over the Torso, the pack and the power-path board in the Torso, the
    neck Core beside the eyes Core in the head ([Stage 2](build/stage-2.md)).
-7. **Stage 3, the mouth**: the jaw, the whole Mech ([Stage 3](build/stage-3.md)), then a Skin's Shells if you want one
-   ([Themes](face-design.md)).
+7. **Stage 3, the mouth**: the jaw, the whole Mech ([Stage 3](build/stage-3.md)). *Upcoming (#850): then Morty's
+   Shells, if you want a Skin ([Themes](face-design.md)).*
 
 Each Stage stands complete on the desk, so you can stop after any of them.
 

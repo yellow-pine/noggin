@@ -52,7 +52,7 @@ BAIL_END = 12.0 * K
 BAIL_ROOM = 6.3
 PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
 CAP_R, CAP_HALF = MORTY_EYE_R, 45.0  # each Character's largest eyeball cap, Morty's eye: a sphere segment this wide
-PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred; the Shells ticket draws it)
+PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
 LID_R = (CAP_R + 1.0, CAP_R + 3.1)  # the upper lid's shell, inner and outer radius: 1 mm off Morty's eye (#872)
 # the lower lid's, outside the upper's: tracking a pitch down, shut, they pass
@@ -123,10 +123,10 @@ LID_X = {
     **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.3, 36.3)},
     **{"bar": (24.75, 27.75), "link": (27.75, 30.75), "ear": (30.75, 33.75)},
 }
-# each lid's main shell ends this far inside its boss's slab, so its cover (model/skin.py) stays 0.6 mm off the frame's
-# upright, which the lower lid's cover sweeps past since #901; the boss itself still turns 0.3 mm off the upright
+# each lid's main shell ends this far inside its boss's slab, so a cover on it stays 0.6 mm off the frame's upright;
+# the boss itself still turns 0.3 mm off the upright
 LID_SHELL_IN = 0.3
-# Main shells and their covers share these ends; the upper's inboard end clears the lower lid's rising hoop.
+# Each main shell's ends; the upper's inboard end clears the lower lid's rising hoop.
 LID_SHELL_X = {
     "upper": (-LID_X["ear"][0] + LID_CLEAR_MM, LID_X["upper boss"][1] - LID_SHELL_IN),
     "lower": (-LID_X["ear"][0], LID_X["lower boss"][1] - LID_SHELL_IN),
@@ -141,10 +141,10 @@ PLATE_Y = (16.0, 87.0)
 PLATE_X, BACK_Y = 33.5, 40.0  # the body's half-width, out under the jaw's lugs (model/neck.py JAW_LUG_X)
 BACK_X = SPACING / 2 + BAIL_END + 4.0  # behind BACK_Y (the condyles') the back's, out to the bail's uprights
 CHEEK_Y = (-10.0, -6.0)
-# the bar a beam, the face's Seats flush in its front (#852), under the lower lids' sweep (#901)
-BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' covers too
+# the bar a beam down its whole width, under the lower lids' sweep (#901), hung from the lid uprights' feet
+BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # a cover's room under the lower lids
 # #967: Morty's life-size cheeks narrow under his eyes and widen behind them (the private reference, read locally by
-# model/review/test_hidden.py), so the beam ends inside them, its Seats' bosses within it, and an arm at its level runs
+# model/review/test_hidden.py), so the beam ends inside them, and an arm at its level runs
 # back from each end to its lid upright's foot, behind the lower lids' sweep; the upright leans back down to the plate's
 # level, where its rail reaches forward to meet it; his cheeks curve in under the beam, so its lower outer corners are
 # cut back BEAM_CUT and the arms start that far up

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from model import geometry as g
-from model import gimbal, printed, skin, stages
+from model import gimbal, printed, stages
 
 
 @pytest.mark.parametrize("doc,carrier", [("mech-back", "torso"), ("mech-back-mechanical", "torso mechanical")])
@@ -62,46 +62,11 @@ def test_each_mech_variant_is_built_mechanical_too_from_the_same_layout():
     }
 
 
-def _drawn(skin_shape):
-    return [s for s in skin.DRAWN if s.startswith(f"{skin_shape} ")]
-
-
-def test_stage_3_in_cansins_skin_is_the_same_mech_wearing_his_shells_for_mortys():
-    """#813: the Skeleton, its horns and what each moves the same; Cansin's Shells in place of Morty's, each glued one
-    riding the part that moves its carrier."""
-    for doc in g.MECH:
-        three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "cansin")]
-        morty, cansin = ({n + ":1" for n in _drawn(s)} for s in ("morty", "cansin"))
-        assert set(dressed.parts) == set(three.parts) - morty | cansin
-        assert set(dressed.horns) == set(three.horns)
-        jaw = {n for loop in dressed.horns["jaw horn"].loops for n in loop.rockers}
-        assert {"cansin mouth cover:1", "cansin teeth:1"} <= jaw
-        tilt = set(dressed.horns["tilt horn"].direct.driven)
-        assert {"cansin hair:1", "cansin L brow:1", "cansin R pupil:1"} <= tilt
-
-
-def test_stage_3_in_barts_skin_wears_his_shells_on_mortys_seats():
-    """#807: Bart's Shells in place of Morty's, the same set on the same Seats, each riding what Morty's rides; his
-    pupils dots in plugs, as Cansin's."""
-    swap = lambda n: n.replace("morty ", "bart ")  # noqa: E731
-    assert sorted((swap(s.shell), swap(s.carrier), s.at) for s in skin.SEATS if "morty " in s.shell) == sorted(
-        (s.shell, s.carrier, s.at) for s in skin.SEATS if "bart " in s.shell
-    )
-    assert skin.GLUED["bart L pupil"][0] == "bart L pupil plug"
-    for doc in g.MECH:
-        three, dressed = stages.STAGES[doc], stages.STAGES[g.dressed(doc, "bart")]
-        morty, bart = ({n + ":1" for n in _drawn(s)} for s in ("morty", "bart"))
-        assert set(dressed.parts) == set(three.parts) - morty | bart
-        tilt = set(dressed.horns["tilt horn"].direct.driven)
-        assert {"bart face:1", "bart hair:1", "bart R pupil:1"} <= tilt
-
-
 def test_the_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_mech():
     """#720: Stage 1 the eye block (its gimbal, lids and four servos) on its test stand with the eyes Core; Stage 2 the
     eye block on the Torso's neck (pan, tilt) under the head mount, the neck Core beside the eyes' in the Torso (#838);
     Stage 3 adds the
-    jaw and the mouth servo, and Morty's Skin (#665): the whole Mech, the head variant's document. Each Stage in every
-    Skeleton."""
+    jaw and the mouth servo: the whole Mech, the head variant's document. Each Stage in every Skeleton."""
     one, two, three = (stages.STAGES[d] for d in list(g.STAGES)[:3])
     assert three is stages.STAGES[next(iter(g.MECH))]
     eye_horns = {f"{d} horn" for d in gimbal.drives()}
@@ -114,27 +79,8 @@ def test_the_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_
         "jaw bar:1",
         "mouth servo:1",
         "mouth horn:1",
-    } | {n + ":1" for n in [*_drawn("morty"), *(g.WORN.get(s, s) for s in g.SKULL)]}
+    } | {g.WORN.get(s, s) + ":1" for s in g.SKULL}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
-
-
-@pytest.mark.parametrize(
-    "shell, horn, carrier",
-    [
-        ("morty face", "tilt horn", "gimbal frame"),
-        ("morty hair", "pan horn", "gimbal frame"),
-        ("morty mouth cover", "jaw horn", "jaw"),
-        ("morty L upper lid cover", "L lid horn", "L upper lid"),
-        ("morty R pupil", "yaw horn", "R eyeball cap"),
-    ],
-)
-def test_a_shell_moves_with_what_carries_it(shell, horn, carrier):
-    """#665: each Shell is clamped to its carrier (RIDES): turned by a servo, the two move as one."""
-    three = stages.STAGES[next(iter(g.MECH))]
-    moved = stages.pose(three, horn, 10).parts
-    turn = moved[carrier + ":1"] @ np.linalg.inv(three.parts[carrier + ":1"].matrix)
-    assert not np.allclose(turn, np.eye(4))
-    np.testing.assert_allclose(moved[shell + ":1"], turn @ three.parts[shell + ":1"].matrix, atol=1e-9)
 
 
 def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():
