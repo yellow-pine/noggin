@@ -191,7 +191,7 @@ def eyes_sub():
                 horn,
                 (0.0, horn[1] + crank, horn[2]),
                 bail,
-                (0.0, bail[1] + gimbal.BAIL_IN, bail[2]),
+                (0.0, *gimbal.BAIL_TIP),
                 g.X,
                 "pitch bar:1",
                 ["bail:1"],
@@ -204,7 +204,7 @@ def eyes_sub():
                 f"{s} push-rod",
                 f"{s} push-rod:1",
                 "bail:1",
-                (x, bail[1], bail[2] + gimbal.LEVER),
+                (x, *gimbal.BAIL_BALL),
                 (g.X, g.Z),
                 (f"{s} eyeball pitch", (x, 0.0, 0.0), (-1, 0, 0)),  # pitch up positive, as gimbal.core
                 [f"{s} eyeball core:1", f"{s} eyeball cap:1"],

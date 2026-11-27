@@ -9,7 +9,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from model import beams
+from model import beams, linkage
 from model import geometry as g
 from model import gimbal as gm
 from model.printed import bone, gimbal
@@ -70,20 +70,14 @@ def test_the_block_fits_the_compact_head(rest):
 @pytest.mark.model
 @pytest.mark.parametrize("mechanical", [False, True])
 @pytest.mark.parametrize("pitch", [-gm.PITCH, 0.0, gm.PITCH])
-def test_the_bail_turns_clear_of_the_pitch_servos_collar(mechanical, pitch):
-    """#967: over the pitch the bail shares no volume with the frame, and between its L arm and its upright, where its
-    rod passes the pitch servo's collar, it keeps the lids' clearance from it. Its rod reaches 5.0 mm about its axis
-    and the collar's rim stood 4.35 mm from it: at pitch -15 the two shared 0.26 mm3, which the sim read as 0.1 mm
-    deeper than at rest once the eyes moved 0.3 mm."""
-    from model.envelopes import box
+def test_the_bail_turns_clear_of_the_frame(mechanical, pitch):
+    """#967: over the pitch the bail shares no volume with the frame, in either style: its rod turns in the uprights'
+    bores, over the lid servos' collars."""
     from model.printed import PARTS, styled
 
     frame, bail = (PARTS[styled(stem, mechanical)]().val() for stem in ("gimbal frame", "bail"))
     turned = bail.moved(gimbal._at(gm.moved(0.0, pitch)["bail:1"]))
     assert turned.intersect(frame).Volume() < 1e-3
-    x = gm.EYE["L"][0]
-    beside = frame.intersect(box((x + 3, x + gm.BAIL_END - 3), (0, 99), (gm.PLATE_Z[1] + 0.1, 99)).val())
-    assert turned.distance(beside) >= gm.LID_CLEAR_MM
 
 
 SAG_DEG = 0.5  # how far past either end of the pan its loaded servo sags, inside its band (#978)
@@ -144,7 +138,36 @@ def test_the_skeleton_moves_every_part_as_the_gimbal_does(skeleton):
 # The Bones (#703): the tie-bar's arms from each eye's pin to the yaw horn's, each push-rod from the lever's ball to
 # the bail arm's; (part, its joints, the axial load on one arm: the servo's stall at its horn pin, the bail's ratio on)
 TIE_PINS = [(-gm.EYE["L"][0], gm.CRANK), (gm.EYE["L"][0], gm.CRANK), (0.0, gm.YAW_Y + gm.CRANK)]
-ROD_BALLS = [(0.0, 0.0, gm.LEVER), (0.0, gm.BAIL[0], gm.LEVER)]
+ROD_BALLS = [(0.0, 0.0, gm.LEVER), (0.0, *gm.BAIL_BALL)]
+ROD_BED = np.linalg.inv(gimbal.rod_bed())  # onto the push-rod's bed, as it prints
+# each cup's mouth's way from its ball: the lever's down its bed's normal, the bail's up its neck
+ROD_MOUTHS = [-gimbal.rod_bed()[:3, 2], np.array([0.0, *np.subtract(gimbal.bail_foot(), gm.BAIL_BALL)]) / gimbal.NECK]
+ROD_MOUTHS[1] = ROD_MOUTHS[1] / np.linalg.norm(ROD_MOUTHS[1])
+
+
+def _pitch_loads():
+    """(the pitch bar's, each push-rod's) load per N of the pitch servo's stall at its horn pin, the worst over the
+    pitch: the bar takes it through the angle it meets the horn at, the rod through the bail's ratio and the angles the
+    bar meets the input arm and the rod its arm at (#967: none of them square)."""
+
+    def sin(u, v):
+        return float(np.linalg.norm(np.cross(u, v)) / np.linalg.norm(u) / np.linalg.norm(v))
+
+    horn, axis, x = np.array([0, *gm.PITCH_HORN]), np.array([0, *gm.BAIL]), gm.EYE["L"][0]
+    bar, rod = [], []
+    for pitch in np.linspace(-gm.PITCH, gm.PITCH, 13):
+        m = gm.moved(0.0, pitch)
+        a = (m["pitch horn:1"] @ (0, gm.PITCH_HORN[0] + gm.CRANK, gm.PITCH_HORN[1], 1))[:3]
+        b = (m["bail:1"] @ (0, *gm.BAIL_TIP, 1))[:3]
+        ball = (m["L eyeball core:1"] @ (x, 0, gm.LEVER, 1))[:3]
+        pin = (m["bail:1"] @ (x, *gm.BAIL_BALL, 1))[:3]
+        bar.append(1 / sin(b - a, a - horn))
+        arm = math.dist(gm.BAIL, gm.BAIL_BALL)
+        rod.append(bar[-1] * gm.BAIL_IN * sin(b - a, b - axis) / (arm * sin(pin - ball, pin - (x, *gm.BAIL))))
+    return max(bar), max(rod)
+
+
+BAR_LOAD, ROD_LOAD = _pitch_loads()
 
 
 def test_the_tie_bar_keeps_its_three_pin_bores():
@@ -157,23 +180,24 @@ def test_the_tie_bar_keeps_its_three_pin_bores():
 
 
 def test_each_push_rod_cup_closes_on_its_ball_under_the_equator():
-    """The socket (0.1 over the ball) is clear, the cup's wall round it above and to the sides, and its mouth open
-    2 mm under the ball's centre for the neck."""
+    """The socket (0.1 over the ball) is clear, the cup's wall round it behind and to the sides, and its mouth open
+    2 mm past the ball's centre for the neck: the lever's cup's toward the lever's neck, under it on its bed, the
+    bail's the other way, up the bail's neck (#967)."""
     rod = gimbal.push_rod().val()
-    for x, y, z in ROD_BALLS:
-        r = gm.BALL_R + 0.05
-        for d in ((0, 0, 1), (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0)):
-            assert not rod.isInside(cq.Vector(x + d[0] * r, y + d[1] * r, z + d[2] * r))
-            assert rod.isInside(cq.Vector(x + d[0] * (r + 0.6), y + d[1] * (r + 0.6), z + d[2] * (r + 0.6)))
-        assert not rod.isInside(cq.Vector(x, y, z - 2.05))
+    for at, mouth in zip(ROD_BALLS, ROD_MOUTHS):
+        r, side = gm.BALL_R + 0.05, np.cross(mouth, (1, 0, 0))
+        for d in (-mouth, (1, 0, 0), (-1, 0, 0), side, -side):
+            assert not rod.isInside(cq.Vector(*np.add(at, np.multiply(d, r))))
+            assert rod.isInside(cq.Vector(*np.add(at, np.multiply(d, r + 0.6))))
+        assert not rod.isInside(cq.Vector(*np.add(at, 2.05 * mouth)))
 
 
 def test_the_bones_print_as_drawn_with_no_overhang_past_45_deg():
-    """The tie-bar on its underside, its pins along Z; the push-rod on its cups' rims (the socket's crown inside them,
-    an exact interface, excused)."""
+    """The tie-bar on its underside, its pins along Z; the push-rod on its bed (gimbal.rod_bed: the lever's cup's rim
+    and the bail's cup's skirt on it; each socket's crown, an exact interface, excused)."""
     assert bone.overhang_deg(gimbal.tie_bar().val()) <= 45
-    crown = lambda c: min(math.dist(c, b) for b in ROD_BALLS) > gm.BALL_R + 0.2  # noqa: E731
-    assert bone.overhang_deg(gimbal.push_rod().val(), keep=crown) <= 45
+    crown = lambda c: min(math.dist(gimbal.rod_bed() @ (*c, 1), (*b, 1)) for b in ROD_BALLS) > gm.BALL_R + 0.2  # noqa: E731
+    assert bone.overhang_deg(gimbal.push_rod().val().moved(gimbal._at(ROD_BED)), keep=crown) <= 45
 
 
 def _section(solid, a, b, t, eps=0.01):
@@ -192,13 +216,16 @@ def _section(solid, a, b, t, eps=0.01):
     "part, a, b, load",
     [
         ("tie-bar", (*TIE_PINS[1], gm.TIE_Z[0]), (*TIE_PINS[2], gm.TIE_Z[0]), 1.0),
-        ("push-rod", *ROD_BALLS, gm.BAIL_IN / gm.LEVER),
+        # along its bar, on its bed: the joints at the bar's ends, its span the balls'
+        ("push-rod", (0.0, 0.0, 2.25), (0.0, math.dist(*ROD_BALLS), 2.25), ROD_LOAD),
     ],
 )
 def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
     """SF 2 (beams.MIN_SF) in PETG across its layers along its waist, pinned at both joints: on its strength and against
     Euler buckling over its span. On the mechanical part, which its Bone is carved from (#809)."""
-    solid = (gimbal.tie_bar if part == "tie-bar" else gimbal.push_rod)(mechanical=True).val()
+    solid = gimbal.tie_bar(mechanical=True).val()
+    if part == "push-rod":
+        solid = gimbal.push_rod(mechanical=True).val().moved(gimbal._at(ROD_BED))
     mat = g.MATERIALS[g.PRINTED[part][1]]
     force = beams.stall_force_n() * load
     area, least = min(_section(solid, a, b, t) for t in (0.3, 0.4, 0.5, 0.6, 0.7))
@@ -210,8 +237,9 @@ def test_each_bone_holds_its_servo_at_stall(part, a, b, load):
 # axle's bores across the layers); the bail as drawn, on its rod's flat underside (all three bores along x: standing
 # on an end would hang an arm and its ball in the air)
 Y = gm.YOKE
-BALLS = [(s * gm.EYE["L"][0], gm.BAIL[0], gm.LEVER) for s in (-1, 1)]
-TIP = (sum(gm.BAIL_INPUT_X) / 2, gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1])
+BALLS = [(s * gm.EYE["L"][0], *gm.BAIL_BALL) for s in (-1, 1)]
+TIP = (sum(gm.BAIL_INPUT_X) / 2, *gm.BAIL_TIP)
+BAIL_BED = np.linalg.inv(gimbal.bail_bed())  # onto the bail's bed, as it prints
 
 
 def test_the_yoke_keeps_its_bores():
@@ -237,8 +265,12 @@ def test_the_bail_keeps_its_bores_and_balls():
         for x, y, z in [(s * (end - 4), by, bz) for s in (-1, 1)] + [TIP]:
             assert not bail.isInside(cq.Vector(x, y + dy * (r - 0.05), z + dz * (r - 0.05)))
             assert bail.isInside(cq.Vector(x, y + dy * (r + 0.5), z + dz * (r + 0.5)))
-    for x, y, z in BALLS:
-        assert bail.isInside(cq.Vector(x, y, z + gm.BALL_R - 0.05)) and not bail.isInside(cq.Vector(x, y, z + 3.1))
+    off = np.array([0.0, *np.subtract(gm.BAIL_BALL, gimbal.bail_foot())]) / np.linalg.norm(
+        np.subtract(gm.BAIL_BALL, gimbal.bail_foot())
+    )  # past its neck
+    for at in BALLS:
+        assert bail.isInside(cq.Vector(*np.add(at, (gm.BALL_R - 0.05) * off)))
+        assert not bail.isInside(cq.Vector(*np.add(at, 3.1 * off)))
 
 
 def _off_bore(c, axis_points, r=gm.PIN_R + 0.2):
@@ -251,11 +283,18 @@ def test_the_yoke_and_the_bail_print_as_drawn_with_no_overhang_past_45_deg():
     excused."""
     shank = lambda c: math.hypot(c[0], c[1]) > gm.PIN_R + 0.2  # noqa: E731  the yaw shank's blind bore's crown
     assert bone.overhang_deg(gimbal.yoke().val(), keep=lambda c: _off_bore(c, [(0, 0)]) and shank(c)) <= 45
-    ball = lambda c: all(  # noqa: E731
-        math.dist(c, b) > gm.BALL_R + 0.2 and math.hypot(c[0] - b[0], c[1] - b[1]) > gimbal.NECK_R + 0.2 for b in BALLS
-    )
-    keep = lambda c: _off_bore(c, [gm.BAIL, TIP[1:]]) and ball(c)  # noqa: E731
-    assert bone.overhang_deg(gimbal.bail().val(), keep=keep) <= 45
+    foot, at = ((BAIL_BED @ (0, *p, 1))[1:3] for p in (gimbal.bail_foot(), gm.BAIL_BALL))  # on its bed: (y, z)
+    neck = (at - foot) / np.linalg.norm(at - foot)
+
+    def ball(c):  # off each ball and the neck it stands on
+        x = min(abs(c[0] - b[0]) for b in BALLS)
+        along = float((c[1:] - foot) @ neck)
+        beside = math.hypot(x, float(np.linalg.norm(c[1:] - foot - along * neck)))
+        return math.hypot(x, *(c[1:] - at)) > gm.BALL_R + 0.2 and not (0 < along and beside <= gimbal.NECK_R + 0.2)
+
+    tip = (BAIL_BED @ (*TIP, 1))[1:3]
+    keep = lambda c: _off_bore(c, [(0.0, 0.0), tip]) and ball(c)  # noqa: E731
+    assert bone.overhang_deg(gimbal.bail().val().moved(gimbal._at(BAIL_BED)), keep=keep) <= 45
 
 
 def _bending_sf(solid, a, b, force, d, lever, ts=(0.0, 0.25, 0.5, 0.75)):
@@ -276,31 +315,39 @@ def _bending_sf(solid, a, b, force, d, lever, ts=(0.0, 0.25, 0.5, 0.75)):
     return min(out)
 
 
-F, (BY, BZ) = beams.stall_force_n(), gm.BAIL
-# (part, a, b, force, its axis, lever) per member: split, so each test holds CI's 15 s (#808)
+F = beams.stall_force_n()
+# the bail with an arm standing up z from its axis at the origin, as _bending_sf reads a member; its ball's lever there
+ARM_UP = linkage.rotation((1, 0, 0), 90.0 - gimbal.BAIL_ARM_DEG, (0, *gm.BAIL))
+ARM_UP[:3, 3] -= (0, *gm.BAIL)
+ARM_LEVER = math.dist(gm.BAIL, gm.BAIL_BALL)
+# (part, how it is turned, a, b, force, its axis, lever) per member: split, so each test holds CI's 15 s (#808)
 MEMBERS = {
-    "crank": (gimbal.yoke, (0, 0, -25.5), (0, gm.CRANK, -25.5), F, "x", gm.CRANK),
+    "crank": (gimbal.yoke, np.eye(4), (0, 0, -25.5), (0, gm.CRANK, -25.5), F, "x", gm.CRANK),
     **{
-        f"arm at x {x:+.1f}": (gimbal.bail, (x, BY, BZ + 4), (x, BY, BZ + 11), F * gm.BAIL_IN / z, "y", z - 4)
-        for x, _, z in BALLS
+        f"arm at x {x:+.1f}": (gimbal.bail, ARM_UP, (x, 0, 4), (x, 0, 11), F * ROD_LOAD, "y", ARM_LEVER - 4)
+        for x, _, _ in BALLS
     },
-    "input arm": (gimbal.bail, (TIP[0], BY + 5, BZ), TIP, F, "z", gm.BAIL_IN - 5),
+    # on its bed, the input arm along -y from the axis
+    "input arm": (gimbal.bail, BAIL_BED, (TIP[0], -5, 0), (TIP[0], -gm.BAIL_IN, 0), F * BAR_LOAD, "z", gm.BAIL_IN - 5),
 }
 
 
 @pytest.mark.parametrize("member", MEMBERS)
 def test_the_yokes_crank_and_the_bails_arms_hold_the_servos_at_stall(member):
     """SF 2 (beams.MIN_SF) in bending: the crank under the yaw servo's stall at its pin; each bail arm under the pitch
-    servo's at its ball (one arm taking it all, the bail's ratio on); the input arm under it at the pitch bar's pin. On
-    the mechanical parts, which their Bones are carved from (#809)."""
-    part, *beam = MEMBERS[member]
-    assert _bending_sf(part(mechanical=True).val(), *beam) >= beams.MIN_SF
+    servo's at its ball (one arm taking it all: the push-rod's load, square to the arm, at the ball's reach from the
+    axis); the input arm under the pitch bar's load at its pin. On the mechanical parts, which their Bones are carved
+    from (#809)."""
+    part, turned, *beam = MEMBERS[member]
+    assert _bending_sf(part(mechanical=True).val().moved(gimbal._at(turned)), *beam) >= beams.MIN_SF
 
 
 def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
     """gimbal.report reads the lids' clearance to a push-rod as a capsule CUP_R round the line between its balls."""
     v, _ = gimbal.push_rod().val().tessellate(0.01, 0.1)
-    assert max(math.hypot(p.x, p.z - gm.LEVER) for p in v) <= gimbal.CUP_R + 1e-6
+    a, b = (np.array(p) for p in ROD_BALLS)
+    along = (b - a) / np.linalg.norm(b - a)
+    assert max(np.linalg.norm(np.cross(np.subtract(p.toTuple(), a), along)) for p in v) <= gm.ROD_R + 1e-6
 
 
 # The lid drives' Bones (#698, #704): each lies on its slab's face, its pins along x; (part, its joints in turn)
