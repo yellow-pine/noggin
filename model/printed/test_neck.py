@@ -131,6 +131,44 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     )  # the pin boss ends at the bar
 
 
+@pytest.mark.model
+def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
+    """#968: SF 2 (beams.MIN_SF) in PETG across its layers along each of the carrier's chains, pivot to chin, the jaw
+    blocked anywhere along them: every section bends under at most the bar's worst moment about the pivot over the
+    jaw's sweep, in the jaw's plane, and pulls with its worst force (the crank's tangent force over the sine of the
+    crank-to-bar angle). Along each span and at each joint between two. On the mechanical part (ADR 0020)."""
+    # shortcut: the pin's post (r 3.5, 12 mm) is not sectioned: SF 6 by hand as a cantilever under this force. Nor is
+    # the twist its 14 mm offset puts on the L chain: 3.8 MPa of shear in the ramus by hand, SF 2.5 with its bending.
+    # Add both if the post thins or lengthens
+    solid, mat = _built("jaw" + g.MECHANICAL), g.MATERIALS[g.PRINTED["jaw"][1]]
+    tangent = sim.limits("jaw horn")["stall_kgf_cm"] * beams.G * 10 / nk.CRANK
+    horn, pivot = nk.pins()["jaw"][2], nk.HEAD_AXES["jaw"][0]
+    loads = []  # (N, N.mm) at each servo angle
+    for s in nk._sweep("jaw"):
+        _, a, b = nk.LINKAGES["jaw"](s)
+        (cy, cz), (by, bz), (ry, rz) = (np.subtract(p, q)[1:] for p, q in ((a, horn), (b, a), (b, pivot)))
+        force = tangent * math.hypot(cy, cz) * math.hypot(by, bz) / abs(cy * bz - cz * by)
+        loads.append((force, force * abs(ry * bz - rz * by) / math.hypot(by, bz)))
+    force, moment = (max(c) for c in zip(*loads))
+    weak = []
+    for chain in map(np.asarray, neck.jaw_chains().values()):
+        ways = [(b - a) / np.linalg.norm(b - a) for a, b in itertools.pairwise(chain)]
+        cuts = [(a + (b - a) * t, w) for (a, b), w in zip(itertools.pairwise(chain), ways) for t in (0.3, 0.5, 0.7)]
+        # each joint too, square to its two spans' mean: where Bones ending flat on a bend left a notch
+        cuts += [(joint, (v + w) / np.linalg.norm(v + w)) for joint, v, w in zip(chain[1:], ways, ways[1:])]
+        for at, along in cuts:
+            u = np.subtract(g.X, along * along[0])
+            u /= np.linalg.norm(u)  # the bending axis, x in the section's plane
+            cut = _section(solid, tuple(at), tuple(along), tuple(u), (16, 16))
+            area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
+            inertia = u @ np.array(cq.Shape.matrixOfInertia(cut)) @ u / 0.01
+            fibre = max(abs((np.array(v.toTuple()) - centre) @ np.cross(along, u)) for v in cut.Vertices())
+            sf = mat["tensile_mpa"]["z"] / (force / area + moment * fibre / inertia)
+            if sf < beams.MIN_SF:
+                weak.append((tuple(np.round(at, 1)), round(sf, 2)))
+    assert weak == []
+
+
 @pytest.fixture(scope="module")
 def saddle():
     return _built("nod plate")

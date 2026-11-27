@@ -3,6 +3,7 @@ drawn where it sits at rest. Turning bores take the busy pivots' M3 shanks (mode
 is fixed in has a tapping hole instead. A tie slot through a tab clamps each end of a flexing span."""
 
 import functools
+import itertools
 import math
 
 import cadquery as cq
@@ -17,6 +18,12 @@ from model.printed.gimbal import cyl, link
 
 TAP_R = 1.25  # an M3 shank's tapping hole: the part it is fixed in (inferred)
 BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mechanical bar's round ends
+# #968: the jaw's Bones down each chain, sized to hold the mouth servo's stall inside the mandible: (head, waist), each
+# its half-depth fore and aft, then across. The condyle's neck is stout across, where the bone is narrow fore and aft;
+# the ramus' plate deep fore and aft, where it is thin across; the body between the two
+_CONDYLE, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
+JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, _BODY, _BODY, _BODY)
+JAW_LAP = 2.0  # each Bone runs this far past its joints: flat ends meeting on a bend leave a notch to mid-section
 
 
 def tie(x, y, z):
@@ -230,31 +237,31 @@ def pan_wire_candidate():
     }
 
 
+def jaw_chains():
+    """{side: the jaw's chain of joints}: down the mandible's ramus and body (nk.MANDIBLE_CHAIN) to the chin."""
+    return {side: [*chain, nk.JAW_CHIN] for side, chain in nk.MANDIBLE_CHAIN.items()}
+
+
 @bone.grown
 def jaw(mechanical=False):
-    """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""
-    points = {}
-    for side, border in nk.MANDIBLE_BORDER.items():
-        sign = 1 if side == "L" else -1
-        points[side] = [
-            (x - sign * 2.5, y, z + (nk.JAW_CHAIN_UP if i >= 4 else 0)) for i, (x, y, z) in enumerate(border)
-        ]
-        points[side].append(tuple(np.add(nk.MENTON, (0, 0, nk.JAW_CHAIN_UP))))
+    """Hidden spatial carrier inside the mandible's ramus and body (#968), turning at its condyles: a chain of Bones
+    down each side to the chin, and the drive's pin on a post inboard from the L chain to the jaw bar."""
+    points = jaw_chains()
     out = None
     for chain in points.values():
-        for a, b in zip(chain, chain[1:]):
-            link = strut(a, b, (3.2, 2.2), (2.8, 2))
+        for i, ((a, b), size) in enumerate(zip(itertools.pairwise(np.array(chain)), JAW_SPANS, strict=True)):
+            lap = (b - a) / np.linalg.norm(b - a) * JAW_LAP
+            # but at the pivot, where a longer end would sweep into the frame's plate
+            link = bone.bone(a - lap * (i > 0), b + lap, *size, up=(1, 0, 0), round=True, heads=False)
             out = link if out is None else out.union(link)
     jy, jz = nk.JAW
     for sign in (-1, 1):
         xs = sorted(sign * x for x in nk.JAW_X)
         out = out.union(cyl("x", (0, jy, jz), nk.BOSS_R, xs)).cut(cyl("x", (0, jy, jz), gm.PIN_R, xs))
-    # The actual ramus, not a vertical extension of the old L, takes the drive pin.
-    x = sum(nk.JAW_X) / 2
-    pin = (x, *nk.JAW_PIN)
-    out = out.union(strut(points["L"][2], pin, (3, 2.2), (2.5, 1.8)))
-    pin_r = 4.0 if mechanical else 3.5
-    out = out.union(cyl("x", (0, *nk.JAW_PIN), pin_r, nk.JAW_X)).cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, nk.JAW_X))
+    # the pin's post: from its chain's joint in the ramus in to the bar's outer face, the bar's shank tapped into it
+    post = (nk.JAW_BAR_X[1] + 0.3, points["L"][2][0])
+    out = out.union(cyl("x", (0, *nk.JAW_PIN), 4.0 if mechanical else 3.5, post))
+    out = out.cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, (post[0], post[0] + 8.0)))  # 8 mm deep, short of the chain
     return out
 
 
@@ -279,7 +286,7 @@ def pan_bar():
 
 @bone.carved
 def jaw_bar(mechanical=False):
-    """The jaw bar: the jaw's lever pin back to the mouth horn's (#838)."""
+    """The jaw bar: the jaw's pin down to the mouth horn's (#838, #968)."""
     solve = nk.LINKAGES["jaw"]
     _, a, b = solve(0)
     return link(tuple(a[1:]), tuple(b[1:]), nk.JAW_BAR_X, mechanical, BAR_BONE)
