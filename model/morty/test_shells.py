@@ -20,6 +20,9 @@ NAMES = [f"morty {n}" for n in g.SHELLS["morty"]]
 # head's frame, mirrored in x. The Skin leaves them out: a wall would follow them 75 mm in. The surface it leaves
 # out, cm2: all but the sheets' edges under the brows' ridges (shells.SEEN's shortcut)
 BROWS, SHEETS_CM2 = ((0.0, -14.0, 27.0), (80.0, 90.0, 60.0)), 169.5
+# what the shirt gives up to the turning head (shells.cleared()), measured: no deeper under the collar's top, mm, and
+# this much of the Sculpt's shirt, cm2
+CARVED_MM, CARVED_CM2 = 0.0, 0.0
 
 
 @pytest.fixture(scope="module")
@@ -127,6 +130,70 @@ def test_the_skin_stands_on_the_base_plane_with_no_floor(built):
     rim = shirt.area_faces[np.abs(shirt.triangles[:, :, 2] - z).max(axis=1) < 1e-3].sum()
     size = shirt.bounds[1] - shirt.bounds[0]
     assert 0 < rim < 0.1 * size[0] * size[1]
+
+
+def _solids(built):
+    return {
+        n: shells._solid(*(lambda m: (m.vertices, m.faces))(trimesh.Trimesh(m.vertices, m.faces)))
+        for n, m in built.items()
+    }
+
+
+def test_shells_that_ride_together_keep_the_seams_gap(built):
+    """#850: the hair and the face, both on the head, are never nearer than the room a worn Shell keeps from a part it
+    does not sit on (model/printed/test_skin.py CLEAR_MM), nor further apart at their seam than SEAM and a bit."""
+    solid = _solids(built)
+    gap = solid["morty hair"].min_gap(solid["morty face"], 5.0)
+    assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, gap
+
+
+@pytest.mark.parametrize("jaw", [0.0, 0.07, 0.5, 1.0])
+def test_no_seam_closes_as_the_head_turns_and_the_jaw_opens(built, jaw):
+    """#850: through tilt and pan together (13 poses each way, none the cutter's own but the ends) with the jaw at
+    `jaw` of its range, the hair, the face and the chin stay gm.LID_CLEAR_MM off the fixed shirt, and the chin off the
+    face and the hair it opens away from."""
+    solid = _solids(built)
+    stage, eyes = stages.STAGES[morty.DOC], stages.align(*stages.DOCS[morty.DOC]["eyes"])
+
+    def moved(horn, part, share):
+        low, high = stage.horns[horn].limits
+        deg = low + share * (high - low)
+        return (
+            np.linalg.inv(eyes)
+            @ stages.pose(stage, horn, deg).parts[part]
+            @ np.linalg.inv(stage.parts[part].matrix)
+            @ eyes
+        )
+
+    opened = moved("jaw horn", "jaw:1", 1.0 - jaw)  # its horn's high end is the jaw shut
+    chin = solid["morty chin"].transform(opened[:3])
+    near = {}
+    for other in ("morty face", "morty hair"):
+        near[other, "chin"] = chin.min_gap(solid[other], 5.0)
+    for tilt in np.linspace(0, 1, 13):
+        for pan in np.linspace(0, 1, 13):
+            turn = moved("tilt horn", "gimbal frame:1", tilt) @ moved("pan horn", "gimbal frame:1", pan)
+            for name, mover in (
+                ("morty hair", solid["morty hair"]),
+                ("morty face", solid["morty face"]),
+                ("chin", chin),
+            ):
+                gap = mover.transform(turn[:3]).min_gap(solid["morty shirt"], 5.0)
+                near[name, "shirt"] = min(near.get((name, "shirt"), 5.0), gap)
+    assert min(near.values()) > gm.LID_CLEAR_MM, near
+
+
+def test_the_shirt_gives_way_to_the_head_near_the_collar_alone(built, sculpt):
+    """#850: where the head's Shells turn into it the shirt is cut back, and nowhere else: all of the Sculpt's shirt
+    more than CARVED_MM under the collar's top is the Shell's own, and what is cut away above is CARVED_CM2 of it."""
+    shirt = cKDTree(built["morty shirt"].vertices)
+    top = skin.contour("collar")[:, 1].max()
+    under = _inside(sculpt.vertices[:, [1, 2]], skin.cuts()["collar"][1]) & (
+        sculpt.vertices[:, 2] > shells.base() + 0.01
+    )
+    gone = under & (shirt.query(sculpt.vertices)[0] > 1e-3)
+    assert sculpt.vertices[gone][:, 2].min() > top - CARVED_MM
+    assert sculpt.area_faces[gone[sculpt.faces].all(axis=1)].sum() / 100 == pytest.approx(CARVED_CM2, abs=2.0)
 
 
 def test_each_shell_fits_the_bed_whole(built):
