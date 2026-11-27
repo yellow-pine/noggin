@@ -22,6 +22,11 @@ ROOM = skin.WALL + 0.5  # under Morty's surface: the Skin's wall and its clearan
 GRID, BAND = 1.0, 16.0  # the grid's pitch; how deep the exact distances reach, mm
 DENSITY = 8.0  # surface samples a mm2: about 0.35 mm apart, so a depth is good to 0.2 mm
 FLOOR = -200.0  # the sculpt is read down to here in the head's frame: under C7 and the shoulders' tops
+# the sculpt's own eye centres in today's head frame: each dome's foot's middle seen from the front (#992's measure,
+# #967's comment 7208288166, good to 0.5 mm), at the Mech's eyes' depth. The Mech's eyes (gimbal.EYE, 72.7 mm apart
+# from #872's rougher measure) move onto them in #967 (Cansin, 2026-11-27); the orbits, the lids' shell and the belt
+# are fitted to them already, and read gimbal.EYE again once it is these
+EYES = {"L": (40.5, 0.0, 2.2), "R": (-39.7, 0.0, 2.1)}
 COMMITTED = os.path.join(stages.REPO, "model", "morty", "sculpt.ply")  # in the sculpt's own frame, mm (docs/adr/0027)
 
 

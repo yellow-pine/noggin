@@ -61,11 +61,11 @@ def test_the_skulls_eyes_sit_in_its_orbits():
 @pytest.mark.model
 @pytest.mark.bones
 def test_the_skull_keeps_out_of_the_lids_shell_and_the_belt_behind_each_eye():
-    """#967's re-laid lids stow in a shell of radius skeleton.LID_SHELL all round each eye centre and their drives
-    leave it through the belt behind the eye (skeleton.BELT): no bone of the finished skull within the shell or in the
-    belt, to the Finish's voxel."""
+    """#967's re-laid lids stow in a shell of radius skeleton.LID_SHELL all round each of Morty's eye centres
+    (envelope.EYES) and their drives leave it through the belt behind the eye (skeleton.BELT): no bone of the finished
+    skull within the shell or in the belt, to the Finish's voxel."""
     v = _bones()["skull"].vertices
-    for x, y, z in gm.EYE.values():
+    for x, y, z in envelope.EYES.values():
         assert np.linalg.norm(v - (x, y, z), axis=1).min() >= skeleton.LID_SHELL + skeleton.CLEAR_MM - skeleton.PITCH
         lo = np.array((x - skeleton.BELT[0], y, z + skeleton.BELT_Z[0])) + skeleton.PITCH
         hi = np.array((x + skeleton.BELT[0], y + skeleton.BELT[1], z + skeleton.BELT_Z[1])) - skeleton.PITCH

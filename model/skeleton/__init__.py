@@ -19,6 +19,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skin as sk
 from model import stages
+from model.skeleton import envelope
 
 SCENE, EXPORT = "model/skeleton/skeleton.blend", "model/skeleton/export.py"
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
@@ -27,7 +28,8 @@ PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round ever
 FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of it (export.rounded)
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
-# #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each eye centre in a shell of
+# #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each of Morty's eye centres
+# (envelope.EYES, where the Mech's eyes move to) in a shell of
 # radius up to LID_SHELL, and the yaw rails, the tie-bar's fingers and the pitch rods leave it through the belt behind
 # the eye, between the stowed lids (their turn 174 to 214 deg). The skull keeps out of both before those parts exist
 # (then the Finish carves round them as round every part). BELT, about an eye centre: its half-width along the lids'
@@ -84,13 +86,12 @@ def job():
         "bones": bones,
         "worn": g.WORN,
         "orbits": [
-            [list(e), r + CLEAR_MM, back]
-            for e in gm.EYE.values()
-            for r, back in ((gm.LOWER_R[1], REACH), (LID_SHELL, None))
+            *([list(e), gm.LOWER_R[1] + CLEAR_MM, REACH] for e in gm.EYE.values()),
+            *([list(e), LID_SHELL + CLEAR_MM, None] for e in envelope.EYES.values()),
         ],
         "belts": [
             [[x - BELT[0], y, z + BELT_Z[0] - CLEAR_MM], [x + BELT[0], y + BELT[1], z + BELT_Z[1] + CLEAR_MM]]
-            for x, y, z in gm.EYE.values()
+            for x, y, z in envelope.EYES.values()
         ],
         "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP, "Round": FLOOR / 2},
     }

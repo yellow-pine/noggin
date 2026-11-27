@@ -1,7 +1,7 @@
 """The Warp (docs/adr/0025, #874): BodyParts3D's original Basis fitted to the Mech inside Morty's skin, in the head's
 frame (mm, the eyes' middle at the origin). Each region (the skull, the mandible, the neck) is resized uniformly about
 the eyes' middle and placed, then takes one smooth field, a cubic B-spline lattice (LATTICE mm), solved so the
-functional landmarks land on the Mech (the orbits on the eyes, the condyles on the jaw's hinge, the occipital condyles
+functional landmarks land on the Mech (the orbits on Morty's eyes, the condyles on the jaw's hinge, the occipital condyles
 on the tilt axis, each vertebra's canal on the cervical canal's path, C1's round the pan axis) and every vertex lies
 RAW under Morty's skin (envelope.py: the sculpt's surface, the bones' limit since 2026-11-27). The cranium's outer
 side is drawn out to that limit, softly, so the vault closes over the mechanism and the skull base comes down toward
@@ -18,7 +18,7 @@ from scipy.optimize import minimize
 from scipy.spatial import cKDTree
 
 from model import geometry as g
-from model import gimbal, neck
+from model import neck
 from model.skeleton import budget, envelope
 
 LATTICE = 20.0  # the field's control spacing, mm
@@ -51,8 +51,9 @@ FILL, MIDDLE, BASE_Z, CLEAR_MM = 2.0, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # 
 VAULT, VAULT_EL = (*sorted(budget.CRANIAL), "frontal bone"), -20.0  # its bones; degrees up from MIDDLE
 POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
-# the regions' uniform resize (the neck's: neck_scale()): the skull's back and crown then stand at Morty's own
-SCALES = {"skull": 1.05, "mandible": 1.0}
+# the regions' uniform resize (the neck's: neck_scale()): the skull's orbits then spread to Morty's eyes, 80.2 mm
+# apart where BodyParts3D's are 59.6, inside the face's 1.25
+SCALES = {"skull": 1.15, "mandible": 1.0}
 
 
 def lattice(points, lo, shape):
@@ -348,7 +349,7 @@ def warp(basis, faces, landmarks, skin):
     zone = np.flatnonzero((caps > 1.375) & (SCALES["skull"] * x[:, 2] < BASE_Z))
     moving = cKDTree(np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES]))
     pairs = [
-        *((lm[f"{s} orbit"], (sign * gimbal.SPACING / 2, 0, 0), (1, 1, 1)) for s, sign in (("L", 1), ("R", -1))),
+        *((lm[f"{s} orbit"], envelope.EYES[s], (1, 1, 1)) for s in "LR"),
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
         *((p, (0, TILT[1], TILT[2] - C0_BELOW), (0, 1, 1)) for p in occ),
     ]
