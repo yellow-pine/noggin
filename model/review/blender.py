@@ -61,7 +61,8 @@ def place(o, part, region, layer):
 
 
 def morty(m):
-    """Private semantic surfaces, painted by Colour group and carried by live parts; fixed body surfaces never key.
+    """Private semantic surfaces, painted by Colour group and carried by live parts (the neck's by the head's); fixed
+    body surfaces never key.
     The editable source stays local and is read without being rewritten."""
     with bpy.data.libraries.load(m["blend"]) as (src, dst):
         if "Morty reference" not in src.collections:
@@ -207,9 +208,14 @@ def contoured(m, objects):
     surface inside its eye white (its dome's foot) is the eye's, all eye white but its pupil, and what is under the mouth
     line the jaw's; the rest of the moving surfaces is the head's, an eye's surface round its dome too (no lid's: the
     lids are the mechanism's covers), its hair above and behind the hairline. On the fixed body, the shirt under the
-    collar, the hair above and behind the hairline elsewhere."""
+    collar, the hair above and behind the hairline elsewhere; and so on the neck's surface, which keeps its own faces
+    and rides the head as one (skin.MOTION)."""
     head, contours, carriers = Matrix(m["head"]), m["contours"], m["carriers"]
-    moving = [o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith(" lid")]
+    # shortcut: the neck's surface rides the head whole, its faces under the collar too (the Shells cut the shirt
+    # there, model/morty/shells.py); share them out to the torso once this hidden layer is looked at again
+    moving = [
+        o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith((" lid", "neck"))
+    ]
     poly = {n: o for n, (_, o) in contours.items()}
     if len({tuple(x.name for x in o.data.materials) for o in moving}) > 1:
         raise ValueError("review: Morty's moving surfaces need the same Colour group slots in the same order")

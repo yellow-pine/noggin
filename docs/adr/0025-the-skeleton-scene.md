@@ -95,3 +95,47 @@ fronts (Cansin, 2026-11-27, #874; model/skeleton/test_skeleton.py holds it). A d
 within the length budget an anatomical brow reaches about 24 mm ahead of the orbits, and Morty's 40.4 mm eyes stand
 proud of it. Anatomy comes first.
 
+
+## 2026-11-27 refit inside Morty's skin (#874)
+
+Cansin's directive on #893 (2026-11-27) makes the Sculpt's surface the bones' limit: every bone stays at least 2.1 mm
+under it (the Skin's 1.6 mm wall, grown inward, and 0.5 mm of clearance), where the compact head's box had been.
+Measured first (#874): the box-fitted skull stood 10.9 mm out of Morty's forehead, its chin 4.6 and C7's spine 8.6,
+with 32 mm unused under his crown, which stands 36 mm over the box's top.
+
+- `model/skeleton/envelope.py` reads the Sculpt as a depth under its outer surface (sheets it holds inside itself, its
+  hair's under side, are no skin). The Warp keeps every vertex and every face 2.5 mm under it: the limit and half the
+  Finish's voxel, which its remesh can grow a bone by.
+- The regions are about life-size: the skull 1.05 (its back and crown then stand at Morty's own), the mandible 1.0
+  (0.95 in the box), the neck 0.968 as before. Each takes one field. In the solve the length budget is the hardest
+  term, then the skin and the landmarks, last the fill.
+- The cranium's outer side is drawn out toward the skin, softly, within the budget: the vault then stands outside the
+  mechanism's sweep by its wall and clearance, so the Finish closes it, and the growth zone's under side comes down
+  toward his nape (#991's skull-base guides), 1.6 mm clear of the vertebrae over the tilt's and the pan's ranges.
+- The neck's vertebrae take a field of their own: each canal and each body's front pinned, the spines bent in under
+  his neck's skin. On #1055's straight canal (C7's foot at y 72, where it was 91.6) the vertebrae already stand 7.2 mm
+  under his skin at rest, so that field moves nothing (local lengths 0.999 to 1.0).
+- BodyParts3D's decimated meshes hold slivers a smooth field folds; `slivers.py` turned their long edges once, moving
+  no vertex. The Warp refuses a fold, a shear past 2.1 or a Jacobian under 0.5 at the eyes and nose (#991), read
+  outside the lids' shell alone. The shear limit is Cansin's (2026-11-27, #893): 2.1, where the box fit's was 1.8
+  and this fit measures 2.05 (2.27 before the eyes moved onto the Sculpt's). A fit that cannot hold 2.1 stops and
+  goes back to him; the limit is not raised to pass it.
+- The orbits sit on the Sculpt's own eyeballs' centres (#967's fit, 73.3 mm apart), which are the Mech's eyes
+  (`gimbal.EYE`) since #1035. #967's re-laid lids stow in a shell of radius 38 mm round each and their drives leave it
+  through a belt behind each eye: both are openings of the skull's Finish before those parts exist.
+- The skull's Finish seals its 21 bones into one before it shells and carves: their SDF grown 1.5 mm, then eroded by
+  as much (`skeleton.SEAL`), which closes every gap under 3 mm. BodyParts3D's bones only abut, and with the lids'
+  shell and the belts open the palate hangs on one junction: the R maxilla's back against the sphenoid's pterygoid
+  process, 1.4 mm apart, in the 3.4 mm between the gimbal frame's plate and the tie-bar's sweep. Whether the Finish
+  joins them unsealed turns on where the two land on its grid: on the fit before the eyes moved onto the Sculpt's
+  (#1035) the palate came off as a second piece (5.3 cm3); on this one it holds unsealed too, on a neck of 17 mm2.
+  Sealed, it held on both: a neck of 22 mm2 then, 29.5 now (about 10 mm wide and 3.4 tall). So the seal is what keeps
+  the palate from hanging on that chance, and `test_skeleton.py`'s one-piece check holds it only on a fit where the
+  two bones miss. The L side has no bridge while today's lower lids sweep the L maxilla away under the plate.
+- The skull's Finish first thickens the vault's bones (the fit's `VAULT`: the growth zone's six and the frontal) inward,
+  toward the cranium's middle, to at least 2.4 mm (`skeleton.THICK`: the 2 mm print floor and half the voxel), their
+  outer side staying where it is. Stretched over Morty's wide head the parietal bones are 0.8 to 2.2 mm thick at the
+  temples; the rounding took what was under the floor away and left two holes there (the R about 19 x 10 mm).
+  Cansin, 2026-11-27 (#893's second round): close them with bone at the print minimum.
+- The gates read the Sculpt (`model/morty`, ADR 0027): `test_skeleton.py` holds each finished bone 2.1 mm under it
+  and to no box. `base.DOME` stays the mechanism's box until its gates read the Sculpt too.

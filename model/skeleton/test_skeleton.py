@@ -1,5 +1,5 @@
 """Seam: the realistic Skeleton's bones as the Skeleton scene exports them (model/skeleton finish(), just ours; docs/adr/
-0025): on the Mech's eyes and neck, held by the head's box (base.DOME), one piece each; the scene itself committed
+0025): on the Mech's eyes and neck, under Morty's skin (envelope.py), one piece each; the scene itself committed
 light, its one source under its own licence."""
 
 import itertools
@@ -10,17 +10,23 @@ import numpy as np
 import pytest
 import trimesh
 
-from model import base, skeleton, stages
 from model import geometry as g
 from model import gimbal as gm
 from model import neck as nk
-from model.skeleton import fit
+from model import skeleton, stages
+from model.skeleton import envelope, fit
 
 SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
-HEAD = ("skull", "mandible")
-# the bare bones the mechanism cuts in two, strict so the fixing PR drops its mark: what rides with each cuts it exactly
-SEVERED: dict[str, str] = {}  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
+SKIN_TOL = 0.2  # a depth under Morty's skin is good to this (envelope.DENSITY), mm
+# strict, so #968's follow-up, which re-measures nk.MANDIBLE_CHAIN on the refitted mandible, drops the mark
+CHAIN = "#968: the jaw carrier's chain still follows the box-fitted mandible, not #874's refit inside Morty's skin"
+# the bones the mechanism cuts in two, strict so the fixing PR drops its mark
+SEVERED = {
+    "c3": "#1060: the cervical carrier's R rail, as thick as the tilt servo's stall takes, runs through C3's R lateral "
+    "mass and cuts its transverse process off (206 mm3); #874 fits C3 round the rail, or #1060's metal tube takes the "
+    "rail out of it, and drops this mark",
+}
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -47,28 +53,48 @@ def _bones():
 
 @pytest.mark.model
 @pytest.mark.bones
-def test_the_skull_stands_the_heads_height_its_eyes_in_its_orbits():
-    """The chin to the cranium's top within the head gate's height; each eye's centre inside the cranium's box, the
-    brow over the orbits ahead of it by half the cap's radius: Morty's eyes (CAP_R) stand proud of an anatomical brow,
-    which the Warp's length budget keeps about 24 mm ahead of the orbits' centres (#874)."""
-    bones = _bones()
-    cranium, mandible = bones["skull"], bones["mandible"]
-    assert gm.HEAD_MM[2] - 4.0 <= cranium.bounds[1][2] - mandible.bounds[0][2] <= gm.HEAD_MM[2]
-    lo, hi = cranium.bounds
-    assert all((lo <= e).all() and (e <= hi).all() for e in map(np.array, gm.EYE.values()))
-    assert lo[1] < -gm.CAP_R / 2
+def test_the_skulls_eyes_sit_in_its_orbits():
+    """Each eye's centre, on the Sculpt's own, inside the cranium's box, and the forehead over the lids' shell
+    ahead of them. No brow stands in front of the eyes any more (ADR 0025's amendment of 2026-11-26): the lids stow in
+    a shell 38 mm round each eye centre (#967), which takes the orbits' rims, and Morty's own forehead lies behind
+    where an anatomical brow would. The skull's height is Morty's to give
+    (test_each_bone_lies_under_mortys_skin), no box's."""
+    lo, hi = _bones()["skull"].bounds
+    for e in map(np.array, gm.EYE.values()):
+        assert (lo <= e).all() and (e <= hi).all() and lo[1] < e[1]
 
 
 @pytest.mark.model
 @pytest.mark.bones
-def test_the_heads_box_is_the_bones():
-    """base.DOME, the head's shell in the gates, is the bare bones' box (ADR 0011: a copy held to its source), to a
-    mm."""
-    bones = _bones()
-    lo = np.min([bones[s].bounds[0] for s in HEAD], axis=0)
-    hi = np.max([bones[s].bounds[1] for s in HEAD], axis=0)
-    dome = np.array(base.DOME).T
-    assert np.abs(dome[0] - lo).max() <= 1.0 and np.abs(dome[1] - hi).max() <= 1.0
+def test_the_skull_keeps_out_of_the_lids_shell_and_the_belt_behind_each_eye():
+    """#967's re-laid lids stow in a shell of radius skeleton.LID_SHELL all round each of Morty's eye centres
+    (gimbal.EYE) and their drives leave it through the belt behind the eye (skeleton.BELT): no bone of the finished
+    skull within the shell or in the belt, to the Finish's voxel."""
+    v = _bones()["skull"].vertices
+    for x, y, z in gm.EYE.values():
+        assert np.linalg.norm(v - (x, y, z), axis=1).min() >= skeleton.LID_SHELL + skeleton.CLEAR_MM - skeleton.PITCH
+        lo = np.array((x - skeleton.BELT[0], y, z + skeleton.BELT_Z[0])) + skeleton.PITCH
+        hi = np.array((x + skeleton.BELT[0], y + skeleton.BELT[1], z + skeleton.BELT_Z[1])) - skeleton.PITCH
+        assert not ((v > lo) & (v < hi)).all(axis=1).any()
+
+
+@pytest.fixture(scope="module")
+def skin():
+    """Morty's skin as a depth, taken in a fixture: its build is 144 s of CPU, over the 60 s a test gets on CI's
+    four shared cores, where the timeout cut it off mid-query and the worker crashed (#874's first full Checks
+    runs). One worker builds it and the others wait for its file (envelope.morty())."""
+    return envelope.morty()
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("stem", g.BONES)
+def test_each_bone_lies_under_mortys_skin(stem, skin):
+    """Every finished bone at least envelope.ROOM (the Skin's wall and its clearance) under Morty's skin, the sculpt's
+    surface, to SKIN_TOL: the skull's limit since 2026-11-27, where the compact head's box was (#893, #874). On main
+    before the refit the forehead stood 10.9 mm out of him, the chin 4.6 and C7's spine 8.6."""
+    depth = skin.depth(trimesh.load(stages.stl(stem), force="mesh").vertices)
+    assert depth.min() >= envelope.ROOM - SKIN_TOL
 
 
 @pytest.mark.model
@@ -81,6 +107,24 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
     assert fit.canal(bones["atlas"]) == pytest.approx(pan[:2], abs=1.0)
     assert bones["atlas"].bounds[1][2] < tilt[2]
     assert all(bones[a].bounds[0][2] < bones[b].bounds[0][2] for b, a in zip(g.NECK, g.NECK[1:]))
+
+
+@pytest.mark.model
+@pytest.mark.bones
+def test_the_vault_is_closed_from_the_sides_the_back_and_above():
+    """Seen from the head's middle at the eyes' height, the finished skull shows bone in every direction (2 deg a
+    bin) level with the eyes and above, but in front, where the face opens round the lids. Two holes stood open at
+    the temples (the R about 19 x 10 mm) where the parietal bones are 0.8 to 2.2 mm thick, under the print floor,
+    and the Finish rounded them away: it now thickens the vault's bones inward first (skeleton.THICK; Cansin,
+    2026-11-27, #893)."""
+    rng = np.random.default_rng(0)
+    p = np.asarray(trimesh.sample.sample_surface(_bones()["skull"], 2_000_000, seed=rng)[0]) - (0.0, 70.0, 0.0)
+    az = np.degrees(np.arctan2(p[:, 0], p[:, 1]))  # 0 behind, 90 at his left
+    el = np.degrees(np.arcsin(p[:, 2] / np.linalg.norm(p, axis=1)))
+    seen = np.zeros((120, 45), bool)  # az -120 to 120, el 0 to 90
+    at = (np.abs(az) < 120) & (el >= 0)
+    seen[((az[at] + 120) // 2).astype(int), (el[at] // 2).astype(int)] = True
+    assert [(int(a) * 2 - 119, int(e) * 2 + 1) for a, e in np.argwhere(~seen)] == []
 
 
 @pytest.mark.model
@@ -98,11 +142,18 @@ def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
 @pytest.mark.bones
 @pytest.mark.parametrize(
     "stem",
-    [pytest.param(s, marks=pytest.mark.xfail(strict=True, reason=SEVERED[s])) if s in SEVERED else s for s in g.BONES],
+    [
+        pytest.param(s, marks=pytest.mark.xfail(strict=True, raises=AssertionError, reason=SEVERED[s]))
+        if s in SEVERED
+        else s
+        for s in g.BONES
+    ],
 )
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
-    """One piece (but crumbs of a voxel or two), inside the head's box; a vertebra between the tilt axis and the Torso's
-    lid."""
+    """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid. The skull's
+    palate holds on behind the R maxilla, between the gimbal frame's plate and the tie-bar's sweep, where the Finish
+    seals the maxilla to the sphenoid (skeleton.SEAL). On the fit before #1035 it came off unsealed, a second piece of
+    5.3 cm3; on this one it holds unsealed too (a thinner neck), so this check alone does not hold the seal (#874)."""
     mesh = trimesh.load(stages.stl(stem), force="mesh")
     pieces = [p for p in mesh.split(only_watertight=False) if abs(p.volume) > skeleton.PITCH**3 * 8]
     assert len(pieces) == 1
@@ -113,14 +164,12 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
             - stages.DOCS[skeleton.DOC]["eyes"][0][2]
         )
         assert top < mesh.bounds[0][2] and mesh.bounds[1][2] < nk.HEAD_AXES["tilt"][0][2]
-        return
-    lo, hi = np.array(base.DOME).T
-    assert (mesh.bounds[0] >= lo - 1.6).all() and (mesh.bounds[1] <= hi + 1.6).all()
 
 
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=CHAIN)
 def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
     """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), straight
     outboard of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the

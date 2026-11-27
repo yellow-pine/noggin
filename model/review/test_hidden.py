@@ -178,7 +178,7 @@ def test_the_eye_gimbal_hides_inside_mortys_sculpt(doc, sculpt):
 @pytest.mark.parametrize("doc", list(g.MECH))
 def test_no_region_of_his_skin_moving_against_the_eye_gimbal_comes_near_it(doc, regions):
     """#967, the head's articulation: over the pan's, the tilt's and the jaw's range, each region of his Skin that then
-    moves against the eye gimbal (the fixed neck, shoulders and torso under a turning head, the jaw's as it opens;
+    moves against the eye gimbal (the fixed shoulders and torso under a turning head, the jaw's as it opens;
     review.CARRIERS) keeps MARGIN from every point of the frame and the drives. A seam that opens between two regions
     is the Skin's own (#850)."""
     stage, near = stages.STAGES[doc], {}
