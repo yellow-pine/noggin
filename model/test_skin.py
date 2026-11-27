@@ -1,12 +1,16 @@
 """Seam: the Skin's Seats and magnets (model/skin.py): the pull of one magnet pair at the Seat's gap, which way each
 Shell comes off, and the polarity that keys a Shell to its own Seat."""
 
+import os
+
 import numpy as np
 import pytest
+import trimesh
+from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import skin
+from model import morty, review, skin, stages
 
 
 def test_a_seated_pair_of_4x2_n52_discs_pulls_about_4_5_newtons():
@@ -191,3 +195,24 @@ def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
     # the jaw under the mouth line between its corners, the shirt under the collar
     assert _inside(np.array([(0.0, -skin.FAR / 2), (0.0, 0.0), (40.0, -100.0)]), cuts["mouth"][1]).tolist() == [1, 0, 0]
     assert _inside(np.array([(60.0, -120.0), (60.0, -60.0), (120.0, -100.0)]), cuts["collar"][1]).tolist() == [1, 0, 0]
+
+
+def test_each_cut_lies_on_its_form_on_the_sculpt_git_holds():
+    """docs/adr/0011, 0027: the cuts' points are measurements of the Sculpt, so each is held to it. A form's foot is a
+    concave crease (two faces meeting inward by over 10 deg): every point of the hairline, an eye white, a pupil or the
+    collar lies within 1 mm of one, in its view. The mouth line is the middle of the lips' ridge: its corners on the
+    ridge's ends, its middle 2.5 to 4.5 mm from either foot."""
+    mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False)
+    eyes = {s: np.array(e) for s, e in review.MORTY_EYES.items()}  # the Sculpt's, which sit on ours
+    scale = gm.SPACING / np.linalg.norm(eyes["L"] - eyes["R"])
+    mesh = trimesh.Trimesh((mesh.vertices - (eyes["L"] + eyes["R"]) / 2) * scale, mesh.faces, process=False)
+    sharp = ~mesh.face_adjacency_convex & (mesh.face_adjacency_angles > np.radians(10))
+    crease = mesh.vertices[mesh.face_adjacency_edges[sharp]].mean(axis=1)
+    views = {"side": cKDTree(crease[:, [1, 2]]), "front": cKDTree(crease[crease[:, 1] < 0][:, [0, 2]])}
+    for cut, (view, _) in skin.cuts().items():
+        name = "sculpt hairline" if cut == "hairline" else cut
+        off, _ = views[view].query(np.array(skin.CONTOURS[name]["points"]) * gm.SPACING)
+        if cut == "mouth":
+            assert off[[0, -1]].max() < 1.0 and 2.5 < off[2:-2].min() <= off[2:-2].max() < 4.5, off
+        else:
+            assert off.max() < 1.0, (cut, off)
