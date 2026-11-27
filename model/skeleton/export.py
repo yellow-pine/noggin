@@ -103,19 +103,22 @@ def swap(job, ratio=None):
         x.matrix_world = Matrix(job["rest"][name])
         mech.objects.link(x)
     openings = collection(OPENINGS, collection("helpers"))
-    for i, ((x, y, z), r) in enumerate(job["orbits"]):  # each orbit opened round its lids, back to REACH
+    for i, ((x, y, z), r, back) in enumerate(job["orbits"]):  # each orbit a ball, cut off at y `back` where given
         bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=48, ring_count=24, location=(x, y, z))
         s = bpy.context.active_object
         s.name = f"orbit {i}"
-        reach = _box("reach", (x - r, y - r, z - r), (x + r, job["reach"], z + r), openings)
-        cut = s.modifiers.new("Reach", "BOOLEAN")
-        cut.operation, cut.object = "INTERSECT", reach
-        with bpy.context.temp_override(object=s):
-            bpy.ops.object.modifier_apply(modifier=cut.name)
-        bpy.data.objects.remove(reach)
+        if back is not None:
+            reach = _box("reach", (x - r, y - r, z - r), (x + r, back, z + r), openings)
+            cut = s.modifiers.new("Reach", "BOOLEAN")
+            cut.operation, cut.object = "INTERSECT", reach
+            with bpy.context.temp_override(object=s):
+                bpy.ops.object.modifier_apply(modifier=cut.name)
+            bpy.data.objects.remove(reach)
         for c in list(s.users_collection):
             c.objects.unlink(s)
         openings.objects.link(s)
+    for i, (lo, hi) in enumerate(job["belts"]):
+        _box(f"belt {i}", lo, hi, openings)
     for o in openings.objects:
         o.matrix_world = frame @ o.matrix_world  # the job's openings are in the head's frame
         o.display_type, o.hide_render = "WIRE", True
@@ -127,41 +130,60 @@ def _corners(me):
     return [(a, b, c) for a in (lo[0], hi[0]) for b in (lo[1], hi[1]) for c in (lo[2], hi[2])]
 
 
+def _there_and_back(group, grid, name, sign):
+    """The SDF `grid` (a socket) offset by `sign` times the group's input `name` (grown by a positive distance, eroded
+    by a negative one), then back by as much: the last offset's output, its two nodes named `name` there and back."""
+    N, L = group.nodes, group.links
+    if name not in group.interface.items_tree:
+        group.interface.new_socket(name, in_out="INPUT", socket_type="NodeSocketFloat")
+    gi = next(n for n in N if n.bl_idname == "NodeGroupInput")
+    for way, by in (("there", sign), ("back", -sign)):
+        m = N.new("ShaderNodeMath")
+        m.operation = "MULTIPLY"
+        L.new(gi.outputs[name], m.inputs[0])
+        m.inputs[1].default_value = by
+        o = N.new("GeometryNodeSDFGridOffset")
+        o.name = f"{name} {way}"
+        L.new(grid, o.inputs["Grid"])
+        L.new(m.outputs[0], o.inputs["Distance"])
+        grid = o.outputs[0]
+    return grid
+
+
 def rounded(group):
-    """The skull's Finish (the one cutting the Openings) opened by Round before its Mean, once: eroded, then grown back,
-    so every piece thinner than twice Round goes (#838's floor) and every convex edge, the orbits' and the nose's rims
-    among them, comes out rounded to it (#993). Older scenes' Finishes get it here, at export; build.py's are born with
-    it."""
+    """The skull's Finish (the one cutting the Openings), once, sealed and rounded. Sealed: its bones' SDF grown by
+    Seal, then eroded by it, before the shell and the cuts, so BodyParts3D's 21 bones, which only abut (the palate
+    hung on one such gap, model/skeleton SEAL, #874), are one bone across every gap under twice Seal. Rounded: opened
+    by Round before its Mean, eroded, then grown back, so every piece thinner than twice Round goes (#838's floor) and
+    every convex edge, the orbits' and the nose's rims among them, comes out rounded to it (#993). Older scenes'
+    Finishes get both here, at export; build.py's are born with them."""
     N, L = group.nodes, group.links
     cuts = {n.inputs["Collection"].default_value for n in N if n.bl_idname == "GeometryNodeCollectionInfo"}
-    if "Round erode" in N or bpy.data.collections.get(OPENINGS) not in cuts:
+    if bpy.data.collections.get(OPENINGS) not in cuts:
         return
-    if "Round" not in group.interface.items_tree:
-        group.interface.new_socket("Round", in_out="INPUT", socket_type="NodeSocketFloat")
-    gi = next(n for n in N if n.bl_idname == "NodeGroupInput")
-    mean = next(n for n in N if n.bl_idname == "GeometryNodeSDFGridMean")
-    grid = mean.inputs["Grid"].links[0].from_socket
-    less = N.new("ShaderNodeMath")
-    less.operation = "MULTIPLY"
-    L.new(gi.outputs["Round"], less.inputs[0])
-    less.inputs[1].default_value = -1.0
-    for name, distance in (("Round erode", less.outputs[0]), ("Round grow", gi.outputs["Round"])):
-        o = N.new("GeometryNodeSDFGridOffset")
-        o.name = name
-        L.new(grid, o.inputs["Grid"])
-        L.new(distance, o.inputs["Distance"])
-        grid = o.outputs[0]
-    L.new(grid, mean.inputs["Grid"])
+    if "Seal there" not in N:
+        # the bones' SDF: the one grid read twice, by the shell's outside and its inside
+        (bones,) = (
+            n.outputs[0] for n in N if n.bl_idname == "GeometryNodeMeshToSDFGrid" and len(n.outputs[0].links) == 2
+        )
+        into = [link.to_socket for link in bones.links]
+        sealed = _there_and_back(group, bones, "Seal", 1.0)
+        for socket in into:
+            L.new(sealed, socket)
+    if "Round there" not in N and "Round erode" not in N:  # "Round erode": a scene saved by an older export
+        mean = next(n for n in N if n.bl_idname == "GeometryNodeSDFGridMean")
+        L.new(_there_and_back(group, mean.inputs["Grid"].links[0].from_socket, "Round", -1.0), mean.inputs["Grid"])
 
 
 def numbers(job):
-    """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Round) on every finish."""
+    """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Seal and Round) on every
+    finish."""
     for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
         mod = o.modifiers["Finish"]
         if mod.node_group:  # a Finish not wired yet (the review's stand-in scene) has nothing to round
             rounded(mod.node_group)
         for key, value in job["numbers"].items():
-            if key != "Round" or key in mod.node_group.interface.items_tree:  # Round: the skull's alone
+            if key not in ("Seal", "Round") or key in mod.node_group.interface.items_tree:  # the skull's alone
                 getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
 
 

@@ -149,9 +149,9 @@ def test_the_hubs_port_is_at_the_back_of_the_realistic_skulls_base():
 
 
 def test_the_heads_box_takes_in_the_skull_over_the_parts():
-    """#828, #838, #874: the gates measure the head's shell, the realistic skull's box: from its chin 93.4 under the
-    eyes to its top 80 over them, about 78 each side, so parts within it make a head 173.4 tall, the eyes 0.539 up it;
-    a part out past it still counts."""
+    """#828, #838, #874: the gates measure the compact head's shell (base.DOME, the box the realistic skull filled before
+    Morty's skin became its limit): from 93.4 under the eyes to 80 over them, about 78 each side, so parts within it
+    make a head 173.4 tall, the eyes 0.539 up it; a part out past it still counts."""
     lo, hi = base.shelled(np.array((-50.0, -40.0, -74.5)), np.array((50.0, 80.0, 30.0)))
     assert lo == pytest.approx((-78.2, -40.0, -93.4)) and hi == pytest.approx((77.6, 134.9, 80.0))
     assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.5386, abs=1e-4)

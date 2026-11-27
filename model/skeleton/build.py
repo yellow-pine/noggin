@@ -34,7 +34,7 @@ def material(name, rgba):
 
 def finish_group(stem, bone):
     """The finish of `stem` (one of g.BONES) from the bone object `bone`, a Geometry Nodes SDF stack: the bone's SDF,
-    shelled to Wall (the skulls), less the openings (the skulls), what rides it, what moves against it grown by the
+    sealed by Seal and shelled to Wall (the skulls), less the openings (the skulls), what rides it, what moves against it grown by the
     Clearance and a Skin's Shells grown by it (the worn copies), averaged once, meshed at its zero level, and every
     piece under Keep of the largest dropped (a worn copy: all but the largest, the piece inside the Shells)."""
     skull, worn = bone == "skull", stem in JOB["worn"].values()

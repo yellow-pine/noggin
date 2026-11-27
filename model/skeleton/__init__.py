@@ -1,6 +1,6 @@
 """The realistic Skeleton's bones (docs/adr/0025): authored in the Skeleton scene (model/skeleton/skeleton.blend), its
 bones in the Stage 3 document's frame, each finished by its own Geometry Nodes modifier (model/skeleton/build.py wrote
-them: the cranium shelled to WALL, the orbits opened round the lids, everything
+them: the skull's bones sealed into one, the cranium shelled to WALL, the orbits opened round the lids, everything
 riding the bone cut out and everything moving against it CLEAR_MM round, crumbs dropped, meshed at PITCH).
 
 finish() hands Blender the scene and the document just built: Blender (model/skeleton/export.py) deletes the Scene
@@ -25,8 +25,19 @@ BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Bl
 DOC = "mech-back"  # the realistic document the bones are carved for
 PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round every moving part; the cranium's shell
 FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of it (export.rounded)
+# the skull's 21 bones are one bone across every gap under twice this (export.rounded): BodyParts3D's only abut, and
+# the palate hangs on the R maxilla's back, 1.4 mm off the sphenoid's pterygoid process where the two can meet (#874)
+SEAL = 1.5
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
+# #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each eye centre (gimbal.EYE,
+# on the Sculpt's own eyeballs' since #1035) in a shell of radius up to LID_SHELL (their band 36.3 to 37.5 mm and
+# 0.5 over it, #967's comment 7209215753), and the yaw rails, the tie-bar's fingers and the pitch rods leave it through the belt behind
+# the eye, between the stowed lids (their turn 174 to 214 deg). The skull keeps out of both before those parts exist
+# (then the Finish carves round them as round every part). BELT, about an eye centre: its half-width along the lids'
+# axis, and how far back it runs, to behind where the tie-bar and the bail's axis will stand (the paper sketch's, inferred)
+LID_SHELL, BELT = 38.0, (22.0, 48.0)
+BELT_Z = tuple(round(float(LID_SHELL * np.sin(np.radians(a))), 1) for a in (214.0, 174.0))
 
 
 def blender():
@@ -48,8 +59,8 @@ def poses(stage):
 def job():
     """What export.py needs, JSON-ready: the head's frame in the document; each cutting part's STL; for each bone, the
     places (4x4, the document's frame) of every part as the bone sees it over every pose, sorted into what rides it
-    (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (the
-    orbits, head's frame) and the finish's numbers."""
+    (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (head's
+    frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box) and the finish's numbers."""
     stage = stages.STAGES[DOC]
     rest = {n: p.matrix for n, p in stage.parts.items()}
     files = {n: p.file for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES}
@@ -76,9 +87,22 @@ def job():
         "rest": {n: rest[n].tolist() for n in files},
         "bones": bones,
         "worn": g.WORN,
-        "orbits": [[list(e), gm.LOWER_R[1] + CLEAR_MM] for e in gm.EYE.values()],
-        "reach": REACH,
-        "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP, "Round": FLOOR / 2},
+        "orbits": [
+            *([list(e), gm.LOWER_R[1] + CLEAR_MM, REACH] for e in gm.EYE.values()),
+            *([list(e), LID_SHELL + CLEAR_MM, None] for e in gm.EYE.values()),
+        ],
+        "belts": [
+            [[x - BELT[0], y, z + BELT_Z[0] - CLEAR_MM], [x + BELT[0], y + BELT[1], z + BELT_Z[1] + CLEAR_MM]]
+            for x, y, z in gm.EYE.values()
+        ],
+        "numbers": {
+            "Voxel": PITCH,
+            "Clearance": CLEAR_MM,
+            "Wall": WALL,
+            "Keep": KEEP,
+            "Seal": SEAL,
+            "Round": FLOOR / 2,
+        },
     }
 
 
