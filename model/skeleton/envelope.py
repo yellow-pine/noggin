@@ -26,7 +26,7 @@ FLOOR = -200.0  # the sculpt is read down to here in the head's frame: under C7 
 # the Sculpt's eye centres that place it on the Mech's eyes, raw mm: model/review's MORTY_EYES, a copy (importing the
 # review would make every bone's test depend on it) that model/review/test_review.py holds to it (ADR 0011). When
 # they move, the scene is rewarped (`just rewarp`): the Warp is fitted to the Sculpt where it stands
-SCULPT_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
+SCULPT_EYES = {"L": (84.467, 245.677, 107.54), "R": (74.186, 245.682, 107.54)}
 
 
 class Skin:

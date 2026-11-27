@@ -18,7 +18,7 @@ from scipy.optimize import minimize
 from scipy.spatial import cKDTree
 
 from model import geometry as g
-from model import neck, skeleton
+from model import gimbal, neck, skeleton
 from model.skeleton import budget, envelope
 
 LATTICE = 20.0  # the field's control spacing, mm
@@ -354,13 +354,13 @@ def warp(basis, faces, landmarks, skin):
     zone = np.flatnonzero((caps > 1.375) & (SCALES["skull"] * x[:, 2] < BASE_Z))
     moving = cKDTree(np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES]))
     pairs = [
-        *((lm[f"{s} orbit"], skeleton.EYES[s], (1, 1, 1)) for s in "LR"),
+        *((lm[f"{s} orbit"], gimbal.EYE[s], (1, 1, 1)) for s in "LR"),
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
         *((p, (0, TILT[1], TILT[2] - C0_BELOW), (0, 1, 1)) for p in occ),
     ]
     y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, clear=(zone, moving), faces=tris)
     report["skull"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, y, tris)}
-    shells = [(e, skeleton.LID_SHELL + CLEAR_MM) for e in skeleton.EYES.values()]
+    shells = [(e, skeleton.LID_SHELL + CLEAR_MM) for e in gimbal.EYE.values()]
     report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)], shells)
     base = np.isin(tris, zone).all(axis=1)
     room = float(moving.query(surface(y, tris[base]))[0].min())
