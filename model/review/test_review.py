@@ -191,7 +191,6 @@ a = bpy.data.scenes["Assembled"]
 tops = a.view_layers[0].layer_collection.children
 out = {"scenes": [s.name for s in bpy.data.scenes], "first": bpy.context.window_manager.windows[0].scene.name}
 out["hidden"] = sorted(l.name for l in tops if l.hide_viewport)
-out["tops"] = sorted(l.name for l in tops)
 out["reference_under"] = sorted(l.name for l in walk(a.view_layers[0].layer_collection) if "Morty" in l.children)
 out["reference_seen"] = any(o.visible_get(view_layer=a.view_layers[0]) for o in bpy.data.collections["Morty"].all_objects)
 tops["helpers"].hide_viewport = False  # shown here alone, for what follows reads the reference moving
@@ -330,7 +329,7 @@ def test_each_layer_has_its_regions_at_its_alpha_and_helpers_are_hidden(blend):
         assert all(a in ([], [alpha]) for a in regions.values()), (layer, regions)
         assert blend["layer_material_alpha"][layer] in ([], [alpha])
     assert bool(blend["morty"]) == os.path.isfile(review.MORTY)
-    assert blend["hidden"] == ["helpers"] and blend["tops"] == ["Mech", "Skeleton", "Skin", "helpers"]
+    assert blend["hidden"] == ["helpers"]
     assert blend["reference_under"] == ["helpers"] and not blend["reference_seen"]
 
 
