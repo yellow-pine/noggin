@@ -294,7 +294,7 @@ def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
     (#838, model/gimbal.py PLATE_Z), with the yaw bearings reaching forward under the yokes' stems, the bail's and the
     lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, the face's
-    Seats flush in its front, #852), the
+    Seats flush in its front, #852, its ends and the feet inside Morty's cheeks, #967), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
     servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), and the
     holes the head mount
@@ -310,28 +310,40 @@ def frame(mechanical=False):
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
     out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
     out = out.union(box((-edge, edge), (y0, y0 + 4), gm.PLATE_Z))  # its front out to the lids' uprights
-    out = out.union(box((-edge, edge), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852) under the lids (#901)
+    out = out.union(box((-gm.BEAM_X, gm.BEAM_X), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852) under the lids (#901)
     for s in (-1, 1):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         lx = sorted(s * u for u in neck.JAW_LUG_X)
-        # the lid upright's foot, hanging the bar, and its rail on the plate's level back to the plate's front
-        out = out.union(box(ux, (gm.CHEEK_Y[0], 4), (gm.BEAM_Z[0], top))).union(box(ux, (4, y0 + 4), gm.PLATE_Z))
+        # the lid upright's foot behind the cheek, an arm at the beam's level from it to the beam's end, and its rail on
+        # the plate's level from under the upright back to the plate's front (#967)
+        out = out.union(box(ux, gm.FOOT_Y, (gm.BEAM_Z[0], top))).union(box(ux, (0, y0 + 4), gm.PLATE_Z))
+        end = [(s * x, y) for x in (gm.BEAM_X - 6.0, gm.BEAM_X) for y in gm.CHEEK_Y]
+        arm = np.array(end + [(x, y) for x in ux for y in (gm.FOOT_Y[0], gm.FOOT_Y[0] + 4.0)])
+        arm = [tuple(map(float, arm[i])) for i in ConvexHull(arm).vertices]
+        z0, z1 = gm.BEAM_Z
+        out = out.union(cq.Workplane("XY", origin=(0, 0, z0)).polyline(arm).close().extrude(z1 - z0))
         # each yoke's bearing reaching forward from the plate's front, under the tie-bar (#901): both styles
         out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
         # at the plate's level, so no convex hull of it with the bearing reaches the tie-bar over it (#901)
         out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), gm.PLATE_Z))
         if mechanical:
-            out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
+            out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4)))
+            out = out.union(box(ux, (-4, 4), (-12, 4))).union(box(ux, (0, 8), (top, -12)))  # leaning back (#967)
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
             )
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle
-            for xs, y, z, r in ((bx, by, bz, 4.0), (ux, 0.0, 0.0, 4.0), (lx, jy, jz, neck.JAW_FIXED_R)):
+            # the lid upright leaning back to the plate, behind the cheek (#967)
+            for xs, y, foot, z, r in (
+                (bx, by, by, bz, 4.0),
+                (ux, 0.0, 4.0, 0.0, 4.0),
+                (lx, jy, jy, jz, neck.JAW_FIXED_R),
+            ):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
                 # strut's flush on the plate's edge reads back from Linux's STEP crossing the plate's (#851)
                 x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2 - 0.25
-                out = out.union(strut((x, y, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
+                out = out.union(strut((x, foot, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
                     cyl("x", (0, y, z), r, xs)
                 )
         out = out.cut(cyl("z", (s * c, 0, 0), gm.PIN_R, (stem - 8, stem)))

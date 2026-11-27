@@ -129,7 +129,7 @@ LID_SHELL_X = {
 }
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
-# to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) between those uprights' feet
+# to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) hung from those uprights' feet
 PLATE_Z = (-38.0, -35.0)
 # under the eyes' centres, behind the lower lids' sweep (#901: in front of the coronoids before), to past the head
 # mount's rear screws (model/neck.py)
@@ -137,9 +137,14 @@ PLATE_Y = (16.0, 87.0)
 PLATE_X, BACK_Y = 33.5, 40.0  # the body's half-width, out under the jaw's lugs (model/neck.py JAW_LUG_X)
 BACK_X = SPACING / 2 + BAIL_END + 4.0  # behind BACK_Y (the condyles') the back's, out to the bail's uprights
 CHEEK_Y = (-10.0, -6.0)
-# the bar a beam down its whole width, the face's Seats flush in its front (#852), under the lower lids' sweep (#901),
-# hung from the lid uprights' feet
+# the bar a beam, the face's Seats flush in its front (#852), under the lower lids' sweep (#901)
 BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' covers too
+# #967: Morty's life-size cheeks narrow under his eyes and widen behind them (the private reference, read locally by
+# model/review/test_hidden.py), so the beam ends inside them, its Seats' bosses within it, and an arm at its level runs
+# back from each end to its lid upright's foot, behind the lower lids' sweep; the upright leans back down to the plate's
+# level, where its rail reaches forward to meet it
+BEAM_X = 53.0
+FOOT_Y = (14.0, 20.0)
 # the head the gimbal fits (#684, #838): width, depth, height; Morty's life-size cranium (#893: 160 x 176 x 175)
 HEAD_MM = (160.0, 176.0, 175.0)
 
