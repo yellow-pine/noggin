@@ -35,7 +35,7 @@ CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 # CoACD's default preprocess ("auto") rebuilds from voxels a mesh it takes for no manifold, one with an open edge or
 # with triangles that cross (Bones joined), 0.55 of a voxel fatter all round, a voxel 1/100 of the part's longest side
 # (docs/research/2026-11-01-coacd-tuning.md 1): 0.5 to 0.8 mm on the jaw, the bail, the cervical carrier and the gimbal
-# frame, each on the one platform whose mesh failed that check, which read overlaps where the exact solids clear (#850,
+# frame, each on the platforms whose mesh failed that check, which read overlaps where the exact solids clear (#850,
 # #1036). model/test_convex_parts.py holds every corner of every piece to its mesh.
 # shortcut: cut so, CoACD never returns from two solids pushed right through each other (two crossed boxes, 60 s); our
 # parts are one solid each, their triangles crossing by a hair where near faces are meshed. Unite such a mesh first
