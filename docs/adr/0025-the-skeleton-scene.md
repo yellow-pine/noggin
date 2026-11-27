@@ -2,6 +2,8 @@
 
 > Decided with Cansin on 2026-11-03/04, spec #893 (its grilling on #872), ticket #873. Amends ADR 0009, 0019, 0020 and
 > 0023.
+> Amended 2026-11-27 (#850, ADR 0027): the Morty sculpt is committed and public (`model/morty`), so the coarse hull
+> below is not needed; the skull's limit is the sculpt's surface less 2.1 mm, not the compact head's box.
 
 The realistic Skeleton's bones are authored by hand, landmark by landmark, until Cansin has no more edits, and Cansin
 audits them by turning them in Blender, not in code or pictures. So their source is one committed Blender scene,
