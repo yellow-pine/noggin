@@ -32,6 +32,11 @@ CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
     ((2.4, 3.7), (2.2, 3.6)),
     ((3.5, 6.5), (3.0, 5.0)),
 )
+# The lid drives' Bones' longest span, mm (#967): one of their sizes 30 to 36 mm long comes out of OCCT invalid at
+# most of bone.chain's tries, at any angle (the lid bar's carved empty on macOS; all eight of the lower lid's 32.2 mm
+# spoke's failed on Linux), and one 28 mm or shorter at none. Not lower: the upper lid's 31.5 mm spoke builds as one
+# on both, and as two it carved in pieces
+LID_SPAN = 32.0
 MM = 0.001  # MuJoCo's metres per mm
 NECK = gm.BALL_R + 1.2  # a ball's centre from what its neck stands on
 # The push-rod leans (#967), so it lies on its own bed, the plane under both its cups: the lever's cup's mouth on it,
@@ -281,9 +286,13 @@ def lid_bone(points, x, sizes=LID_BONE):
     """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
     face, its joints' pins along x, as low as the slab (unclipped: OCCT's clip of one came out empty one way round): the
     lid drives' bars, links and spokes. Every other span's heads, from the first, are 5% smaller, inside its neighbours'
-    where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way."""
+    where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way.
+    A span longer than LID_SPAN is drawn as two Bones, each half as long."""
     assert sizes[0][1] < x[1] - x[0]
-    out = bone.chain(points, *sizes, swell=1.0)
+    halved = [points[0]]
+    for a, b in zip(points, points[1:]):
+        halved += [tuple(np.add(a, b) / 2)] * (math.dist(a, b) > LID_SPAN) + [b]
+    out = bone.chain(halved, *sizes, swell=1.0)
     # the bed's z onto x, its x and y onto the gimbal's y and z: a turn about (1, 1, 1), then into the slab
     return cq.Workplane().add(out.val().moved(_at([[0, 0, 1, x[0]], [1, 0, 0, 0], [0, 1, 0, 0]])))
 
@@ -306,9 +315,7 @@ def lid_bar(mechanical=False):
     horn's behind the eye (#838). Mechanical or as Bones (#704)."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
     horn = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
-    # its long span as two Bones: as one, OCCT carved it from its bar empty (#967, as the push-rod's, #901)
-    middle = [] if mechanical else [tuple(np.add(gm.LID_PIN, gm.LINK_PIN) / 2)]
-    out = lid_arms([gm.LID_PIN, *middle, gm.LINK_PIN, horn], (-w, w), mechanical)
+    out = lid_arms([gm.LID_PIN, gm.LINK_PIN, horn], (-w, w), mechanical)
     return holes(out, (gm.LID_PIN, gm.LINK_PIN, horn), (-w, w))
 
 
