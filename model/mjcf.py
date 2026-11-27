@@ -36,9 +36,12 @@ COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed see
 # own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
 FINE_MM = {
     "horn": 0.08,
-    # the jaw's arms turn 2 mm outside its lugs and the plate's edge (model/neck.py JAW_X): pieces within 1 mm of the
-    # frame, not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869)
-    f"gimbal frame{g.MECHANICAL}": 1.0,
+    # the jaw's arms turn 2 mm outside its lugs and the plate's edge (model/neck.py JAW_X): pieces close to the frame,
+    # not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869). Within
+    # 0.4 mm since #967: nodded, with the pan sagged 0.5 deg past its end, the plate's back edge passes 0.5 mm from the
+    # tilt servo and 0.95 from the nod plate (#975 saw both pairs on macOS's pieces), and pieces within 1 mm read the
+    # frame 0.35 and 0.34 mm into them on Linux once its shape changed
+    f"gimbal frame{g.MECHANICAL}": 0.4,
 } | {
     # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
     # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
