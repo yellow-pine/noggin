@@ -475,6 +475,7 @@ def frame(mechanical=False):
     out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
     out = out.union(box((-edge, edge), (y0, y0 + 4), gm.PLATE_Z))  # its front out to the lids' uprights
     out = out.union(box((-gm.BEAM_X, gm.BEAM_X), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852) under the lids (#901)
+    bearing = rail()
     for s in (-1, 1):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
@@ -492,7 +493,7 @@ def frame(mechanical=False):
         depth = gm.CHEEK_Y[1] - gm.CHEEK_Y[0]  # the XZ workplane extrudes toward -y
         out = out.cut(cq.Workplane("XZ", origin=(0, gm.CHEEK_Y[1], 0)).polyline(corner).close().extrude(depth))
         out = out.union(cq.Workplane("XY", origin=(0, 0, z0)).polyline(arm).close().extrude(z1 - z0))
-        out = out.union(rail() if s == 1 else rail().mirror("YZ"))  # each yoke's bearing (#967): both styles
+        out = out.union(bearing if s == 1 else bearing.mirror("YZ"))  # each yoke's (#967): both styles
         if mechanical:
             out = out.union(cq.Workplane("YZ", origin=(bx[0], 0, 0)).polyline(upright).close().extrude(bx[1] - bx[0]))
             # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
