@@ -94,6 +94,14 @@ def test_the_glued_shells_fill_their_pockets_without_overlapping(glued):
     assert shape.distance(held) <= gm.PUPIL_FIT + 1e-3
 
 
+def test_cansins_hair_stands_clear_of_his_brows(heads):
+    """#1018: the hair comes down the forehead to the sheet's hairline (#992), where his brows' tops are; it stops
+    BROW_CLEAR short of each brow, a band the face fills."""
+    for s in "LR":
+        brow = PARTS[f"cansin {s} brow"]().val().translate(cq.Vector(*gm.EYE[s]))
+        assert brow.distance(heads["cansin"]["hair"]) >= skin.BROW_CLEAR
+
+
 def test_barts_head_holds_mortys_whole_with_a_flat_crown():
     """#807: Bart's head is Morty's with a flat crown in the same box, so whatever clears Morty's Shells inside clears
     Bart's; his crown is level over the cranium where Morty's is round."""

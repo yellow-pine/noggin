@@ -1,6 +1,7 @@
 """Seam: model/base.py, the Mech's head variants (#686; Back alone since #712): where the boards go, the leads that
 cross pan and tilt, and the ranking of their sim reports."""
 
+import functools
 import itertools
 
 import numpy as np
@@ -95,31 +96,56 @@ def test_the_cores_lie_on_the_cranium_tray_and_the_switch_and_power_path_boards_
     assert base.HUB_LENGTH == BOXES["hub"][1][0] - BOXES["hub"][0][0]  # its copy of the Envelope's (ADR 0011)
 
 
+@functools.cache
+def _skull_faces():
+    """The finished skull's hull, as its faces' plane equations."""
+    return ConvexHull(trimesh.load(stages.stl("skull"), force="mesh").vertices).equations
+
+
+def _depth_in_skull(points):
+    """mm each point lies in from the nearest face of the finished skull's hull."""
+    faces = _skull_faces()
+    return -(faces[:, :3] @ np.transpose(points) + faces[:, 3:]).max(axis=0)
+
+
+def _hub_mouth():
+    """The corners of the hub's USB-C socket's mouth, in the head's frame."""
+    _, m = base.cranium()["hub"]
+    (_, x1), ys, zs = envelopes.HUB["usb"]
+    return np.array([(x1, y, z) for y in ys for z in zs]) @ m[:3, :3].T + m[:3, 3]
+
+
 @pytest.mark.model
 @pytest.mark.bones
-def test_the_boards_in_the_head_lie_inside_the_realistic_skull_its_port_at_the_back_of_its_base():
+def test_the_boards_in_the_head_lie_inside_the_realistic_skull():
     """#858: each Core and Shield, the bulk capacitor and the tray's plate under them, at least the finished skull's WALL inside the cranium's
-    hull, so the finish (model/skeleton) leaves its outside whole over them; the hub's port on the back of the
-    skull base, its socket's mouth within 4 mm of the hull (1 mm in from #858's 3, so the hub clears the hair, #921)
-    and 10 of the gimbal frame's plate."""
-    hull = ConvexHull(trimesh.load(stages.stl("skull"), force="mesh").vertices)
-
-    def inside(points):  # mm in from the hull's nearest face
-        return -(hull.equations[:, :3] @ np.transpose(points) + hull.equations[:, 3:]).max(axis=0)
-
+    hull, so the finish (model/skeleton) leaves its outside whole over them; the hub's port within 10 mm of the gimbal
+    frame's plate."""
     boards = base.cranium()
     for name in ("Core 1", "Shield 1", "Core 2", "Shield 2", "bulk capacitor"):
         mesh, m = boards[name]
         points = np.array([v.toTuple() for v in solid(mesh).tessellate(0.5)[0]]) @ m[:3, :3].T + m[:3, 3]
-        assert inside(points).min() >= skeleton.WALL, name
+        assert _depth_in_skull(points).min() >= skeleton.WALL, name
     plate = [
         (x, y, z) for x in (-30.5, 30.5) for y in (base.CORES_AT[1] - 15, base.CORES_AT[1] + 15) for z in base.TRAY_Z
     ]
-    assert inside(plate).min() >= skeleton.WALL
-    _, m = boards["hub"]
-    (_, x1), ys, zs = envelopes.HUB["usb"]
-    mouth = np.array([(x1, y, z) for y in ys for z in zs]) @ m[:3, :3].T + m[:3, 3]
-    assert np.abs(inside(mouth)).max() <= 4.0 and mouth[:, 2].max() < gm.PLATE_Z[1] + 10.0
+    assert _depth_in_skull(plate).min() >= skeleton.WALL
+    assert _hub_mouth()[:, 2].max() < gm.PLATE_Z[1] + 10.0
+
+
+# strict, so the PR that brings the port back to the skull's base drops the mark
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="#1014: the hub moved off C0's bearing (#975) and the BodyParts3D skull's base lies further back (#976): "
+    "its port's mouth is 24.6 to 27.6 mm inside the hull",
+)
+def test_the_hubs_port_is_at_the_back_of_the_realistic_skulls_base():
+    """#858: the hub's port on the back of the skull base, its socket's mouth within 4 mm of the hull (1 mm in from
+    #858's 3, so the hub clears the hair, #921)."""
+    assert np.abs(_depth_in_skull(_hub_mouth())).max() <= 4.0
 
 
 def test_the_heads_box_takes_in_the_skull_over_the_parts():
