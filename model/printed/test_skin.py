@@ -20,7 +20,7 @@ DOC = next(d for d in g.MECH if d in g.SIMULATED)  # the whole Mech, mechanical:
 REAL = next(d for d in g.MECH if g.SKULL_SUB in g.MECH[d])  # the realistic one: the skull's bones on it
 
 
-@pytest.mark.parametrize("stem", sk.SHELLS)
+@pytest.mark.parametrize("stem", [s for s in sk.SHELLS if s not in sk.DRAWN])  # a Skin's are meshes: model/morty
 def test_a_shell_is_one_valid_solid(stem):
     shape = PARTS[stem]().val()
     assert shape.isValid() and len(shape.Solids()) == 1

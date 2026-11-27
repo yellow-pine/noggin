@@ -87,12 +87,19 @@ def test_each_colour_group_is_printed_in_its_palettes_filament():
     assert all(g.filament(group, t) for t in g.PRESETS.values() for group, _ in g.PRINTED.values())
 
 
-def test_no_skin_shape_has_shells_so_stage_3_is_drawn_as_it_is():
-    """#850 (docs/adr/0027): no Shell is drawn by hand, so no Skin shape has Shells (SKINS) and no document wears one
-    (DRESSED); a Skin shape picked draws the document itself, as the viewer names its GLB (site/src/viewer/state.mjs
+def test_mortys_skin_is_the_documents_own_and_no_other_shape_has_shells():
+    """#850 (docs/adr/0027): Morty's Skin, cut from his Sculpt, is on each of the Mech's documents (SKINS' first), each
+    Shell printed in PLA Pure in its Colour group; no other Skin shape has Shells, so no document wears another's
+    (DRESSED) and a Skin shape picked draws the document itself, as the viewer names its GLB (site/src/viewer/state.mjs
     glb)."""
-    assert g.SKINS == {} and g.DRESSED == {}
-    assert all(set(subs) <= {"neck", "jaw", "eyes", "cranium", "base", g.SKULL_SUB} for subs in g.MECH.values())
+    assert g.SKINS == {"morty": "morty"} and g.DRESSED == {}
+    assert all(g.SKINS["morty"] in subs for subs in g.MECH.values())
+    assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
+        "hair": ("hair", "PLA Pure"),
+        "face": ("face", "PLA Pure"),
+        "chin": ("face", "PLA Pure"),
+        "shirt": ("clothes", "PLA Pure"),
+    }
     assert g.dressed("mech-back", "morty") == "mech-back" and g.dressed("mech-back", "none") == "mech-back"
     assert g.undressed("mech-back-mechanical") == "mech-back-mechanical"
     assert g.shape("mech-back-mechanical") == "mechanical" and g.shape("mech-back") == "realistic"

@@ -14,7 +14,8 @@ import cadquery as cq
 import trimesh
 from OCP.gp import gp_Trsf
 
-from model import envelopes, geometry, printed, skeleton, stages
+from model import envelopes, geometry, printed, skeleton, skin, stages
+from model.morty import shells
 from model.render import scene
 
 SHAPES = {**printed.PARTS, **printed.COUPONS, **envelopes.ENVELOPES}
@@ -64,6 +65,8 @@ if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "ours"
     if what == "ours":
         write(stages.OURS, list(SHAPES), ".stl")
+        shells.write()  # Morty's Skin, cut from his Sculpt
+        print(f"{len(skin.DRAWN)} Shells in {os.path.relpath(stages.OURS, stages.REPO)}")
         if skeleton.blender():
             skeleton.finish()  # round the parts just written
             print(f"{len(geometry.BONES)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")

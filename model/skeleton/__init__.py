@@ -54,13 +54,16 @@ def job():
     rest = {n: p.matrix for n, p in stage.parts.items()}
     files = {n: p.file for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES}
     shells = {n for n in files if stages.stem(files[n]) in sk.SHELLS}
+    # shortcut: a Skin's own Shells (sk.DRAWN) carve no bone: #874 fits the bones inside the Sculpt's skin instead, and
+    # #850's next slice gates their room to the Shells' inside. Carve them here if a bone must give way to a Shell
+    carving = [n for n in files if stages.stem(files[n]) not in sk.DRAWN]
     every = poses(stage)
     bones = {}
     for bone in g.SKULL:
         carrier, seen = stages.RIDES[bone + ":1"], {}
         for pose in every:
             back = rest[carrier] @ np.linalg.inv(pose[carrier])  # the document as the bone sees it there
-            for n in files:
+            for n in carving:
                 at = back @ pose[n]
                 places = seen.setdefault(n, [])
                 if not any(np.allclose(at, q, atol=1e-6) for q in places):

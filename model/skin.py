@@ -1,6 +1,7 @@
 """The Mech's Skin (GLOSSARY Skin, Seat, Sculpt): how a Shell sits on what carries it and how hard its magnets hold it
 there, Morty's contours and the cuts they make on his Sculpt, and the Motion regions. No Shell is drawn by hand
-(docs/adr/0027, #850): the eyeball caps, the mechanism's own, are the only Shells until Morty's are cut from his Sculpt.
+(docs/adr/0027, #850): the eyeball caps are the mechanism's own, and Morty's are cut from his Sculpt along these cuts
+(model/morty/shells.py), with no Seat yet.
 One source: model/printed/skin.py draws the caps and cuts the Seats from these numbers, model/stages.py places the caps
 on their cores, model/mujoco_report.py reads each Shell's peak acceleration and model/test_report.py holds it to
 hold_n().
@@ -38,6 +39,9 @@ SF = 2.0  # the magnets hold at least this many times a Shell's weight at its pe
 Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: the carrier's face, normal: out of it
 
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
+# round each eye's centre the Skin is open to this radius, so the lids stow hidden under its rim (#967: their band's
+# outer 37.5 mm and LID_CLEAR_MM; the Sculpt's face leaves its eye's ball at 37.1 to 37.2)
+EYE_OPENING_R = 38.0
 # Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
 # midpoint, each in the view it was measured in, front (x, z) or side (y, z), and swept through the head along that
 # view's axis. Cut once, on his Sculpt's skin (docs/adr/0027, cuts()), each where the Sculpt itself has the form: its
@@ -106,12 +110,12 @@ SEATS = [
     ],
 ]
 
-SHELLS = list(dict.fromkeys(s.shell for s in SEATS))
+# every Shell: the caps on their Seats, then each Skin's, cut from its Sculpt (g.SHELLS), which have no Seat yet (#850)
+SHELLS = [*dict.fromkeys(s.shell for s in SEATS), *(f"{k} {n}" for k, names in g.SHELLS.items() for n in names)]
 DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly direction, in its carrier's frame
 # A Skin's Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so
 # the servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
-# their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py). None until a Skin
-# shape has Shells (g.SKINS)
+# their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py)
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
 # The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
 # One source for the Morty reference's semantic meshes (model/review) and the Shells cut from his Sculpt (#850), so a
@@ -124,7 +128,7 @@ MOTION = {
     **dict.fromkeys(("neck", "shoulders", "torso")),
 }
 # {a word of a Shell's name: its region}, an eye's or a lid's after the Shell's side
-_WORDS = {"face": "head", "hair": "head", "mouth": "jaw", "shirt": "torso"}
+_WORDS = {"face": "head", "hair": "head", "chin": "jaw", "shirt": "torso"}
 _WORDS |= {"pupil": "eye", "eyeball": "eye", "upper": "upper lid", "lower": "lower lid"}
 
 

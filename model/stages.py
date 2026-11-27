@@ -4,6 +4,7 @@ sub-assemblies at frames into one document (geometry.STAGES, geometry.MECH). pos
 the four-bar kinematics (model/linkage.py), exactly, without simulating. Part names carry a ":1" suffix, as MuJoCo's
 bodies and the GLBs' nodes."""
 
+import functools
 import math
 import os
 from collections import namedtuple
@@ -12,7 +13,7 @@ import numpy as np
 
 from model import base as candidates
 from model import geometry as g
-from model import gimbal, linkage, neck
+from model import gimbal, linkage, neck, skin
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = os.path.join(
@@ -362,6 +363,13 @@ def skull_sub():
     return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
 
 
+def skin_sub(skin):
+    """<skin>: a Skin's Shells cut from its Sculpt (g.SHELLS, model/morty/shells.py), each drawn in the head's frame at
+    rest on what carries its Motion region (RIDES): the hair and the face on the head, the chin on the jaw, the shirt
+    on nothing, fixed whatever the head does."""
+    return Sub({f"{skin} {n}:1": part(stl(f"{skin} {n}"), None, printed(f"{skin} {n}")) for n in g.SHELLS[skin]}, {})
+
+
 SUBS = {
     "eyes": eyes_sub,
     "neck": neck_sub,
@@ -369,6 +377,7 @@ SUBS = {
     "base": base_sub,
     "cranium": cranium_sub,
     "stand": stand_sub,
+    **{sub: functools.partial(skin_sub, skin) for skin, sub in g.SKINS.items()},
     g.SKULL_SUB: skull_sub,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
@@ -378,6 +387,8 @@ RIDES = {
     "eyes": "head mount:1",  # the gimbal frame screwed on its flange
     "jaw": "head mount:1",  # the jaw on its lugs, the mouth servo in its collar
     "cranium": "gimbal frame:1",  # the cranium tray on its plate (#858)
+    # a Skin's Shells (#850), each on the part its Motion region names (skin.MOTION); the fixed body's on none
+    **{f"{shell}:1": f"{skin.MOTION[skin.region(shell)]}:1" for shell in skin.DRAWN if skin.MOTION[skin.region(shell)]},
     # the realistic skull's bones (#838), each lying on its carrier
     "skull:1": "gimbal frame:1",
     "mandible:1": "jaw:1",
