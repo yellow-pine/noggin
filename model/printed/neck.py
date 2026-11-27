@@ -21,7 +21,8 @@ BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mech
 # #968: the jaw's Bones down each chain, sized to hold the mouth servo's stall inside the mandible: (head, waist), each
 # its half-depth fore and aft, then across. The condyle's neck is stout across, where the bone is narrow fore and aft;
 # the ramus' plate deep fore and aft, where it is thin across; the body round
-JAW_SPANS = (((3.4, 3.2), (3.6, 3.0)), *(((4.2, 2.4), (5.0, 2.2)),) * 2, *(((3.2, 2.2), (2.8, 2.0)),) * 4)
+_NECK, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
+JAW_SPANS = (_NECK, _RAMUS, _RAMUS, _BODY, _BODY, _BODY, _BODY)
 PIN_TAP = 8.0  # the jaw pin's tapping hole, into its post from the bar's side
 
 
