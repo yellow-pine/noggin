@@ -17,19 +17,10 @@ from model.test_envelopes import BOXES, solid
 TOUCH_MM = 0.5  # two parts touch: a fit's clearance (a pin in its bore, a servo in its collar) is under it
 
 
-# the atlas and axis ride the cervical carrier since #978 dropped the neck mount, but touch nothing yet: #874 seats them
-UNMOUNTED = pytest.mark.xfail(
-    strict=True, reason="the atlas and axis are not seated on the cervical carrier yet (#874)"
-)
-
-
 @pytest.mark.model
 @pytest.mark.parametrize(
     "doc",
-    [
-        pytest.param(d, marks=(pytest.mark.bones, UNMOUNTED)) if g.SKULL_SUB in g.STAGES[d] else d
-        for d in sorted(g.STAGES)
-    ],
+    [pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.STAGES[d] else d for d in sorted(g.STAGES)],
 )  # the skull: its bones
 def test_every_part_of_the_mech_is_mounted_on_the_assembly(doc):
     """#687: the Viewer and the pictures draw the Mech assembled, nothing lying apart: every part of each document
@@ -132,12 +123,12 @@ def test_the_boards_in_the_head_lie_inside_the_realistic_skull_its_port_at_the_b
 
 
 def test_the_heads_box_takes_in_the_skull_over_the_parts():
-    """#828, #838: the gates measure the head's shell, the realistic skull's box: from its chin 78.2 under the eyes to
-    its top 69.8 over them, about 50 each side, so parts within it make a head 148 tall, the eyes 0.528 up it; a part
-    out past it still counts."""
+    """#828, #838, #874: the gates measure the head's shell, the realistic skull's box: from its chin 93.4 under the
+    eyes to its top 80 over them, about 78 each side, so parts within it make a head 173.4 tall, the eyes 0.539 up it;
+    a part out past it still counts."""
     lo, hi = base.shelled(np.array((-50.0, -40.0, -74.5)), np.array((50.0, 80.0, 30.0)))
-    assert lo == pytest.approx((-50.0, -40.0, -78.2)) and hi == pytest.approx((50.6, 102.3, 69.8))
-    assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.5284, abs=1e-4)
+    assert lo == pytest.approx((-78.2, -40.0, -93.4)) and hi == pytest.approx((77.6, 134.9, 80.0))
+    assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.5386, abs=1e-4)
 
 
 def test_stage_1s_test_stand_stands_on_the_desk():

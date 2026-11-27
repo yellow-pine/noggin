@@ -88,8 +88,7 @@ GROUPS = {
         "test stand",
         "skull",
         "mandible",
-        "atlas",
-        "axis",
+        *g.NECK,
     ]
     + ["worn skull", "worn mandible"],
     "Joints": ["yaw yoke", "nod plate", "pan fixed cap", "pan moving cap", "eyeball core", "bail"],
