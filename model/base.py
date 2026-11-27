@@ -37,9 +37,9 @@ MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literatur
 # the eye centres at most this far up the head (shelled()), 0 its bottom: the realistic skull's are 0.53 up it (#838;
 # cartoon proportions' 0.5 before, #708)
 EYES_UP = 0.55
-# the realistic skull's box in the head's frame (the eyes' middle at the origin), its mandible's chin to its cranium's
-# top (#838; model/skeleton/test_skeleton.py holds it to the finished bones): what the head's
-# shell covers in every Skeleton
+# the compact head's shell in the head's frame (the eyes' middle at the origin): the box the realistic skull filled
+# until its limit became Morty's skin (#874, docs/adr/0025: the bones are held under it, model/skeleton/envelope.py,
+# and to no box). It stays what the mechanism's head and eyes gates measure until those too read his skin (#874)
 DOME = ((-78.2, 77.6), (-25.8, 134.9), (-93.4, 80.0))
 GAP = 2.0  # between two boards in a row
 RACK_Y = gimbal.PLATE_Y[1]  # the gimbal frame plate's back edge, the test stand's back face
