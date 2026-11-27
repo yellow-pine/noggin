@@ -42,12 +42,15 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 
 ## Morty's Shells
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
-size inferred). *Upcoming (#850): his Shells are refitted round the life-size skull as one smooth loft, the hair's
-Seats re-placed on the new cranium.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through
+size inferred). *Upcoming (#850): the head's back closed down to an under-jaw and back-skull seam round the neck, and
+his eye whites, pupils, mouth line and collar on the model sheet's contours (#992).* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through
 the Shells over it, the hair and the shirt, for a plug.*
-- the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
-  the head mount, square from above where the mouth servo's corners need it; 210 x 210 x 225 mm (x1.5 with the eyes, #901)
-  but for the ears (model/printed/test_skin.py);
+- the head (#850): one smooth surface, round from every angle, through rings measured off the private Morty reference
+  at its fixed scale (`model/head.json`; his eye domes, which the caps stand in for, and his ears left out), about
+  209 W x 217 D x 196 H mm over its floor. Where the mechanism needs a wall and its clearance it stands out of his
+  silhouette: up to 15 mm round the gimbal frame's front corners at the cheeks and 10 mm over the jaw's chin (both
+  sources: the reference's surface and our parts, recorded on #850). Under its floor at z -80 the reference's chin and
+  jowls go on 20 mm, which the neck's tilt sweeps;
 - the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
   reach, his round nose, a C-shaped ear each side, the mouth's opening; it comes off forward;
 - the hair (hair): the head's top and back over his hairline, from over the forehead down behind the ears to the
@@ -57,7 +60,8 @@ the Shells over it, the hair and the shirt, for a plug.*
 - a cover on each lid (face), each over its whole lid and a lip past its free edge, so no lid shows from the front: the
   upper one its magnet's thickness in its top band alone and a 0.75 mm skin forward of it, since the lower lid passes
   outside the upper one when a shut eye looks down;
-- the mouth cover (face), his chin under the jaw, in the face's mouth opening;
+- the mouth cover (face), his lower lip and chin: the head's shell in the face's mouth opening, 0.5 mm inside it, on a
+  plate over the jaw's Seat;
 - the shirt (clothes), his T-shirt: a front and a back half round the Torso, its sides and shoulders rounded, each
   with its half of the round crew neck's collar.
 
@@ -87,8 +91,9 @@ held at the peak acceleration the sim reads for Morty's there (model/test_report
   the face's in the front of the gimbal frame's beam (its bar to the lids' uprights, deepened its whole width; Stage
   1's stand stands behind it), the mouth cover's in the jaw's chin, thickened inside its U, the shirt's in the Torso's
   front and back walls, thickened 1 mm inside (the shirt on bosses out to its sleeve); the face carries the hair's
-  front Seats. The cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in
-  their own faces.
+  front Seats, over each eye under the hairline, clear over the lids' covers. The cores, the lids and the cranium
+  tray's back corners (the hair's back Seats, out of the pan's sweep, #850) take theirs in their own faces; every hair
+  Seat faces up, so the hair lifts straight off.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid
   covers), so a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap

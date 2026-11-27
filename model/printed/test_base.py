@@ -52,15 +52,11 @@ def placed(request):
 
 @pytest.mark.model
 def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
-    """No two overlap where one is the base's or the boards', but the hair's KNOWN_HAIR meetings #850 clears."""
-    from model.printed.test_skin import _known
-
+    """No two overlap where one is the base's or the boards'."""
     pairs = [
         (a, b)
         for a, b in itertools.combinations(placed, 2)
-        if (a.startswith(BASE) or b.startswith(BASE))
-        and frozenset((a, b)) not in PLUGGED
-        and not (_known(a, b) or _known(b, a))
+        if (a.startswith(BASE) or b.startswith(BASE)) and frozenset((a, b)) not in PLUGGED
     ]
     assert _overlaps(placed, pairs) == []
 

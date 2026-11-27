@@ -245,7 +245,7 @@ def _eyes():
 # from the hair; each brow's (|x|, z) span over its eye, sunk into the face and standing proud of it; his dot pupils'
 # radius and depth in their plugs; his teeth's x and z span on the chin's top front, how deep they reach back and each
 # tooth's width; his lapels' proud; and the L aviator lens' outline (x, z) round the bridge's Seat
-TEMPLES = (sk.grown(66.0, 2.0, 38.0), 20.0 * sk.GROW)
+TEMPLES = ((sk.head_x(3.0, 57.0) + 14.0, 3.0, 57.0), 20.0 * sk.GROW)  # 16 mm into the head's side, as first drawn
 BROW, BROW_SUNK, BROW_PROUD = (sk.grown(12.0, 40.0), sk.grown(41.0, 45.0)), 1.0, 1.5
 DOT = (3.0, 2.0)
 # the teeth across the jaw's chin, grown with it (model/neck.py JAW_K)

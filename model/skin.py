@@ -85,6 +85,8 @@ with open(os.path.join(os.path.dirname(__file__), "head.json")) as _f:
     _HEAD = json.load(_f)
 THETA = np.radians(_HEAD["theta"])
 RINGS = np.array(_HEAD["rings"])  # top down, under APEX
+# and its lowest ring twice more straight down, 5 mm apart: a plane cut near the lowest ring read back invalid
+RINGS = np.vstack([RINGS, *[RINGS[-1] - (k, *[0.0] * (RINGS.shape[1] - 1)) for k in (5.0, 10.0)]])
 APEX = tuple(_HEAD["apex"])  # (y, z) on the midline
 # The Skins' other features (ears, nose, brows, tufts, spikes) keep their sizes as first drawn round the eyes (#665),
 # grown with them (#901: x1.5 about their midpoint, as the eye gimbal does round Morty's own eyes)
@@ -157,7 +159,8 @@ CONTOURS = _SHEET["contours"]
 FACE_FRONT = _SHEET["face front"]
 FACE_Y = head_front(0.0, FACE_FRONT[1] * gm.SPACING)  # the Shells' face's front over the eyes
 FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
-NAPE = float(RINGS[RINGS[:, 0] >= HEAD_Z[0], 1].min())  # the least y a ring is widest at, over the floor
+NAPE = float(RINGS[(RINGS[:, 0] >= HEAD_Z[0]) & (RINGS[:, 0] <= 0.0), 1].min())  # the least y a ring is widest at,
+# from the floor up to the eyes, where the face reaches back under the hairline
 HAIR = 1.5
 
 
