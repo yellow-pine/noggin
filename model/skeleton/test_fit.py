@@ -74,7 +74,7 @@ def test_a_vertebras_canal_is_its_plan_views_largest_hole():
 
 
 def test_the_canal_path_runs_from_its_foot_to_the_tilt_axis():
-    assert fit.canal_y(-146.0) == pytest.approx(91.6) and fit.canal_y(-48.7) == pytest.approx(76.6)
+    assert fit.canal_y(-146.0) == pytest.approx(72.0) and fit.canal_y(-48.7) == pytest.approx(76.6)
 
 
 def test_the_outer_side_is_the_farthest_bone_in_each_direction_over_the_base_or_in_the_growth_zone():

@@ -6,8 +6,8 @@ skin's own triangles stay the Skin's outside. The outer skin is what the open ai
 this Sculpt has a pocket, a slab of empty space deep in its head joined to its surface by cracks, and none of a
 pocket's walls is the Skin's. The inside is the surface skin.WALL under the outer skin, measured on a grid of PITCH:
 each point's distance to it, meshed where that is WALL (scikit-image's marching cubes), then made lighter within FLAT.
-The wall has no floor at the base. It is open round each eye (skin.EYE_OPENING_R, and inside the eye white's cut): the eyeball caps,
-the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
+The wall has no floor at the base. It is open inside each eye white's cut, the Sculpt's own dome's edge and no
+larger (#893): the eyeballs, the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
 and behind the hairline, the chin under the mouth line, and the face. Solids are cut with manifold3d.
 
 Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair and the chin, and the shirt from
@@ -37,7 +37,6 @@ UNDER = 12.0  # the Sculpt is kept this far under the base while the inside is m
 # deepest: a crease's bottom is nearer. A face fronts what lies FRONT grid steps off its middle, along its normal
 DEEP, FRONT = 5.0, (1.0, 1.5, 2.0, 2.5)
 KEEP = 0.01  # a crumb a cut leaves, of its Shell's volume, under which it is dropped
-SPHERE, SAG = 128, 0.05  # an eye opening's sphere: segments round, and how far its facets sag inside it at most
 # The gap at a seam, mm (inferred): two Shells never nearer than the room a worn Shell keeps from any part it does not
 # sit on (gm.LID_CLEAR_MM, model/printed/test_skin.py), with what that gate's sampling can misread. At rest the face
 # steps back this far from the hair and the chin, and the shirt from the collar; where the head's Shells turn into the
@@ -341,9 +340,8 @@ def shells():
     whole = outside()
     wall = (whole - under(whole, skin.WALL)).trim_by_plane((0, 0, 1), base())
     cuts = {name: _swept(*cut) for name, cut in skin.cuts().items() if "pupil" not in name}  # the caps carry those
-    for side, eye in gm.EYE.items():
-        ball = m3.Manifold.sphere(skin.EYE_OPENING_R + SAG, SPHERE).translate(eye)
-        wall -= ball + cuts[f"{side} eye white"]
+    for side in gm.EYE:
+        wall -= cuts[f"{side} eye white"]
     # a seam's gap (SEAM): the face steps back from the hair and from the chin, the shirt from the collar
 
     def grown(name, by):

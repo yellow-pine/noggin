@@ -1,6 +1,7 @@
 # A seam is a 0.8 mm gap, and the Shell that stands still gives way
 
-> Decided on 2026-11-27, ticket #850 (made while away; Cansin to confirm what the shirt loses). Builds on ADR 0028.
+> Decided on 2026-11-27, ticket #850 (made while away), and confirmed by Cansin the same day: the shirt gives way,
+> its collar cut lower and scooped under the chin (spec #893). Builds on ADR 0028.
 
 ADR 0028 cuts Morty's four Shells with no room between them. A worn Shell must keep 0.5 mm from every part it does not
 sit on, another Shell included, in every pose (`model/printed/test_skin.py`). This is the room each seam gets
