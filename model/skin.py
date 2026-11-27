@@ -128,13 +128,15 @@ DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly directi
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
 # The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
 # One source for the Morty reference's semantic meshes (model/review) and the Shells cut from his Sculpt (#850), so a
-# seam cut on either side lands on the same region.
+# seam cut on either side lands on the same region. The neck's skin rides the head, down to the collar, sliding round
+# the neck's bones, which stand still (Cansin, 2026-11-27: docs/adr/0030, over #969's fixed neck)
 MOTION = {
     "head": "gimbal frame",
     "jaw": "jaw",
     **{f"{s} eye": f"{s} eyeball cap" for s in "LR"},
     **{f"{s} {lid} lid": f"{s} {lid} lid" for s in "LR" for lid in ("upper", "lower")},
-    **dict.fromkeys(("neck", "shoulders", "torso")),
+    "neck": "gimbal frame",
+    **dict.fromkeys(("shoulders", "torso")),
 }
 # {a word of a Shell's name: its region}, an eye's or a lid's after the Shell's side
 _WORDS = {"face": "head", "hair": "head", "brow": "head", "chin": "jaw", "shirt": "torso"}

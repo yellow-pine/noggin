@@ -78,8 +78,8 @@ _Avoid_: reference (what Morty's was while it stayed local), donor mesh, hull
 
 **Motion region**:
 A part of a Skin that moves as one with the Skeleton part that carries it: the head, the jaw, each eye, each lid; the
-neck, shoulders and torso carried by nothing, fixed whatever the head does. The Morty reference and the Shells share
-the same regions.
+neck, whose skin rides the head down to the collar, round neck bones that stand still (docs/adr/0030); the shoulders
+and torso carried by nothing, fixed whatever the head does. The Morty reference and the Shells share the same regions.
 _Avoid_: band, section (a Colour group's), zone
 
 **Character**:
@@ -315,9 +315,10 @@ _Avoid_: the Desktop file, the preview
 
 **Latest file**:
 Cansin's second local Blender file (`just latest`, model/latest): one rest-pose scene with each layer (Mechanism,
-Skeleton, Skin reference, Skin Shells) from its candidate, the newest of main and the open PRs whose changes touch that
-layer, labelled with where it came from and its gate status; the Skin Shells are the candidate's own cut of the
-Sculpt, the Skin reference switched off until asked for. Never committed or published.
+Skeleton, Skin reference, Skin Shells) from its candidate, the newest pushed open PR whose changes touch that layer and
+whose head contains main's newest commit touching it, else main, labelled with where it came from, its gate status and
+the PRs passed over for lacking main's commit; the Skin Shells are the candidate's own cut of the Sculpt, the Skin
+reference switched off until asked for. Never committed or published.
 _Avoid_: the dashboard, the overview, the status file
 
 **Scene Mech**:

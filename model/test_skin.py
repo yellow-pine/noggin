@@ -61,11 +61,12 @@ def test_a_shell_comes_off_along_its_seats_normal():
 
 
 def test_every_shell_belongs_to_one_motion_region():
-    """#969: each Shell moves with the Motion region its name shows: the head's on the head (a brow rides the face), the chin on the jaw, a lid
-    cover on its lid, a cap or pupil on its eye, the shirt on the fixed torso; the neck, shoulders and torso have no
-    carrier."""
+    """#969: each Shell moves with the Motion region its name shows: the head's on the head (a brow rides the face), the
+    chin on the jaw, a lid cover on its lid, a cap or pupil on its eye, the shirt on the fixed torso. The neck's skin
+    rides the head, down to the collar (Cansin, 2026-11-27, docs/adr/0030); the shoulders and torso have no carrier."""
     assert {skin.region(s) for s in skin.SHELLS} <= skin.MOTION.keys()
-    assert skin.MOTION["neck"] is skin.MOTION["shoulders"] is skin.MOTION["torso"] is None
+    assert skin.MOTION["shoulders"] is skin.MOTION["torso"] is None
+    assert skin.MOTION["neck"] == skin.MOTION["head"] == "gimbal frame"
     for shell, region in {
         "morty face": "head",
         "morty hair": "head",

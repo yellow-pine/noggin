@@ -487,13 +487,17 @@ def fasteners(doc):
 
 def pose(stage, horn_name, deg):
     """Every part's world 4x4 with the horn at `deg` (degrees from neutral about its pivot axis) and the driven
-    joint angles. Raises linkage.Unreachable when a loop cannot close."""
+    joint angles: its crank turned, its four-bars closed, then its Rods (each riding a part those moved). Raises
+    linkage.Unreachable when a loop cannot close."""
     horn = stage.horns[horn_name]
     mats = {name: p.matrix for name, p in stage.parts.items()}
     f, f_inv = horn.frame, np.linalg.inv(horn.frame)  # the chain solves in its sub-assembly's frame
 
+    moved = {}  # {part: its 4x4 from rest in that frame}
+
     def move(name, delta):
         mats[name] = f @ delta @ f_inv @ mats[name]
+        moved[name] = delta @ moved.get(name, np.eye(4))
 
     if horn.direct:
         reaction = horn.direct.reaction
@@ -534,7 +538,37 @@ def pose(stage, horn_name, deg):
         for name in loop.rockers:
             move(name, turn)
         joints[loop.joint] = round(rocker, 2)
+    for rod in horn.rods:  # each closed on what the loops moved (#967): its carrier's pin, then its lever's hinge
+        # shortcut: the hinge stands as at rest (no horn moves what its own Rod's lever turns on); carry it if one does
+        joint, point, axis = rod.hinge
+        arm = (moved.get(rod.carrier, np.eye(4)) @ [*rod.arm, 1])[:3]
+        turn = _closing(point, axis, rod.lever, rod.arm, arm)
+        hinge = linkage.rotation(axis, turn, point)
+        for name in rod.driven:
+            move(name, hinge)
+        move(rod.part, gimbal._carry(rod.arm, rod.lever, arm, (hinge @ [*rod.lever, 1])[:3]))
+        joints[joint] = round(turn, 2)
     return Pose(mats, joints)
+
+
+def _closing(point, axis, lever, arm0, arm):
+    """Degrees to turn `lever` about `axis` through `point` so it stays as far from the pin `arm` as it is from that
+    pin at rest, `arm0` (a rod between them): of the two turns that do, the one that is none at rest. Raises
+    linkage.Unreachable when the rod cannot span them."""
+    axis, v = np.asarray(axis, float), np.subtract(lever, point)
+    length = math.dist(lever, arm0)
+
+    def turns(pin):  # R v . w = c, R v = v's part along the axis + cos (the rest) + sin (axis x v)
+        w = np.subtract(pin, point)
+        cos, sin = (v - (v @ axis) * axis) @ w, np.cross(axis, v) @ w
+        c = (v @ v + w @ w - length**2) / 2 - (v @ axis) * (w @ axis)
+        if abs(c) > math.hypot(cos, sin):
+            raise linkage.Unreachable(f"a {length:.1f} mm rod cannot reach its lever from {pin}")
+        mid, half = math.atan2(sin, cos), math.acos(c / math.hypot(cos, sin))
+        return [math.degrees(math.remainder(mid + s * half, math.tau)) for s in (1, -1)]
+
+    mode = int(np.argmin(np.abs(turns(arm0))))
+    return turns(arm)[mode]
 
 
 def _angle(axis, v):

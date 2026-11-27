@@ -28,6 +28,23 @@ def test_the_loop_takes_every_horn_to_each_end_of_its_range_and_back_to_rest():
         assert pts[0] == (1, 0.0) and pts[-1] == (review.FRAMES, 0.0)
 
 
+def test_the_loop_moves_the_lower_lids_with_the_blink_and_the_eyes_with_the_pitch():
+    """#967: the review's motion is stages.pose at each key, which left a horn's Rods at rest: no lower lid ever moved
+    in the file, nor an eye up or down. By the blink's shut each lower lid has risen on its link and by the pitch's
+    ends each eye has pitched on its push-rod."""
+    rest = {n: p.matrix for n, p in STAGE.parts.items()}
+    at = dict(review.motion(STAGE, review.keys(STAGE)))
+
+    def turned(frame, name):
+        m = at[frame][name] @ np.linalg.inv(rest[name])
+        return np.degrees(np.arccos(np.clip((np.trace(m[:3, :3]) - 1) / 2, -1, 1)))
+
+    for s in "LR":  # the loop poses the odd frames: one before the blink's shut, one off each of the pitch's ends
+        assert turned(219, f"{s} lower lid:1") > 40 and turned(219, f"{s} lid link:1") > 1
+        for frame in (189, 199):
+            assert turned(frame, f"{s} eyeball cap:1") > 10 and turned(frame, f"{s} push-rod:1") > 1
+
+
 def test_the_bones_ride_their_regions():
     """The skull and mandible in Skull, the atlas and axis in Mechanism, the Torso in Pedestal."""
     region = review.regions()
@@ -131,9 +148,10 @@ SKIN_CARRIERS = {s: review.CARRIERS[skin.region(s.removesuffix(":1"))] for s in 
 
 def test_the_reference_rides_the_same_live_parts_as_the_shells_of_its_regions():
     """#969: a reference surface's carrier is its Motion region's (skin.MOTION), the part a Shell of that region rides,
-    and it is in the review's document; the body's regions have none."""
+    and it is in the review's document; the body's regions have none, and the neck's is the head's (docs/adr/0030)."""
     assert set(review.CARRIERS) == set(skin.MOTION)
-    assert review.CARRIERS["neck"] is review.CARRIERS["shoulders"] is review.CARRIERS["torso"] is None
+    assert review.CARRIERS["shoulders"] is review.CARRIERS["torso"] is None
+    assert review.CARRIERS["neck"] == review.CARRIERS["head"] == "gimbal frame:1"
     assert set(REFERENCE_CARRIERS.values()) <= set(STAGE.parts)
 
 
@@ -378,19 +396,22 @@ def test_mortys_sections_show_the_default_skin_palette_at_33_percent(blend):
         assert rgba == pytest.approx([*linear, 0.33])
 
 
-def test_the_reference_neck_shoulders_and_torso_stay_fixed_while_the_head_moves(blend):
+def test_the_reference_shoulders_and_torso_stay_fixed_while_the_head_moves_and_the_necks_skin_rides_it(blend):
+    """#969, as Cansin changed it on 2026-11-27 (docs/adr/0030): the neck's skin turns and nods with the head, as one
+    with it; the shoulders and the torso never move. Read at each region's vertices and at its witnesses."""
     if not blend["morty"]:
         pytest.skip("no local Morty reference")
     motion = blend["reference_motion"]
     assert {"neck", "shoulders", "torso", "head"} <= motion.keys()
-    for name in ("neck", "shoulders", "torso"):
+    for name in ("shoulders", "torso"):
         assert motion[name]["vertices"] >= 3
         assert motion[name]["travel"] == pytest.approx(0.0, abs=1e-3), name
-    assert motion["head"]["travel"] > 1.0
+    assert motion["head"]["travel"] > 1.0 and motion["neck"]["travel"] > 1.0
+    assert motion["neck"]["vertices"] >= 3 and motion["neck"]["own_travel"] < 1e-3  # none of its own against the head
     for name, role in {"neck": "neck", "L shoulder": "shoulders", "R shoulder": "shoulders"}.items():
         witnesses = blend["reference_witnesses"]["witness " + name]
         assert all(w["region"] == role and w["vertices"] > 0 for w in witnesses), name
-        assert all(w["travel"] < 1e-3 for w in witnesses), name
+        assert all((w["travel"] > 1.0) if role == "neck" else (w["travel"] < 1e-3) for w in witnesses), name
 
 
 def test_mortys_bust_stops_at_the_models_flat_floor(blend):
@@ -412,6 +433,7 @@ def test_the_reference_jaw_and_eyes_follow_their_live_carriers_independently_of_
         assert motion[role]["carrier_error"] < 1e-3, role
     assert motion["head"]["own_travel"] < 1e-3
     assert all(motion[role]["own_travel"] > 1.0 for role in ("jaw", "L eye", "R eye"))
+    assert motion["neck"]["carrier_error"] < 1e-3  # on the head's carrier
 
 
 LIDS = {f"{s} {lid} lid" for s in "LR" for lid in ("upper", "lower")}
@@ -526,7 +548,7 @@ for name in ('Skull','Finished'):
 for collection in list(cube.users_collection): collection.objects.unlink(cube)
 bpy.data.collections['Finished'].objects.link(cube)
 job={'files':{'carrier:1':str(folder/'marker.stl')},'bones':{},'frame':[0,0,0],
-     'rest':{'carrier:1':list(identity)},'orbits':[],'reach':0,'numbers':{},
+     'rest':{'carrier:1':list(identity)},'orbits':[],'belts':[],'vault':{'bones':[],'middle':[0,0,0]},'numbers':{},
      'parts':{'carrier:1':{'region':'Skull','layer':'Mech','colour':'#FFFFFF'},
               'worn skull:1':{'region':'Skull','layer':'Skeleton','colour':'#FFFFFF'}},
      'alpha':{'Mech':1,'Skeleton':.69,'Morty':.33},

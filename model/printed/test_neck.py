@@ -132,23 +132,30 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     )  # the pin boss ends at the bar
 
 
+def _bar_pulls():
+    """The bar's worst force (the bar's own test's) on the anchor's pin, N, along the bar at each pose of the sweep as
+    the fixed carrier sees it: the case's direction, turned back by the head's turn."""
+    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
+    force /= math.sin(math.radians(_tilt_angle()))
+    pulls = []
+    for s in nk._sweep("tilt"):
+        rocker, p, q = nk.TILT_LOOP(s)
+        pulls.append(linkage.rotation(g.X, -rocker)[:3, :3] @ np.subtract(p, q) / math.dist(p, q) * force)
+    return pulls
+
+
 @pytest.mark.model
 def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
     """#1039: the carrier's strut from its R rail straight back to the reduction's anchor, longer since the rails run
     straight: SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts
     at the bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends
-    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on are not sectioned here."""
+    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on have their own test, below."""
     solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
     _, ay, az = nk.TILT_ANCHOR
     (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
     rail = y0 + (az - z0) / (z1 - z0) * (y1 - y0)  # the rail's middle at the anchor's height
     x, pin = nk.REACTION_TAP_X[1] - 5.0, np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))  # x: the strut's middle, about
-    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
-    force /= math.sin(math.radians(_tilt_angle()))
-    pulls = []  # the bar's direction as the fixed carrier sees it: the case's, turned back by the head's turn
-    for s in nk._sweep("tilt"):
-        rocker, p, q = nk.TILT_LOOP(s)
-        pulls.append(linkage.rotation(g.X, -rocker)[:3, :3] @ np.subtract(p, q) / math.dist(p, q) * force)
+    pulls = _bar_pulls()
     for t in (0.15, 0.3, 0.5, 0.7, 0.85):
         cut = _section(solid, (x, rail + (ay - rail) * t, az), (0, 1, 0), (1, 0, 0), (13, 13))
         box, centre = cut.BoundingBox(), np.array(cut.Center().toTuple())
@@ -166,6 +173,44 @@ def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
             )
 
         assert mat["tensile_mpa"]["z"] / max(map(stress, pulls)) >= beams.MIN_SF, t
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", ("R", "L"))
+def test_each_cervical_rail_holds_the_actual_standard_servo_at_stall(side):
+    """#1060: SF 2 in PETG across its layers on each rail's actual sections, foot to trunnion. A rail is a cantilever
+    from the foot plate: nothing joins the two above it, and the nod plate's shanks pass force, no moment. The bar's
+    worst force pulls the anchor, on the R rail alone, and the nod plate pushes back on the two shanks (the head
+    blocked by a couple): by its own balance across, the bar between the lugs, 0.89 of it on the R shank. So the
+    head's torque goes down the R rail as bending, and the rails do not share it. Each section takes what acts above
+    it: its pull, its bending both ways, and its twist (an ellipse's or a thin slab's shear, T c / 2 I), together as
+    von Mises. A push on the head itself is no stall test's."""
+    solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
+    sign, lug = 1 if side == "L" else -1, 15.4  # the nod plate's lug's middle on its shank
+    bar = sum(nk.REACTION_BAR_X) / 2
+    share = (lug + sign * bar) / (2 * lug)
+    pin, shank = np.array((bar, *nk.TILT_ANCHOR[1:])), np.array((sign * lug, *nk.HEAD_AXES["tilt"][0][1:]))
+    pulls, weak = np.array(_bar_pulls()), []
+    for a, b in itertools.pairwise(np.array([(sign * x, *p) for x, p in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)])):
+        along = (b - a) / np.linalg.norm(b - a)
+        u = np.cross(along, g.X) / np.linalg.norm(np.cross(along, g.X))  # fore and aft, square to the span
+        v = np.cross(along, u)
+        for t in (0.1, 0.3, 0.5, 0.7, 0.9):
+            at = a + (b - a) * t
+            pieces = _section(solid, tuple(at), tuple(along), tuple(v), (26, 26)).Solids()
+            cut = min(pieces, key=lambda piece: np.linalg.norm(np.array(piece.Center().toTuple()) - at))
+            area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
+            inertia = np.asarray(cq.Shape.matrixOfInertia(cut)) / 0.01
+            fibres = np.abs((np.array([p.toTuple() for p in cut.tessellate(0.05)[0]]) - centre) @ np.array((u, v)).T)
+            (cu, cv), iu, iv = fibres.max(axis=0), v @ inertia @ v, u @ inertia @ u
+            pull = pulls * (side == "R" and at[2] < pin[2])  # under the anchor's strut: the bar's pull too
+            force = pull - share * pulls
+            moment = np.cross(pin - centre, pull) - share * np.cross(shank - centre, pulls)
+            normal = np.abs(force @ along) / area + np.abs(moment @ v) * cu / iu + np.abs(moment @ u) * cv / iv
+            twist = np.abs(moment @ along) * min(cu, cv) / (2 * min(iu, iv))
+            if (sf := mat["tensile_mpa"]["z"] / np.hypot(normal, math.sqrt(3) * twist).max()) < beams.MIN_SF:
+                weak.append((at.round(1).tolist(), round(float(sf), 2)))
+    assert weak == []
 
 
 @pytest.mark.model
