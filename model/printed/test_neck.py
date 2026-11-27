@@ -142,8 +142,8 @@ def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
     _, ay, az = nk.TILT_ANCHOR
     (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
     t = (az - z0) / (z1 - z0)
-    a = np.array((-(nk.CERVICAL_X[3] + t * (nk.CERVICAL_X[2] - nk.CERVICAL_X[3])), y0 + t * (y1 - y0), az))
-    b = np.array((nk.REACTION_TAP_X[1] - 5.0, ay, az))  # as cervical_carrier() draws it
+    x = nk.REACTION_TAP_X[1] - 5.0
+    a, b = np.array((x, y0 + t * (y1 - y0), az)), np.array((x, ay, az))  # as cervical_carrier() draws it
     along, pin = (b - a) / np.linalg.norm(b - a), np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))
     force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
     force /= math.sin(math.radians(_tilt_angle()))
