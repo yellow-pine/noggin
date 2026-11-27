@@ -1,9 +1,11 @@
 """Seam: the eye gimbal inside the private Morty reference (#967), as model/review places him: the gimbal frame and every
 eye drive part (servos, horns, bars, links, yokes, cores, the bail), with each eye servo at either end of its range, at
 least a Shell's wall and its clearance inside his outer surface, in both Skeleton styles. The caps and lids are the
-eyes' own surfaces, seen through his eye openings, so they are left out. Local only, after `just ours`: it reads the
-reference through Blender (review.MORTY), which CI does not have, so it skips there (and is not marked model: the Model
-shards would only skip it), and nothing of the reference leaves the run."""
+eyes' own surfaces, seen through his eye openings, so they are left out. One of the review's own checks, as
+test_review.py's on the written file: `just review` runs it on the parts it just built (NOGGIN_REVIEW set), and by hand
+it is `NOGGIN_REVIEW=1 pytest model/review/test_hidden.py` after `just ours`. It reads the reference through Blender
+(review.MORTY), which CI does not have, so it skips there (and is not marked model: the Model shards would only skip
+it), and nothing of the reference leaves the run."""
 
 import functools
 import os
@@ -22,7 +24,6 @@ from model import review, skeleton, skin, stages
 MARGIN = skin.WALL + gm.LID_CLEAR_MM  # a Shell's wall, and its least room to a part it does not sit on
 VISIBLE = ("eyeball cap", "upper lid", "lower lid")  # seen through his eye openings, not hidden behind his Skin
 HORNS = ("yaw horn", "pitch horn", "L lid horn", "R lid horn")  # the eyes Core's; the head's move the Skin with them
-FRAME = "gimbal frame"
 PITCH, FAR = 1.0, 6.0  # depth()'s voxel, and how far from his surface it measures, mm
 EXPORT = """
 import bpy, numpy as np
@@ -104,8 +105,8 @@ def test_depth_reads_a_ball_through_a_ball_as_one_surface():
 @pytest.fixture(scope="module")
 def outside(tmp_path_factory):
     """depth() of Morty's reference at rest, in the documents' world."""
-    if not (os.path.isfile(review.MORTY) and shutil.which(skeleton.BLENDER) and os.path.isfile(stages.stl(FRAME))):
-        pytest.skip("needs the local Morty reference (review.MORTY), Blender and the parts (just ours)")
+    if not (os.environ.get("NOGGIN_REVIEW") and os.path.isfile(review.MORTY) and shutil.which(skeleton.BLENDER)):
+        pytest.skip("the review's check (NOGGIN_REVIEW, as just review sets it): needs the Morty reference and Blender")
     path = str(tmp_path_factory.mktemp("morty") / "reference.npz")
     held = review.lock(review.SLOT, wait=True)  # the laptop's one Blender slot, as test_review.py takes it
     try:
