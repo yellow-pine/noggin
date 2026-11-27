@@ -14,6 +14,7 @@ import trimesh
 from scipy import ndimage
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import minimize
+from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal, neck, skin
@@ -36,6 +37,12 @@ LO, HI = np.array(((-80.0, -41.0, -93.5), (80.0, 134.9, 80.0)))
 # shears at most SHEAR_MAX (measured 1.72; the budget's own 1.25 / 0.75 at a point is 1.67), a slenderer one shearing
 # with the field's bend along it, whatever the Warp (measured up to 5.1); the Jacobian stays over JACOBIAN_MIN
 FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 1.8, 0.5
+# the skull-base guides (#991): the cranial growth zone's under side (budget.caps over halfway to its 1.5, under BASE_Z)
+# drawn down toward the head's bottom (LO), which the Skin's nape and under-jaw lie past (z -100 at y 129 and -110
+# at y 3 on the private reference, our measure, inferred), each vertex no lower than CLEAR_MM over what moves under it:
+# the vertebrae over the tilt's and the pan's ranges. GUIDE: the pull's weight against the budget's
+GUIDE, BASE_Z, CLEAR_MM = 0.02, TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
+POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
 SCALES = {"skull": 1.05, "mandible": 0.95}  # the regions' uniform resize (the neck's: neck_scale())
 # the Skin's neck back, the head's frame: its y (BACK_Y) at |x| (BACK_X) and z (BACK_Z), our own coarse measure of the
@@ -47,7 +54,7 @@ BACK_Y = (
     (124.9, 123.6, 121.6, 117.6, 111.8, 126.8, 138.6),
     (119.1, 118.9, 117.5, 114.6, 108.9, 117.1, 132.8),
 )
-ROOM, AIM = skin.WALL + 1.6, 1.0  # model/skeleton's CLEAR_MM; the solve's margin inside it, so the check passes
+ROOM, AIM = skin.WALL + CLEAR_MM, 1.0  # the solve's margin inside it, so the check passes
 
 
 def lattice(points, lo, shape):
@@ -71,9 +78,10 @@ def lattice(points, lo, shape):
     return [sp.csr_matrix((np.concatenate(v), (r, c)), shape=(len(points), n)) for v in vals]
 
 
-def solve(x, caps, pairs, scale, box, reach=()):
+def solve(x, caps, pairs, scale, box, reach=(), guide=None):
     """The field over the region's Basis `x` (n, 3): x -> scale * (x + u(x)). `pairs`: (Basis point, target, per-axis
-    weight); `box` (lo, hi): the warped region inside it; `reach`: (axis, bound, +1 its max or -1 its min) to touch.
+    weight); `box` (lo, hi): the warped region inside it; `reach`: (axis, bound, +1 its max or -1 its min) to touch;
+    `guide` (rows, floors): those vertices drawn down toward their floors (z), softly: the budget and the pairs win.
     Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
     lo = x.min(0) - LATTICE
     shape = np.ceil((x.max(0) + LATTICE - lo) / LATTICE).astype(int) + 3
@@ -105,6 +113,10 @@ def solve(x, caps, pairs, scale, box, reach=()):
             j = np.argmax(sign * y[:, axis])
             e += 10 * (y[j, axis] - bound) ** 2
             gy[j, axis] += 20 * (y[j, axis] - bound)
+        if guide:
+            v = np.maximum(y[guide[0], 2] - guide[1], 0)
+            e += GUIDE * (v * v).sum()
+            gy[guide[0], 2] += 2 * GUIDE * v
         gd += scale * (B[0].T @ gy)
         return e + 1e-3 * (z @ z), (gd + 2e-3 * d).ravel()
 
@@ -162,6 +174,35 @@ def gate(x, y, faces, det, centres):
             f"{SHEAR_MAX}), the least Jacobian {report['least_jacobian']} (at least {JACOBIAN_MIN})"
         )
     return report
+
+
+def surface(v, faces):
+    """The mesh's vertices and points sampled about 1 mm apart on its faces: its surface, for a distance."""
+    mesh = trimesh.Trimesh(v, faces, process=False)
+    return np.vstack([v[np.unique(faces)], trimesh.sample.sample_surface(mesh, int(mesh.area) + 1, seed=0)[0]])
+
+
+def aperture(basis):
+    """The nasal aperture's middle on the Basis: between the nasal bones' lowest point and the maxillae's front point
+    on the midline (inferred)."""
+    nasal, upper = (np.vstack([basis[f"{s} {b}"] for s in "LR"]) for b in ("nasal bone", "maxilla"))
+    mid = upper[np.abs(upper[:, 0]) < 4]
+    return (nasal[nasal[:, 2].argmin()] + mid[mid[:, 1].argmin()]) / 2
+
+
+def seen(points, tilt, pan):
+    """Points fixed to the neck as the head sees them, tilted and panned (degrees; the pan's axis tilts with it)."""
+    turn = trimesh.transformations.rotation_matrix
+    head = turn(np.radians(tilt), (1, 0, 0), TILT) @ turn(np.radians(pan), (0, 0, 1), PAN)
+    return trimesh.transform_points(points, np.linalg.inv(head))
+
+
+def floors(points, obstacles, reach=CLEAR_MM + 2.0):
+    """Each point's floor: CLEAR_MM and the solve's AIM over the top of the `obstacles` under it (within `reach` in
+    plan), the head's bottom (LO) where nothing is."""
+    near = cKDTree(obstacles[:, :2]).query_ball_point(points[:, :2], reach)
+    tops = [obstacles[i, 2][obstacles[i, 2] < p[2]].max(initial=-np.inf) for i, p in zip(near, points)]
+    return np.maximum(np.array(tops) + CLEAR_MM + AIM, LO[2])
 
 
 def canal(mesh, b=0.5):
@@ -255,18 +296,41 @@ def warp(basis, faces, landmarks):
         "condyles": [lm["L condyle"], lm["R condyle"]],
     }
     out, report = {}, {"scales": dict(SCALES)}
+    fitted, report["neck"] = vertebrae(basis, faces)
+    report["scales"]["neck"] = report["neck"].pop("scale")
 
     skull = [n for n in basis if n not in (*NECK, JAW)]
     x = np.vstack([basis[n] for n in skull])
     caps = np.concatenate([budget.caps(n, basis[n], ref) for n in skull])
+    sizes = [len(basis[n]) for n in skull]
+    tris = np.vstack([faces[n] + at for n, at in zip(skull, np.cumsum([0, *sizes[:-1]]))])
+    # the skull base's guides: its growth zone's under side, down to the head's bottom or over the neck as it moves
+    zone = np.flatnonzero((caps > 1.375) & (SCALES["skull"] * x[:, 2] < BASE_Z))
+    moving = np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES])
+    lo = np.tile(LO, (len(x), 1))
+    lo[zone, 2] = floors(SCALES["skull"] * x[zone], moving)
     pairs = [
         *((lm[f"{s} orbit"], (sign * gimbal.SPACING / 2, 0, 0), (1, 1, 1)) for s, sign in (("L", 1), ("R", -1))),
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
         *((p, (0, TILT[1], TILT[2] - C0_BELOW), (0, 1, 1)) for p in occ),
     ]
-    y, f, hit = solve(x, caps, pairs, SCALES["skull"], (LO, HI), ((2, HI[2], 1), (1, LO[1], -1), (1, HI[1], 1)))
+    touch = ((2, HI[2], 1), (1, LO[1], -1), (1, HI[1], 1))
+    y, f, hit = solve(x, caps, pairs, SCALES["skull"], (lo, HI), touch, (zone, lo[zone, 2]))
     report["skull"] = _region(f, caps, hit, pairs)
-    out |= dict(zip(skull, np.split(y, np.cumsum([len(basis[n]) for n in skull])[:-1])))
+    report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)])
+    base = np.isin(tris, zone).all(axis=1)
+    room = float(cKDTree(moving).query(surface(y, tris[base]))[0].min())
+    if room < CLEAR_MM:
+        raise ValueError(
+            f"the skull base comes within {room:.2f} mm of the neck as the head moves, less than {CLEAR_MM}"
+        )
+    report["skull_base"] = {
+        "vertices": len(zone),
+        "lowered_mm": round(float(np.median(SCALES["skull"] * x[zone, 2] - y[zone, 2])), 1),
+        "lowest": round(float(y[zone, 2].min()), 1),
+        "neck_mm": round(room, 2),
+    }
+    out |= dict(zip(skull, np.split(y, np.cumsum(sizes)[:-1])))
 
     # the mandible: its condyles on the hinge, its chin on the box's bottom, its ridge GAP_MM under the maxillae's
     upper = np.vstack([out["L maxilla"], out["R maxilla"]])
@@ -283,8 +347,6 @@ def warp(basis, faces, landmarks):
     out[JAW], f, hit = solve(m, caps, pairs, SCALES["mandible"], (LO, HI))
     report["mandible"] = _region(f, caps, hit, pairs)
 
-    fitted, report["neck"] = vertebrae(basis, faces)
-    report["scales"]["neck"] = report["neck"].pop("scale")
     return out | fitted, report
 
 

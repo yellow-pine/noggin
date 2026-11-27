@@ -104,3 +104,32 @@ def test_the_gate_reads_no_shear_off_a_sliver():
     w[2, 1] = -0.5
     with pytest.raises(ValueError, match="folded"):
         fit.gate(v, w, np.array(((0, 1, 2),)), np.ones(3), [np.array((15.0, 0, 0))])
+
+
+def test_a_guide_draws_its_vertices_down_inside_the_budget():
+    """A 40 mm box, its top's corners pinned, its bottom guided 20 mm down: it comes down at least 4 mm, never past its
+    floor, every local length inside the budget (fit.stretch raises otherwise); unguided, it stays."""
+    x = trimesh.creation.box(extents=(40, 40, 40)).subdivide().subdivide().vertices
+    pairs = [((sx * 20, sy * 20, 20), (sx * 20, sy * 20, 20), (1, 1, 1)) for sx in (-1, 1) for sy in (-1, 1)]
+    rows = np.flatnonzero(x[:, 2] < -19)
+    caps, box = np.full(len(x), 1.25), (np.full(3, -100.0), np.full(3, 100.0))
+    y, f, _ = fit.solve(x, caps, pairs, 1.0, box, guide=(rows, np.full(len(rows), -40.0)))
+    fit.stretch(f, caps)
+    assert -40.0 <= y[rows, 2].min() and y[rows, 2].max() <= -24.0
+    still, _, _ = fit.solve(x, caps, pairs, 1.0, box)
+    assert np.abs(still - x).max() < 0.01
+
+
+def test_a_floor_stands_clear_over_what_moves_under_a_point_and_at_the_heads_bottom_elsewhere():
+    obstacles = np.array(((0, 0, -70.0), (1, 0, -72.0), (0, 0, -20.0), (50, 50, -60.0)))
+    points = np.array(((0, 0, -50.0), (20, 0, -50.0), (50, 51, -80.0)))  # over two, beside them, under the last
+    assert fit.floors(points, obstacles) == pytest.approx((-70 + fit.CLEAR_MM + fit.AIM, fit.LO[2], fit.LO[2]))
+
+
+def test_the_head_sees_the_neck_turn_back_as_it_tilts_and_pans():
+    """A point on the tilt axis stays as the head tilts; one 10 mm behind it sinks 10 mm as the head tilts 90 deg
+    face down; one 10 mm beside the pan axis swings behind it as the head pans 90 deg."""
+    on, behind = np.array(fit.TILT), np.array(fit.TILT) + (0, 10, 0)
+    assert fit.seen(np.array([on, behind]), 90, 0) == pytest.approx(np.array([on, on - (0, 0, 10)]))
+    beside = np.array(fit.PAN) + (10, 0, 0)
+    assert fit.seen(beside[None], 0, 90) == pytest.approx((np.array(fit.PAN) - (0, 10, 0))[None])
