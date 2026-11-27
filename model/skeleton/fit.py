@@ -75,17 +75,27 @@ def lattice(points, lo, shape):
     return [sp.csr_matrix((np.concatenate(v), (r, c)), shape=(len(points), n)) for v in vals]
 
 
-def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None):
+def spread(x, faces, step=1.0):
+    """Points about `step` mm apart on the mesh's faces, as their vertices' weights: a sparse (points, vertices)."""
+    mesh = trimesh.Trimesh(x, faces, process=False)
+    p, f = trimesh.sample.sample_surface(mesh, int(mesh.area / step**2) + 1, seed=0)
+    w = trimesh.triangles.points_to_barycentric(mesh.triangles[f], p)
+    return sp.csr_matrix((w.ravel(), (np.repeat(np.arange(len(p)), 3), faces[f].ravel())), shape=(len(p), len(x)))
+
+
+def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, faces=None):
     """The field over the region's Basis `x` (n, 3): x -> scale * (x + u(x)). `pairs`: (Basis point, target, per-axis
-    weight); `skin` (envelope.Skin): every warped vertex RAW under it; `fill`: the rows drawn out to that limit,
+    weight); `skin` (envelope.Skin): every warped vertex RAW under it, and with the region's `faces` the points
+    spread over them too (a crease of the skin cuts in between vertices); `fill`: the rows drawn out to that limit,
     softly: the budget and the pairs win; `lo`: the warped region's lower bound; `clear` (rows, points): those rows
     kept CLEAR_MM off the points. Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
-    lo = x.min(0) - LATTICE
-    shape = np.ceil((x.max(0) + LATTICE - lo) / LATTICE).astype(int) + 3
-    B = lattice(x, lo, shape)
+    origin = x.min(0) - LATTICE
+    shape = np.ceil((x.max(0) + LATTICE - origin) / LATTICE).astype(int) + 3
+    B = lattice(x, origin, shape)
     P, T, W = (np.array([p[i] for p in pairs], float) for i in range(3))
-    Bp = lattice(P, lo, shape)[0]
+    Bp = lattice(P, origin, shape)[0]
     k = B[0].shape[1]
+    over_faces = spread(x, faces) if skin and faces is not None else None
 
     def jacobians(d):
         return np.eye(3) + np.stack([B[j + 1] @ d for j in range(3)], -1)
@@ -113,6 +123,14 @@ def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None):
                 v = np.maximum(depth[fill] - RAW - AIM, 0)
                 e += FILL * (v * v).mean()
                 gy[fill] += 2 * FILL / len(v) * v[:, None] * inward[fill]
+            if over_faces is not None:
+                q = over_faces @ y
+                v = np.maximum(RAW + AIM - skin.depth(q), 0)
+                e += SKIN * (v * v).sum()
+                short = np.flatnonzero(v)
+                push = np.zeros_like(q)
+                push[short] = v[short, None] * skin.inward(q[short], 1e-3)
+                gy -= 2 * SKIN * (over_faces.T @ push)
         if clear:
             off, j = clear[1].query(y[clear[0]])
             v = np.maximum(CLEAR_MM + AIM - off, 0)
@@ -249,16 +267,18 @@ def vertebrae(basis, faces, skin):
         pairs += [(at, at, (1, 1, 1)), (front, front, (1, 1, 1))]
     x = np.vstack(placed)
     caps = np.full(len(x), 1.25)
-    y, f, hit = solve(x, caps, pairs, 1.0, skin, lo=(-np.inf, -np.inf, neck.CERVICAL_PATH[2][1]))  # the path's foot
-    report = _region(f, caps, hit, pairs) | {"scale": s, "skin_mm": _under(skin, y)}
+    tris = np.vstack([faces[n] + at for n, at in zip(NECK, np.cumsum([0, *map(len, placed[:-1])]))])
+    foot = (-np.inf, -np.inf, neck.CERVICAL_PATH[2][1])  # the path's
+    y, f, hit = solve(x, caps, pairs, 1.0, skin, lo=foot, faces=tris)
+    report = _region(f, caps, hit, pairs) | {"scale": s, "skin_mm": _under(skin, y, tris)}
     return dict(zip(NECK, np.split(y, np.cumsum([len(v) for v in placed])[:-1]))), report
 
 
-def _under(skin, y):
-    """The warped vertices' least depth under the skin; raises under RAW."""
-    least = float(skin.depth(y).min())
+def _under(skin, y, faces):
+    """The warped surface's least depth under the skin (its vertices and points 1 mm apart on it); raises under RAW."""
+    least = float(skin.depth(surface(y, faces)).min())
     if least < RAW:
-        raise ValueError(f"a vertex lies {least:.2f} mm under Morty's skin, less than {RAW}")
+        raise ValueError(f"the bone comes within {least:.2f} mm of Morty's skin, less than {RAW}")
     return round(least, 2)
 
 
@@ -317,8 +337,8 @@ def warp(basis, faces, landmarks, skin):
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
         *((p, (0, TILT[1], TILT[2] - C0_BELOW), (0, 1, 1)) for p in occ),
     ]
-    y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, clear=(zone, moving))
-    report["skull"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, y)}
+    y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, clear=(zone, moving), faces=tris)
+    report["skull"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, y, tris)}
     report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)])
     base = np.isin(tris, zone).all(axis=1)
     room = float(moving.query(surface(y, tris[base]))[0].min())
@@ -346,8 +366,8 @@ def warp(basis, faces, landmarks, skin):
         (top, (0, ridge[1], ridge[2] - GAP_MM * SCALES["mandible"]), (1, 1, 1)),
     ]
     caps = budget.caps(JAW, m, ref)
-    out[JAW], f, hit = solve(m, caps, pairs, SCALES["mandible"], skin)
-    report["mandible"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, out[JAW])}
+    out[JAW], f, hit = solve(m, caps, pairs, SCALES["mandible"], skin, faces=faces[JAW])
+    report["mandible"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, out[JAW], faces[JAW])}
 
     return out | fitted, report
 

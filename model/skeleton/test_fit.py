@@ -32,6 +32,24 @@ def test_the_field_brings_its_region_under_a_skin():
     assert ball.depth(y).min() >= fit.RAW
 
 
+def test_the_field_brings_a_face_under_a_crease_of_the_skin_its_vertices_straddle():
+    """Two 30 mm balls crossing leave a waist 20.4 mm round between them; a box's long edges cross it 21.2 mm out,
+    between vertices that lie 5 mm and more under the balls. Fitted with its faces, the whole surface is RAW under the skin
+    (Morty's hairline and the grooves of his hair cut in between a bone's vertices the same way)."""
+    waist = envelope.Skin(
+        trimesh.util.concatenate(
+            [trimesh.creation.icosphere(subdivisions=4, radius=30.0).apply_translation((s * 22, 0, 0)) for s in (-1, 1)]
+        )
+    )
+    box = trimesh.creation.box(extents=(40, 30, 30)).subdivide().apply_translation((10, 0, 0))
+    x, faces = np.array(box.vertices), np.array(box.faces)
+    assert waist.depth(x).min() > fit.RAW + fit.AIM and waist.depth(fit.surface(x, faces)).min() < 0
+    pairs = [((s * 15 + 10, 0, 0), (s * 15 + 10, 0, 0), (1, 1, 1)) for s in (-1, 1)]
+    y, f, _ = fit.solve(x, np.full(len(x), 1.25), pairs, 1.0, waist, faces=faces)
+    fit.stretch(f, np.full(len(x), 1.25))
+    assert waist.depth(fit.surface(y, faces)).min() >= fit.RAW
+
+
 def test_a_fill_draws_its_rows_out_to_the_skin_inside_the_budget():
     """A 40 mm box in a 40 mm ball, its bottom's corners pinned, its top filled: the top comes up at least 4 mm, never
     past RAW under the ball, every local length inside the budget (fit.stretch raises otherwise); unfilled, it stays."""
