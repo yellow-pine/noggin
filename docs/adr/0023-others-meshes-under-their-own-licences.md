@@ -4,6 +4,8 @@
 > from a mechanical part).
 > Amended 2026-11-04 (#873, ADR 0025): the sources moved into the Skeleton scene unchanged (their folders keep their
 > LICENSE.md); from #874 BodyParts3D replaces them, life-size, and the real Morty stays a local reference.
+> Amended 2026-11-27 (#850, ADR 0027): Morty's sculpt joins the same way, public, in `model/morty` under CC BY 4.0;
+> his Skin is cut from it.
 
 The realistic Skeleton's skull and mandible are 3Demon's Anatomically Correct Human Skull (Printables 777324, CC BY-SA
 4.0) and its atlas and axis Isopropyl Alcohol's C1 and C2 (Printables 1087469, CC BY-NC-SA 4.0): an anatomical skull

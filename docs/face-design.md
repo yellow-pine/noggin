@@ -42,9 +42,10 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 
 ## Morty's Shells
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
-size inferred). *Upcoming (#850): his Shells are refitted round the life-size skull as one smooth loft, the hair's
-Seats re-placed on the new cranium.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through
-the Shells over it, the hair and the shirt, for a plug.*
+size inferred). *Upcoming (#850): these hand-drawn Shells go, and his Skin is cut from his sculpt
+(`model/morty`, [Credits](credits.md)): its surface the outside from the crown to the base, the wall 1.6 mm inward,
+split along his hairline, eye domes, mouth line and collar (docs/adr/0027).* *Upcoming (#864): each Core's USB-C
+opening, and the Torso's, is cut through the Shells over it, the hair and the shirt, for a plug.*
 - the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
   the head mount, square from above where the mouth servo's corners need it; 210 x 210 x 225 mm (x1.5 with the eyes, #901)
   but for the ears (model/printed/test_skin.py);
