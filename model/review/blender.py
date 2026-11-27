@@ -24,7 +24,7 @@ import export  # noqa: E402
 
 JOB_PATH, OUT, STEP = sys.argv[sys.argv.index("--") + 1 :][:3]
 JOB = json.load(open(JOB_PATH))
-LAYERS, REGIONS = ("Mech", "Skeleton", "Skin", "Morty"), ("Skull", "Mechanism", "Pedestal")
+LAYERS, REGIONS = tuple(JOB["alpha"]), ("Skull", "Mechanism", "Pedestal")  # the layers, innermost first: review.ALPHA
 MORTY_FACES = 100_000  # the sculpt decimated to about this many
 bpy.context.preferences.filepaths.save_version = 0  # no .blend1 beside the file
 

@@ -7,9 +7,9 @@ its layer's candidate (pick: the newest pushed of main and the open PRs whose ch
 main) and labelled with its PR or branch, commit, date and gate status. A candidate's commit is exported once and
 cached by commit (CACHE): its parts built without the Finish (`model.ours` without Blender), then its own review's
 assemble step (model/review, export.py); the Skeleton is the raw warped bones of the candidate's own Skeleton scene,
-and the Skin Shells are the Shells its own build cut from the Sculpt (shells(): their STLs, in the Skin's colours)
-with its eyeball caps, so both show even when the candidate's assemble fails, and the Shells whether or not a
-document wears them yet (#850). Written beside LATEST and
+and the Skin Shells are the Shells its own build cut from the Sculpt (shells(): their STLs, in the Skin's colours),
+which show even when the candidate's assemble fails and whether or not a document wears them yet (#850), with its
+eyeball caps, which its assemble places: a failed one leaves the Shells alone, its reason in the label. Written beside LATEST and
 renamed into place with the review's receipt, under its own lock and the Mac's heavy lock (review.SLOT); Cansin's
 Blender reloads it like the review (model/review/reload.py). Nothing here is committed, uploaded or published: the
 Morty reference is read in place, and the file and cache stay on the Mac.
@@ -231,8 +231,9 @@ def build(out=LATEST, morty=review.MORTY):
                 reason = f"no Morty reference at {morty}"
             cut = shells(os.path.join(home, "src")) if layer == "Skin Shells" else []
             layers_[layer] = {"label": c["label"], "sha": c["sha"], "blend": None if reason else blend, "job": job}
-            layers_[layer] |= {"shells": cut, "reason": None if cut else reason}  # its cut Shells show regardless
-            print(f"latest: {layer}: {c['label']}" + (f" (empty: {reason})" if reason else ""), flush=True)
+            # its cut Shells show regardless: with a reason, they are all of the layer
+            layers_[layer] |= {"shells": cut, "reason": reason}
+            print(f"latest: {layer}: {c['label']}" + (f" ({reason})" if reason else ""), flush=True)
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "latest.json")
             with open(path, "w") as f:
