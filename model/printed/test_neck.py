@@ -169,6 +169,16 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
     assert weak == []
 
 
+@pytest.mark.model
+def test_the_jaw_carriers_chains_meet_at_the_chin_without_a_sliver():
+    """#850: the two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a
+    document's STEP as an invalid jaw (model/test_ours.py), once nothing fused onto the chin covered it. No edge of the
+    Bone jaw within 9 mm of the chin is that marginal."""
+    chin = np.array(nk.JAW_CHIN)
+    edges = [e for e in _built("jaw").Edges() if np.linalg.norm(np.array(e.Center().toTuple()) - chin) < 9.0]
+    assert edges and min(e.Length() for e in edges) > 0.5
+
+
 @pytest.fixture(scope="module")
 def saddle():
     return _built("nod plate")

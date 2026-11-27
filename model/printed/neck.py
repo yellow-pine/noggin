@@ -24,6 +24,9 @@ BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mech
 _CONDYLE, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
 JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, _BODY, _BODY, _BODY)
 JAW_LAP = 2.0  # each Bone runs this far past its joints: flat ends meeting on a bend leave a notch to mid-section
+# at the chin the R chain ends this far past it, short of the L one's: ending together, their flat ends crossed on the
+# chains' own crossing and left a 0.015 mm edge, an invalid jaw in a document's STEP on Linux's OCCT (#850)
+JAW_CHIN_LAP_R = 1.0
 
 
 def tie(x, y, z):
@@ -248,11 +251,12 @@ def jaw(mechanical=False):
     down each side to the chin, and the drive's pin on a post inboard from the L chain to the jaw bar."""
     points = jaw_chains()
     out = None
-    for chain in points.values():
+    for side, chain in points.items():
         for i, ((a, b), size) in enumerate(zip(itertools.pairwise(np.array(chain)), JAW_SPANS, strict=True)):
             lap = (b - a) / np.linalg.norm(b - a) * JAW_LAP
+            end = lap * (JAW_CHIN_LAP_R / JAW_LAP if side == "R" and i == len(JAW_SPANS) - 1 else 1.0)
             # but at the pivot, where a longer end would sweep into the frame's plate
-            link = bone.bone(a - lap * (i > 0), b + lap, *size, up=(1, 0, 0), round=True, heads=False)
+            link = bone.bone(a - lap * (i > 0), b + end, *size, up=(1, 0, 0), round=True, heads=False)
             out = link if out is None else out.union(link)
     jy, jz = nk.JAW
     for sign in (-1, 1):
