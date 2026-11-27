@@ -105,8 +105,8 @@ def stamp(doc):
     h = hashlib.sha256(f"mujoco {version('mujoco')} coacd {version('coacd')}".encode())
     paths = [p for pattern in SOURCES for p in sorted(glob.glob(os.path.join(stages.REPO, pattern)))]
     carriers = {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]}
-    if carriers <= stages.STAGES[doc].parts.keys() and os.path.exists(mjcf.ANATOMY_LOADS):  # mjcf.spec's shortcut
-        paths.append(mjcf.ANATOMY_LOADS)
+    if carriers <= stages.STAGES[doc].parts.keys() and mjcf.finished():  # the bones mjcf.spec loads it with
+        paths += [stages.stl(stem) for stem in geometry.SKULL]
     for path in [p for p in paths if not os.path.basename(p).startswith("test_")] + sorted(
         {p.file for p in stages.STAGES[doc].parts.values()}
     ):

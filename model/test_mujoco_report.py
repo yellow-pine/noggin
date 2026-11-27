@@ -1,8 +1,6 @@
 """Seam: model/mujoco_report.py's tip-over margin, on a plan outline drawn by hand, and its servo torques, on a
 parallelogram four-bar written by hand (the report itself: test_report.py)."""
 
-import json
-
 import mujoco
 import numpy as np
 import pytest
@@ -10,16 +8,13 @@ import pytest
 from model import mjcf, mujoco_report, neck, stages
 
 
-def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collision_meshes(tmp_path, monkeypatch):
+def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collision_meshes(monkeypatch):
     """The same finished export's head/jaw loads must affect torque even in mechanical-only documents (ADR0020)."""
     loads = {
         stem: {"carrier": carrier, "mass_g": grams, "com_mm": [100, 0, 0], "inertia_g_mm2": np.eye(3).tolist()}
         for stem, carrier, grams in [("skull", "head", 100), ("calvaria", "head", 50), ("mandible", "jaw", 10)]
         + [(f"c{i}", "fixed", 1) for i in range(1, 8)]
     }
-    path = tmp_path / "loads.json"
-    path.write_text(json.dumps({"source": "synthetic finished mesh fixture", "parts": loads}))
-    monkeypatch.setattr(mjcf, "ANATOMY_LOADS", str(path), raising=False)
     monkeypatch.setattr(mjcf.g, "SKULL", tuple(loads))
     spec = mujoco.MjSpec.from_string("""<mujoco><worldbody>
         <body name="head mount:1"><joint name="tilt" axis="0 1 0"/><geom size="0.001" mass="1e-6"/>
@@ -31,7 +26,7 @@ def test_finished_anatomy_adds_carried_mass_inertia_and_gravity_without_collisio
     }
     horn = stages.Horn({}, (), "", [], [], np.eye(4))
     stage = stages.Doc("synthetic", parts, {"tilt horn": horn})
-    mjcf.anatomy(spec, stage, {n: spec.body(n) for n in parts})
+    mjcf.anatomy(spec, stage, {n: spec.body(n) for n in parts}, loads)
     model = spec.compile()
     assert model.body_subtreemass[model.body("head mount:1").id] == pytest.approx(0.160002)
     assert model.ngeom == 3  # inertial loads never add collision or visual geometry

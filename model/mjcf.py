@@ -9,6 +9,7 @@ rocker pin (#148, research note docs/research/2026-11-01-mujoco-loops.md). pose(
 
 import collections
 import concurrent.futures
+import functools
 import glob
 import hashlib
 import json
@@ -29,7 +30,6 @@ from model import geometry as g
 from model.render import scene
 
 BUILD = os.path.join(stages.REPO, "model", "build")
-ANATOMY_LOADS = os.path.join(BUILD, "skeleton", "loads.json")
 CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
@@ -211,19 +211,38 @@ def _quat(m):
     return q
 
 
-def anatomy(spec, stage, bodies):
-    """Finished-export mass/COM/inertia on rigid carriers; realistic meshes remain excluded from collisions (ADR0020)."""
-    with open(ANATOMY_LOADS) as file:
-        loads = json.load(file)
-    required = set(g.SKULL)  # #874 derives this from its one canonical Bone-output registry
-    if (
-        not isinstance(loads.get("source"), str)
-        or not loads["source"].strip()
-        or not required <= loads.get("parts", {}).keys()
-    ):
-        raise ValueError("finished anatomy loads need their export stamp and every head/cervical part")
+def finished():
+    """Whether `just ours` left the realistic Skeleton's bones finished here (Blender's: a host without it has none,
+    and simulates the mechanism alone)."""
+    return all(os.path.exists(stages.stl(stem)) for stem in g.SKULL)
+
+
+@functools.cache
+def loads():
+    """{bone: its load}: each finished bone (g.SKULL) as it prints (mass()), its centre and its inertia about it in
+    the head's frame (mm, g mm2), and the carrier it rides (neck.BONE_CARRIERS): the skull the head, the mandible the
+    jaw, C1 to C7 the fixed cervical carrier (stages.RIDES)."""
+    role = {"gimbal frame:1": "head", "jaw:1": "jaw", "cervical carrier:1": "fixed"}
+    out = {}
+    for stem in g.SKULL:
+        mesh = trimesh.load(stages.stl(stem), force="mesh")
+        grams = mass(mesh, stages.printed(stem))
+        out[stem] = {
+            "carrier": role[stages.RIDES[stem + ":1"]],
+            "mass_g": grams,
+            "com_mm": mesh.center_mass.tolist(),
+            "inertia_g_mm2": (mesh.moment_inertia * grams / mesh.volume).tolist(),
+        }
+    return out
+
+
+def anatomy(spec, stage, bodies, loads):
+    """Each finished bone's mass, centre and inertia (`loads`: loads()) on its rigid carrier; the realistic meshes
+    stay out of collisions (ADR0020)."""
+    if not set(g.SKULL) <= loads.keys():
+        raise ValueError("finished anatomy loads need every head and cervical bone")
     head = stage.horns["tilt horn"].frame
-    for stem, load in loads["parts"].items():
+    for stem, load in loads.items():
         role = load["carrier"]
         if role not in neck.BONE_CARRIERS:
             raise ValueError(f"invalid anatomical carrier for {stem}")
@@ -423,10 +442,8 @@ def spec(doc, collide=True):
             drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
         else:
             drive(s, h)
-    # shortcut: nothing writes ANATOMY_LOADS until #874's finished export does; until then physics runs on the
-    # mechanical parts alone, as before #978, and a present but invalid file still fails loudly in anatomy()
-    if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= bodies.keys() and os.path.exists(ANATOMY_LOADS):
-        anatomy(s, stage, bodies)
+    if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= bodies.keys() and finished():
+        anatomy(s, stage, bodies, loads())
     return s
 
 
