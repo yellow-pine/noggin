@@ -17,6 +17,7 @@ from model.printed import PARTS, gimbal, skin
 
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
 DOC = next(d for d in g.MECH if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
+REAL = next(d for d in g.MECH if g.SKULL_SUB in g.MECH[d])  # the realistic one: the skull's bones on it
 
 
 @pytest.mark.parametrize("stem", sk.SHELLS)
@@ -95,8 +96,17 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose):
     assert _near(DOC, pose) == []
 
 
-def _near(doc, pose):
-    """[(Shell, part, mm)] closer than CLEAR_MM in `doc` at `pose`."""
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("pose", list(_poses(REAL)))
+def test_every_shell_clears_the_realistic_skulls_bones(pose):
+    """The Shells fit the realistic Skeleton too (#838): each CLEAR_MM off the skull's bones as a Skin wears them
+    (g.WORN), which the mechanical document has none of."""
+    assert _near(REAL, pose, only=set(g.BONES)) == []
+
+
+def _near(doc, pose, only=None):
+    """[(Shell, part, mm)] closer than CLEAR_MM in `doc` at `pose`: of the parts `only` names, if given."""
     stage, mats, carriers, near = stages.STAGES[doc], _poses(doc)[pose], _carriers(), []
     for n, p in stage.parts.items():
         stem = stages.stem(p.file)
@@ -107,6 +117,8 @@ def _near(doc, pose):
         for other, q in stage.parts.items():
             o = stages.stem(q.file).removesuffix(g.MECHANICAL)
             if other == n or o in carriers[stem] or stem in carriers.get(o, ()):
+                continue
+            if only is not None and o not in only:
                 continue
             pts = trimesh.transform_points(_cloud(stages.stem(q.file)), into @ mats[other])
             pts = pts[np.all((pts > lo) & (pts < hi), axis=1)]
