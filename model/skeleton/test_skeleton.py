@@ -105,6 +105,24 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
 
 @pytest.mark.model
 @pytest.mark.bones
+def test_the_vault_is_closed_from_the_sides_the_back_and_above():
+    """Seen from the head's middle at the eyes' height, the finished skull shows bone in every direction (2 deg a
+    bin) level with the eyes and above, but in front, where the face opens round the lids. Two holes stood open at
+    the temples (the R about 19 x 10 mm) where the parietal bones are 0.8 to 2.2 mm thick, under the print floor,
+    and the Finish rounded them away: it now thickens the vault's bones inward first (skeleton.THICK; Cansin,
+    2026-11-27, #893)."""
+    rng = np.random.default_rng(0)
+    p = np.asarray(trimesh.sample.sample_surface(_bones()["skull"], 2_000_000, seed=rng)[0]) - (0.0, 70.0, 0.0)
+    az = np.degrees(np.arctan2(p[:, 0], p[:, 1]))  # 0 behind, 90 at his left
+    el = np.degrees(np.arcsin(p[:, 2] / np.linalg.norm(p, axis=1)))
+    seen = np.zeros((120, 45), bool)  # az -120 to 120, el 0 to 90
+    at = (np.abs(az) < 120) & (el >= 0)
+    seen[((az[at] + 120) // 2).astype(int), (el[at] // 2).astype(int)] = True
+    assert [(int(a) * 2 - 119, int(e) * 2 + 1) for a, e in np.argwhere(~seen)] == []
+
+
+@pytest.mark.model
+@pytest.mark.bones
 def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
     """#967: the skull's one piece (the test below) reaches under the gimbal frame's plate in front of it, between its
     windows: the palate, which the plate cut off before the maxillae rose through them (a piece that small is still

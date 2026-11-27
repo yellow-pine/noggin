@@ -28,6 +28,9 @@ FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of 
 # the skull's 21 bones are one bone across every gap under twice this (export.rounded): BodyParts3D's only abut, and
 # the palate hangs on the R maxilla's back, 1.4 mm off the sphenoid's pterygoid process where the two can meet (#874)
 SEAL = 1.5
+# the vault's bones (fit.VAULT) are at least this thick, inward: the print floor and half the finish's voxel, which
+# its remesh can thin a bone by. The parietals are 0.8 to 2.2 mm thick at the temples (#874)
+THICK = FLOOR + PITCH / 2
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
 # #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each eye centre (gimbal.EYE,
@@ -61,6 +64,8 @@ def job():
     places (4x4, the document's frame) of every part as the bone sees it over every pose, sorted into what rides it
     (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (head's
     frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box) and the finish's numbers."""
+    from model.skeleton import fit  # here: fit reads this module's numbers
+
     stage = stages.STAGES[DOC]
     rest = {n: p.matrix for n, p in stage.parts.items()}
     files = {n: p.file for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES}
@@ -95,7 +100,9 @@ def job():
             [[x - BELT[0], y, z + BELT_Z[0] - CLEAR_MM], [x + BELT[0], y + BELT[1], z + BELT_Z[1] + CLEAR_MM]]
             for x, y, z in gm.EYE.values()
         ],
+        "vault": {"bones": sorted(fit.VAULT), "middle": list(fit.MIDDLE)},
         "numbers": {
+            "Thick": THICK,
             "Voxel": PITCH,
             "Clearance": CLEAR_MM,
             "Wall": WALL,

@@ -256,7 +256,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   the atlas round the pan axis, and every bone at least 2.1 mm under Morty's skin, the Sculpt's surface
   (model/skeleton/envelope.py, docs/adr/0025: the skull's limit where the compact head's box was), the cranium drawn
   out toward it so the vault closes over the mechanism. `just ours` has Blender
-  finish them on a 0.8 mm SDF grid: the skull's 21 bones sealed into one across every gap under 3 mm, the cranium
+  finish them on a 0.8 mm SDF grid: the vault's bones thickened inward to at least 2.4 mm (the parietals are
+  thinner at the temples), the skull's 21 bones sealed into one across every gap under 3 mm, the cranium
   shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
   under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
