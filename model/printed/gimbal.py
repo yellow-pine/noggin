@@ -32,6 +32,9 @@ CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
     ((2.4, 3.3), (2.2, 3.2)),
     ((3.5, 6.5), (3.0, 5.0)),
 )
+# #967, inside Morty's Skin (model/review/test_hidden.py): the mechanical yoke's lower corners cut back this far, and
+# each lid upright's head this radius round its shank's boss (ARM / 2)
+YOKE_CUT, UPRIGHT_R = 2.0, 3.5
 MM = 0.001  # MuJoCo's metres per mm
 CAP_BACK = gm.CAP_R * math.cos(math.radians(gm.CAP_HALF))  # the cap's flat back, on the core's seat
 
@@ -91,6 +94,9 @@ def yoke(mechanical=False):
         out = box((-x1, x1), (-h, h), (-x1, -x0))
         for s in (-1, 1):
             out = out.union(box(sorted((s * x0, s * x1)), (-h, h), (-x1, 0)))
+        for s in (-1, 1):  # the U's lower corners cut back: yawed, a square one nears the cheek's Skin (#967)
+            corner = [(s * (x1 - YOKE_CUT), -x1), (s * x1, -x1), (s * x1, -x1 + YOKE_CUT)]
+            out = out.cut(cq.Workplane("XZ", origin=(0, h, 0)).polyline(corner).close().extrude(2 * h))
         out = out.union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], -x1)))
         out = out.union(box((-ARM / 2, ARM / 2), (0, gm.CRANK), z)).union(cyl("z", (0, gm.CRANK, 0), ARM / 2, z))
     for s in (-1, 1):
@@ -334,7 +340,7 @@ def frame(mechanical=False):
         if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4)))
             # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
-            out = out.union(box(ux, (-4, 4), (-12, 0))).union(cyl("x", (0, 0, 0), 4.0, ux))
+            out = out.union(box(ux, (-UPRIGHT_R, UPRIGHT_R), (-12, 0))).union(cyl("x", (0, 0, 0), UPRIGHT_R, ux))
             out = out.union(box(ux, (0, 8), (top, -12)))
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
@@ -343,7 +349,7 @@ def frame(mechanical=False):
             # the lid upright leaning back to the plate, behind the cheek (#967)
             for xs, y, foot, z, r in (
                 (bx, by, by, bz, 4.0),
-                (ux, 0.0, 4.0, 0.0, 4.0),
+                (ux, 0.0, 4.0, 0.0, UPRIGHT_R),
                 (lx, jy, jy, jz, neck.JAW_FIXED_R),
             ):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a

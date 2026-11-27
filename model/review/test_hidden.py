@@ -1,5 +1,5 @@
 """Seam: the eye gimbal inside the private Morty reference (#967), as model/review places him: the gimbal frame and every
-eye drive part (servos, horns, bars, links, yokes, cores, the bail), with each eye servo at either end of its range, at
+eye drive part (servos, horns, bars, links, yokes, cores, the bail), with each eye servo over its range, at
 least a Shell's wall and its clearance inside his outer surface, in both Skeleton styles. The caps and lids are the
 eyes' own surfaces, seen through his eye openings, so they are left out. One of the review's own checks, as
 test_review.py's on the written file: `just review` runs it on the parts it just built (NOGGIN_REVIEW set), and by hand
@@ -24,6 +24,7 @@ from model import review, skeleton, skin, stages
 MARGIN = skin.WALL + gm.LID_CLEAR_MM  # a Shell's wall, and its least room to a part it does not sit on
 VISIBLE = ("eyeball cap", "upper lid", "lower lid")  # seen through his eye openings, not hidden behind his Skin
 HORNS = ("yaw horn", "pitch horn", "L lid horn", "R lid horn")  # the eyes Core's; the head's move the Skin with them
+STEPS = 11  # each eye servo's range, sampled
 PITCH, FAR = 1.0, 6.0  # depth()'s voxel, and how far from his surface it measures, mm
 EXPORT = """
 import bpy, numpy as np
@@ -127,15 +128,17 @@ def _cloud(stem):
 
 
 def _poses(stage):
+    """The document at rest and each eye servo at STEPS points over its range: a yawed yoke's corner comes nearest his
+    cheek short of the yaw's end."""
     yield "rest", {n: p.matrix for n, p in stage.parts.items()}
     for horn in HORNS:
-        for deg in stage.horns[horn].limits:
+        for deg in np.linspace(*stage.horns[horn].limits, STEPS):
             yield f"{horn} {deg:.0f}", stages.pose(stage, horn, deg).parts
 
 
 @pytest.mark.parametrize("doc", list(g.MECH))
 def test_the_eye_gimbal_hides_inside_mortys_reference(doc, outside):
-    """#967: at rest and with each eye servo at either end, every point of the eye gimbal's frame and drives lies
+    """#967: at rest and with each eye servo over its range, every point of the eye gimbal's frame and drives lies
     MARGIN inside Morty's outer surface; a part that comes nearer or pokes through is listed with its worst mm."""
     stage, near = stages.STAGES[doc], {}
     for pose, mats in _poses(stage):

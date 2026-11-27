@@ -145,7 +145,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   frame hides inside Morty's Skin: the beam ends inside his cheeks, its lower outer corners cut back, an arm runs back
   from each end to its lid upright's foot behind the lower lid's sweep, and each upright leans back down to the plate,
   so the frame and the eyes' drives lie a Shell's wall and its clearance inside the private Morty reference at rest and
-  at either end of each eye servo (model/review/test_hidden.py, on the Mac alone: the reference stays private). A
+  over each eye servo's range (model/review/test_hidden.py, one of the review's checks: the reference stays private). A
   window through the plate either side of the yaw servo's collar lets the realistic skull's maxillae up from the
   palate to the cranium's base, so the bare skull is one piece (`gimbal.WINDOW_X`). Each eye has an
   upper and a lower lid on that one servo: the upper lid's crank through the lid bar (a
