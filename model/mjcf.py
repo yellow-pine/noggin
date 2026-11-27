@@ -31,7 +31,13 @@ from model.render import scene
 BUILD = os.path.join(stages.REPO, "model", "build")
 ANATOMY_LOADS = os.path.join(BUILD, "skeleton", "loads.json")
 CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
-COACD = {"threshold": 0.05, "seed": 0}  # CoACD's default concavity; a fixed seed so the pieces repeat
+# CoACD's default concavity; a fixed seed so the pieces repeat; and every mesh cut as it is meshed (_mesh closes it).
+# CoACD's default preprocess ("auto") rebuilds from voxels a mesh it takes for no manifold, one with an open edge or
+# with triangles that cross (Bones joined), 0.55 of a voxel fatter all round, a voxel 1/100 of the part's longest side
+# (docs/research/2026-11-01-coacd-tuning.md 1): 0.5 to 0.8 mm on the jaw, the bail, the cervical carrier and the gimbal
+# frame, each on the one platform whose mesh failed that check, which read overlaps where the exact solids clear (#850,
+# #1036). model/test_convex_parts.py holds every corner of every piece to its mesh
+COACD = {"threshold": 0.05, "seed": 0, "preprocess_mode": "off"}
 # The parts whose pieces meet another part closely, cut finer: CoACD's real-metric mode takes the threshold in the mesh's
 # own units (mm here) where the default is normalised to the part's longest side (docs/research/2026-11-01-coacd-tuning.md)
 FINE_MM = {
@@ -51,12 +57,6 @@ FINE_MM = {
 # pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read
 # the core 1.6 mm deep in it
 MAX_PIECES = dict.fromkeys((f"{p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
-# The parts CoACD cuts as they are meshed. Its "auto" preprocess rebuilds from voxels a mesh it takes for no manifold,
-# 0.55 of a voxel fatter all round, a voxel 1/100 of the part's longest side (docs/research/2026-11-01-coacd-tuning.md
-# 1). The jaw's mesh is closed, but its triangles cross where its Bones join, so its pieces came out 0.5 mm fat: its
-# bosses, which turn flush between the walls of the frame's notches, sat 0.53 mm in them at rest and read 0.06 mm
-# deeper as the jaw opened, where the exact meshes keep one gap (#850)
-AS_MESHED = {f"jaw{g.MECHANICAL}"}
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
@@ -147,8 +147,6 @@ def convex(file, clip=None):
     settings = {**COACD, "threshold": FINE_MM[stem], "real_metric": True} if stem in FINE_MM else COACD
     if stem in MAX_PIECES:
         settings = {**settings, "max_convex_hull": MAX_PIECES[stem]}
-    if stem in AS_MESHED:
-        settings = {**settings, "preprocess_mode": "off"}
     seen = mesh.vertices.tobytes() + mesh.faces.tobytes() + json.dumps([settings, version("coacd")]).encode()
     key = hashlib.sha256(seen).hexdigest()
     folder = os.path.join(CONVEX, stem)
@@ -173,9 +171,11 @@ def _mesh(file, clip):
         axis, cut = clip
         f = f[(v[f][:, :, "xyz".index(axis)] <= cut + 0.1).all(axis=1)]
     mesh = trimesh.Trimesh(v, f)
-    # OCCT leaves a zero-area sliver on a few seams (the lids, the eyeballs): without it the mesh is a closed 2-manifold,
-    # so CoACD skips its voxel remesh (preprocess_mode "auto"), which smears the part by ~1 mm
+    # OCCT leaves a zero-area sliver on a few seams (the lids, the eyeballs): without it the mesh is a closed 2-manifold
     mesh.update_faces(mesh.nondegenerate_faces())
+    # and on some platforms splits one side of a seam a hair from its end (the gimbal frame's jaw lugs on macOS, 0.006
+    # mm, #1036), which leaves a hole three edges round and no width: closed with the triangle it lacks
+    mesh.fill_holes()
     return mesh
 
 
