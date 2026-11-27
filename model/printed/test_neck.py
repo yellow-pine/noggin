@@ -12,6 +12,7 @@ import pytest
 from model import beams, envelopes, linkage, sim, stages
 from model import geometry as g
 from model import neck as nk
+from model.gimbal import LID_CLEAR_MM
 from model.printed import PARTS, gimbal, neck
 from model.printed.test_gimbal import ON_SPLINE, _overlaps
 
@@ -129,6 +130,21 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     assert (
         _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.65)) >= beams.MIN_SF
     )  # the pin boss ends at the bar
+
+
+@pytest.mark.model
+def test_the_tilt_lever_swings_beside_its_case_with_room():
+    """#1039: the lever's arm steps inboard round the horn's rim and rides beside the case's face, and its pin passes
+    the case's corner in mid-swing, which neither end of the range shows: at 21 poses through the tilt's sweep the
+    lever and its bar keep a moving part's clearance from the case, exactly (OCCT's distance, no sampled surface)."""
+    stage = stages.STAGES[DOC]
+    for deg in np.linspace(*stage.horns["tilt horn"].limits, 21):
+        mats = stages.pose(stage, "tilt horn", deg).parts
+        case, lever, bar = (
+            _shape(stage.parts[n]._replace(matrix=mats[n]))
+            for n in ("tilt servo:1", "tilt lever:1", "tilt reaction bar:1")
+        )
+        assert min(lever.distance(case), bar.distance(case)) >= LID_CLEAR_MM, deg
 
 
 @pytest.mark.model
