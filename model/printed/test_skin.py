@@ -49,13 +49,22 @@ def test_a_head_shell_built_again_is_the_same(skin_shape, heads):
         assert len(again.Solids()) == 1 and again.Volume() == pytest.approx(shape.Volume(), rel=1e-6), s
 
 
+TURN = 35.0  # deg the head's surface may turn from one ring to the next: a shelf over the frame's beam turned 45
+
+
 def test_mortys_head_is_one_smooth_surface_round_from_every_angle():
     """#850: the head every Shell is cut from has no crease where outlines meet, as the old head's three did (Cansin:
-    "a soft box"): one curved face through his rings and their apex, closed by a flat floor under the head's own."""
+    "a soft box"): one curved face through his rings and their apex, closed by a flat floor under the head's own; and
+    from the small rings under the apex down to the floor, no ring turns it more than TURN deg."""
     faces = skin._head(0.0).val().Faces()
     assert sorted(f.geomType() for f in faces) == ["BSPLINE", "PLANE"]
     floor = next(f for f in faces if f.geomType() == "PLANE")
     assert floor.BoundingBox().zmax < sk.HEAD_Z[0]
+    rings = sk.head_grid()[3 : int(np.argmax(sk.RINGS[:, 0] < sk.HEAD_Z[0])) + 1]  # to the first under the floor
+    along = np.diff(rings, axis=0)
+    along /= np.linalg.norm(along, axis=2, keepdims=True)
+    turn = np.degrees(np.arccos(np.clip((along[:-1] * along[1:]).sum(axis=2), -1.0, 1.0)))
+    assert turn.max() < TURN
 
 
 @pytest.mark.parametrize("skin_shape", g.SKINS)
@@ -71,8 +80,8 @@ def test_each_head_stands_on_mortys_rings_but_for_its_ears_and_nose(skin_shape, 
         assert len(spikes.Solids()) == 9  # his nine, on the flat crown
         assert spikes.BoundingBox().zmax == pytest.approx(sk.HEAD_Z[1] + skin.SPIKE[1], abs=0.01)
         head["hair"] = cq.Workplane().add(head["hair"]).cut(above).val()
-    y, z, r, _ = skin.EAR
-    nose_r, nose_z = skin.NOSE
+    y, z, r, _ = sk.EAR
+    nose_r, nose_z, _ = sk.NOSE
     features = gimbal.cyl("x", (0, y, z), r + 0.1, (-300, 300)).union(
         gimbal.cyl("z", (0, sk.head_front(0.0, nose_z), 0), nose_r + 5.0, (nose_z - nose_r - 1, nose_z + nose_r + 1))
     )
@@ -217,6 +226,37 @@ def test_every_shell_clears_every_part_but_what_carries_it(pose, doc):
     hardware (#51 shell containment), in each Skin (#813): since #850 the hair too, round the life-size head's
     hardware (#978)."""
     assert _near(doc, pose) == []
+
+
+@pytest.mark.model
+def test_the_hair_lifts_off_upward_and_the_face_forward_past_what_they_cover():
+    """#850: off their Seats along their normals, at rest. The hair's wall follows the head in under its widest, behind
+    the hairline down to the floor: nothing of the Mech lies over that wall, so the hair lifts straight up. The face
+    reaches back to the hairline, past where the head is widest: nothing ahead of its back edge is as wide, so it comes
+    off forward."""
+    stage, mats = stages.STAGES[DOC], _poses(DOC)["rest"]
+    face = next(n for n, p in stage.parts.items() if stages.stem(p.file) == "morty face")  # the head's frame
+    parts = [n for n, p in stage.parts.items() if stages.stem(p.file) not in sk.SHELLS]
+    pts = np.vstack(
+        [
+            trimesh.transform_points(_cloud(stages.stem(stage.parts[n].file)), np.linalg.inv(mats[face]) @ mats[n])
+            for n in parts
+        ]
+    )
+    pts = pts[pts[:, 2] > sk.HEAD_Z[0]]
+    inner, round_ = sk.head_grid(sk.WALL), np.r_[sk.THETA, 2 * np.pi - sk.THETA[-2:0:-1], 2 * np.pi]
+    for z, c, ring in zip(sk.RINGS[:, 0], sk.RINGS[:, 1], inner, strict=True):
+        if z < sk.HEAD_Z[0]:
+            continue
+        over = pts[(pts[:, 2] > z) & (pts[:, 1] > sk.face_back(z))]  # over this ring's hair
+        radius = np.hypot(ring[:, 0], ring[:, 1] - c)
+        at = np.arctan2(over[:, 0], c - over[:, 1]) % (2 * np.pi)
+        room = np.interp(at, round_, np.r_[radius, radius[0]]) - np.hypot(over[:, 0], over[:, 1] - c)
+        assert room.min(initial=np.inf) > CLEAR_MM, z
+    ahead = pts[pts[:, 1] < sk.face_back(pts[:, 2])]
+    heights = np.arange(sk.HEAD_Z[0], sk.HEAD_Z[1])
+    edge = np.interp(ahead[:, 2], heights, [sk.head_x(float(sk.face_back(z)), z) - sk.WALL for z in heights])
+    assert (edge - np.abs(ahead[:, 0])).min() > CLEAR_MM
 
 
 @pytest.mark.model

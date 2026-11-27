@@ -201,9 +201,9 @@ def plates(stage):
     return out
 
 
-def _morty(stage):
-    """Morty's place and section colours: eyes on the Mech's, scaled to their spacing, with one flat cut at the
-    Pedestal's floor. Motion ownership belongs to the editable private reference, never to mechanical height bounds."""
+def morty_at():
+    """(The raw Morty reference's 4x4 into the world, the world's into the head's frame): his eyes on the Mech's,
+    scaled to their spacing."""
     eyes = stages.align(*stages.DOCS[DOC]["eyes"])
     mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
     raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
@@ -214,6 +214,13 @@ def _morty(stage):
         @ np.diag([scale] * 3 + [1])
         @ (trimesh.transformations.translation_matrix(-raw_mid))
     )
+    return at, np.linalg.inv(eyes)
+
+
+def _morty(stage):
+    """Morty's place (morty_at) and section colours, with one flat cut at the Pedestal's floor. Motion ownership belongs
+    to the editable private reference, never to mechanical height bounds."""
+    at, head = morty_at()
     region, box = regions(), pictures.boxes(DOC)
     bare = [n for n, p in stage.parts.items() if stages.stem(p.file) not in (*g.BONES, *skin.SHELLS)]
     return {
@@ -222,7 +229,7 @@ def _morty(stage):
         "carriers": CARRIERS,
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
-        "head": np.linalg.inv(eyes).tolist(),  # world to the head's frame, the contours'
+        "head": head.tolist(),  # world to the head's frame, the contours'
         "contours": contours(),
         "eyes": gm.EYE,  # in the head's frame: each eye's lids part at its height
         "face": [c * gm.SPACING for c in skin.FACE_FRONT],  # the sheet's face front, to meet the sculpt's

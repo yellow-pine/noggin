@@ -230,11 +230,15 @@ def _built_wall(t, skin):
     return wall.val()
 
 
+# the eyes' openings: a ball's radius round each eye, and how far from the midline they reach
+EYES = (gm.LOWER_R[1] + sk.GAP + sk.COVER + 2.0, gm.SPACING / 2 + gm.LID_X["lower boss"][1] + 4.0)
+
+
 def _eyes():
     """What the eyes' openings leave out: round each eye, everything its lids and their covers reach with 2 mm to
     spare, ahead of the eye centres and inside the lids' reach across."""
-    out, r = None, gm.LOWER_R[1] + sk.GAP + sk.COVER + 2.0
-    across = gm.SPACING / 2 + gm.LID_X["lower boss"][1] + 4.0
+    out = None
+    r, across = EYES
     for x, _, _ in gm.EYE.values():
         o = ball(r, (x, 0, 0)).intersect(box((-across, across), (-r - 5, 5), (-r, r)))
         out = o if out is None else out.union(o)
@@ -272,21 +276,17 @@ def _hair(grow, skin="morty"):
 
 def _skull(t, skin="morty"):
     """The head's shell, from `t` in from its outside (out of it, negative) to WALL in, its eyes' openings cut, its
-    floor open round the neck and the jaw (NECK) and its back under the head mount (BACK_OPEN, #838)."""
+    floor open round the neck and the jaw (NECK), its back closed down to the floor (#850)."""
     x, up = sk.NECK
     neck = box((-x, x), (-200, 300), (sk.HEAD_Z[0] - 5, sk.HEAD_Z[0] + up))
-    back = box((-200, 200), (sk.BACK_OPEN[0], 300), (sk.HEAD_Z[0] - 5, sk.BACK_OPEN[1]))
-    out = _wall(t, skin).cut(_eyes()).cut(neck).cut(back)
+    out = _wall(t, skin).cut(_eyes()).cut(neck)
     return out.intersect(box((-200, 200), (-200, 200), (sk.HEAD_Z[0], 200)))
 
 
-NOSE = sk.grown(7.0, -20.0)  # his nose: a ball's radius and its centre's height, the centre 4 mm out of the face
-EAR = sk.grown(18.0, -25.0, 13.0, 5.0)  # each ear: (y, z) and radius of its dome, standing this far out of the cheek
-
-
 def _ear(s):
-    """The `s` (1 L, -1 R) ear: a dome out of the cheek, its hollow (the concha) open forward, so it reads as his C."""
-    y, z, r, out = EAR
+    """The `s` (1 L, -1 R) ear (model/skin.py EAR): a dome out of the head's side, its hollow (the concha) open forward,
+    so it reads as his C."""
+    y, z, r, out = sk.EAR
     cheek = sk.head_x(y, z)
     x = cheek + out - r
 
@@ -305,9 +305,9 @@ def face(skin="morty"):
     mouth's opening over the mouth cover; forward off the gimbal frame plate's Seats, the hair's Seats on its temples.
     Cansin's: his temples higher, a pocket over each eye for his brow."""
     out = _skull(0.0, skin).cut(_hair(0.1, skin))
-    r, z = NOSE
+    r, z, back = sk.NOSE
     front = sk.head_front(0.0, z)
-    out = out.union(ball(r, (0, front - 4.0, z)).cut(box((-r, r), (front + sk.WALL, 0), (2 * z, 0))))
+    out = out.union(ball(r, (0, front + back, z)).cut(box((-r, r), (front + sk.WALL, 100), (z - r, z + r))))
     for s in (-1, 1):
         out = out.union(_ear(s).cut(_head(sk.WALL, skin)))
     y0 = sk.HEAD_Y[0]
@@ -323,7 +323,7 @@ def face(skin="morty"):
 
 
 # Cansin's tufts on top (#813): balls (x, y, z, r) over the hairline's front, the head's top 1.5 mm proud at most
-# (model/printed/test_skin.py HEAD_LIMIT), so they stand out of its forward slope as a short quiff
+# (model/printed/test_skin.py), so they stand out of its forward slope as a short quiff
 TUFTS = tuple(
     sk.grown(*t)
     for t in (

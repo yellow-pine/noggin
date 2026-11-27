@@ -230,6 +230,10 @@ pictures *what: venv ours trajectories
 rewarp: venv
     BLENDER={{BLENDER}} {{PY}} -m model.skeleton.fit model/skeleton/skeleton.blend
 
+# Morty's head rings (model/head.json, #850) fitted again from the private Morty reference and the parts just built (model/review/rings.py), on the Mac alone; run it when a part in the head changes
+rings: venv ours
+    {{PY}} -m model.review.rings
+
 # the verified GX10 review delivered to the Mac, preserving its previous file until publication is complete
 review quality="production" before="": venv
     {{PY}} scripts/gx10.py --host {{GX10}} --review {{quality}} {{before}}

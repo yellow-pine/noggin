@@ -75,12 +75,11 @@ def _lid_seats(skin, side, polarity):
 
 
 # Morty's head (#665; #850: one smooth shell, round from every angle), in the head's frame (model/neck.py): the face
-# comes off forward, the hair up. It is lofted through RINGS (model/head.json): each a height z, a centre's y and its
-# radius at each of THETA's angles, from forward (-y) round the +x side to the back, the -x side its mirror, closed at
-# the top in APEX. They were
-# measured off the private Morty reference at its fixed scale (his eye domes, which our caps stand in for, and his ears
-# left out, smoothed) and pushed out where the mechanism needs a wall and its clearance (the gimbal frame's front corners
-# 15 mm at most, the jaw's chin 10 mm: docs/face-design.md).
+# comes off forward, the hair up. It is one surface through RINGS (model/head.json): each a height z, a centre's y and
+# its radius at each of THETA's angles, from forward (-y) round the +x side to the back, the -x side its mirror, closed
+# at the top in APEX. model/review/rings.py measures them off the private Morty reference at its fixed scale (his eye
+# domes, which our caps stand in for, his ears and his nose left out, smoothed) and swells them where the mechanism
+# needs a wall and its clearance (docs/face-design.md); run it again when a part in the head changes.
 with open(os.path.join(os.path.dirname(__file__), "head.json")) as _f:
     _HEAD = json.load(_f)
 THETA = np.radians(_HEAD["theta"])
@@ -88,6 +87,11 @@ RINGS = np.array(_HEAD["rings"])  # top down, under APEX
 # and its lowest ring twice more straight down, 5 mm apart: a plane cut near the lowest ring read back invalid
 RINGS = np.vstack([RINGS, *[RINGS[-1] - (k, *[0.0] * (RINGS.shape[1] - 1)) for k in (5.0, 10.0)]])
 APEX = tuple(_HEAD["apex"])  # (y, z) on the midline
+# His ears and nose, which the rings leave out, measured off the reference alike (inferred): each ear a ball's dome on
+# the head's side, (y, z), the ball's radius and how far it stands out; the nose a ball, its radius, its centre's z and
+# how far behind the face's front its centre lies
+EAR = (73.0, -36.0, 16.5, 10.0)
+NOSE = (15.0, -44.0, 1.0)
 # The Skins' other features (ears, nose, brows, tufts, spikes) keep their sizes as first drawn round the eyes (#665),
 # grown with them (#901: x1.5 about their midpoint, as the eye gimbal does round Morty's own eyes)
 GROW = gm.K
@@ -144,13 +148,12 @@ _ALL = head_grid().reshape(-1, 3)
 HEAD_X = float(_ALL[:, 0].max())
 HEAD_Y = (float(_ALL[:, 1].min()), float(_ALL[:, 1].max()))
 HEAD_Z = (-80.0, APEX[1])
-MUZZLE_Y = HEAD_Y[0]  # the face's front at its most forward, over the jaw's chin
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # Morty's contours (#991, #992): our control points traced off his model sheet (contours.json, its research note), in his
 # eyes' spacing from their midpoint, each in the view it was traced in, front (x, z) or side (y, z), and swept through
 # the head along that view's axis. One source for the Shells' hair seam (model/printed/skin.py) and the private
-# reference's cut (model/review). The Shells' hair also takes all behind NAPE, where the head starts to narrow, so
-# the hair comes off upward and the face forward; it stands HAIR proud of the face
+# reference's cut (model/review). The Shells' hair also takes all behind NAPE (below), so the hair comes off upward and
+# the face forward; it stands HAIR proud of the face
 with open(os.path.join(os.path.dirname(__file__), "contours.json")) as _f:
     _SHEET = json.load(_f)
 CONTOURS = _SHEET["contours"]
@@ -159,8 +162,6 @@ CONTOURS = _SHEET["contours"]
 FACE_FRONT = _SHEET["face front"]
 FACE_Y = head_front(0.0, FACE_FRONT[1] * gm.SPACING)  # the Shells' face's front over the eyes
 FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
-NAPE = float(RINGS[(RINGS[:, 0] >= HEAD_Z[0]) & (RINGS[:, 0] <= 0.0), 1].min())  # the least y a ring is widest at,
-# from the floor up to the eyes, where the face reaches back under the hairline
 HAIR = 1.5
 
 
@@ -195,9 +196,20 @@ def outline(name, front=None, step=2.0):
     return p
 
 
-NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot
-BACK_OPEN = (nk.AXIS[0] - 20.0, nk.AXIS[1] + 7.0)  # (y, z): the head open behind y and under z, where the neck tilts
-# in under the skull's base and the head mount's flange and tilt lever reach back past the head (#838)
+# The sheet's hairline at the ears' height, behind them: from there down the Shells' seam drops straight to the floor,
+# where the sheet's runs on back and the head narrows over the nod plate, so the face still comes off forward (#850)
+_HAIRLINE = contour("hairline")[::-1] + (FACE_Y - FACE_FRONT[0] * gm.SPACING, 0.0)  # (y, z), the nape first
+NAPE = float(np.interp(EAR[1], _HAIRLINE[:, 1], _HAIRLINE[:, 0]))
+
+
+def face_back(z):
+    """y of the face's back edge at height z, where the hair starts: the hairline's, NAPE from the ears down."""
+    return np.minimum(NAPE, np.interp(z, _HAIRLINE[:, 1], _HAIRLINE[:, 0]))
+
+
+# the head's floor open round the neck and the jaw within this half-width, up to this over its foot; its back is closed
+# down to the floor (#850: the neck stays 30 mm inside it however the head pans and tilts, the tilt lever inside the swell)
+NECK = (42.0, 4.0)
 TORSO = nb.TORSO[1]  # the Torso's front and back walls
 _PLATE = (gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2)  # the front of the gimbal frame's beam (its bar to the lids'), mid height
 _BACK = (45.0, 72.0)  # (|x|, y) on the cranium tray's back, outside the pan's sweep and the head mount (#850)
