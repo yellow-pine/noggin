@@ -25,8 +25,10 @@ https://pypi.org/project/mujoco/), so the model moves onto it: libraries before 
   collides nor weighs. Decomposition takes seconds per part, so the pieces are cached in model/build/convex, each
   part decomposed again only when the mesh CoACD gets or its settings change (CI caches them with model/build/ours).
   The pieces read the clearance the exact meshes do (#190, docs/research/2026-11-01-coacd-tuning.md): CoACD gets each
-  mesh without OCCT's zero-area seam slivers, so it keeps the surface instead of voxel-remeshing it at ~1 mm, and
-  cuts at its default concavity (0.05 of the part's size) except where a part meets another closely, cut in mm
+  mesh closed, without OCCT's zero-area seam slivers, and cuts it as it is meshed (`preprocess_mode` off, #1036: its
+  default rebuilt from voxels any mesh it took for no manifold, 0.5 to 0.8 mm fat, on whichever platform's mesh failed
+  its check; model/test_convex_parts.py holds every corner of every piece within 0.05 mm of its mesh), at its default
+  concavity (0.05 of the part's size) except where a part meets another closely, cut in mm
   (real-metric: the horn 0.08, the lids 0.15, the base plate, eye brackets, pan turntable and jaws 0.3).
   model/test_mjcf.py holds every pair within 0.05 mm of the exact meshes at rest and at the LIMITS ends, but three
   corners the pieces fill (the lid ears whose edges crossed were the model's limits, #210); since #151 against the

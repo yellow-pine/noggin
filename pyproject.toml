@@ -9,6 +9,7 @@ dependencies = [
     "magpylib>=6.0.0",
     "manifold3d>=3.5.5",
     "mujoco[sysid]>=3.17.0",  # sysid: model/servo_fit.py
+    "networkx>=3.7",  # trimesh's fill_holes (model/mjcf.py) imports it and does not declare it
     "numpy>=2.5.4",
     "opencv-python-headless>=5.0.0.93",
     "pyserial>=3.5",
