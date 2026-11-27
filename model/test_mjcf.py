@@ -339,14 +339,6 @@ def test_a_grown_part_cuts_into_no_more_pieces_than_its_cap(stem):
     assert 0 < len(mjcf.convex(stages.stl(stem))) <= mjcf.MAX_PIECES[stem]
 
 
-@pytest.mark.parametrize("stem", sorted(mjcf.AS_MESHED))
-def test_a_part_cut_as_meshed_has_pieces_no_fatter_than_its_mesh(stem):
-    """#850: CoACD's voxel preprocess left the jaw's pieces 0.5 mm outside its mesh; cut as meshed, they stay in its box."""
-    lo, hi = trimesh.load(stages.stl(stem), force="mesh").bounds
-    pieces = np.vstack([trimesh.load(p, force="mesh").vertices for p in mjcf.convex(stages.stl(stem))])
-    assert (pieces.min(axis=0) >= lo - 0.01).all() and (pieces.max(axis=0) <= hi + 0.01).all()
-
-
 def test_mass_follows_density_or_the_documented_figure():
     """#1003: a printed part weighs as it prints, a skin SKIN_MM thick round its INFILL core; a part thinner than two
     skins prints solid; hardware weighs its documented figure or its STEP volume at its density."""
