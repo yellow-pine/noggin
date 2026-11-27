@@ -83,8 +83,8 @@ test("the Theme bar shows the page in the Preset picked, by keyboard too, kept i
   await expect(item('default-build')).toBeHidden();
   await page.goto('docs/build/stage-1/'); // another page, no address: what was picked last
   await expect(bar).toHaveValue('morty');
-  await page.goto('docs/build/parts/?preset=bart'); // the address first
-  await expect(item('bart')).toBeVisible();
+  await page.goto('docs/build/parts/?preset=default-build'); // the address first
+  await expect(item('default-build')).toBeVisible();
   await expect(item('morty')).toBeHidden();
 });
 

@@ -54,7 +54,7 @@ POWER_AT = (0.0, neck.AXIS[0] - 38.0)
 # Shield, their USB-C ends back toward the hub (their middles' x, and y); the hub on the tray's riser on the plate, its
 # upstream port out the back of the skull base (HUB_X, its back end HUB_Y, its underside HUB_Z) beside the pitch bar
 # and over the head mount's rear L screw; the bulk capacitor lying across x on the tray behind the Cores (CAP_Y); the
-# hub's back end and the capacitor's top kept off the hair's inside, which runs 0.4 and 3 mm past them (#921); every
+# hub's back end and the capacitor's top where #921 set them; every
 # number inferred, held inside the skull by model/test_base.py
 TRAY_Z, LEG_X, LEG_Y = (30.0, 33.0), (44.0, 48.0), (81.0, 87.0)  # #978: outside the lower standard case's pan sweep
 TRAY_X = (-30.5, 30.5)  # the plate under the Cores; at the back behind the bail it widens to the legs

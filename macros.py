@@ -424,7 +424,7 @@ def stage_switch():
                 "label": f"{n}" + (f": {', '.join(fails)}" if fails else ""),
             }
         )
-    skins = {g.SKINLESS: viewer.BARE} | {s: f"-{s}" for s in list(g.SKINS)[1:]}  # Morty's the documents' own (#813)
+    skins = {g.SKINLESS: viewer.BARE} | {s: f"-{s}" for s in list(g.SKINS)[1:]}  # the first's the documents' own (#813)
     return {"buttons": buttons, "skeletons": g.SKELETON_SUFFIX, "skins": skins}
 
 

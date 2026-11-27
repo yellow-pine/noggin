@@ -101,11 +101,10 @@ def test_the_wiring_table_is_built_from_the_code():
 WHITES = (
     '<span data-presets="default-build">PLA Pure Pure White (17100)</span>'
     '<span data-presets="morty">PLA Basic Jade White (10100)</span>'
-    '<span data-presets="bart">PLA Matte Ivory White (11100)</span>'
 )
 BONES = (
     '<span data-presets="default-build">PETG Basic Black (30105)</span>'
-    '<span data-presets="morty bart">PETG Basic Dark Beige (30403)</span>'
+    '<span data-presets="morty">PETG Basic Dark Beige (30403)</span>'
 )
 
 
@@ -116,15 +115,13 @@ def test_the_buy_list_names_the_picked_presets_filaments_from_the_model():
 
     assert "<!--{{ filaments }}-->" in (ROOT / "docs" / "build" / "parts.md").read_text()
     items = re.findall(r'<li data-presets="([\w-]+)">([^<]+)</li>', macros.filaments())
-    assert [p for p, _ in items] == ["default-build", "morty", "bart"]
+    assert [p for p, _ in items] == ["default-build", "morty"]
     assert items[0][1] == (
         "Default build: Bones, Joints, Linkages, Mounts PETG Basic Black (30105); face PLA Pure Milky Pink (17200);"
         " hair, pupils PLA Pure Absolute Black (17101); clothes, eye whites PLA Pure Pure White (17100); accessories"
         " PLA Pure Apricot (17300)"
     )
-    assert (
-        "Bones PETG Basic Dark Beige (30403)" in items[1][1] and "pupils, accessories PLA Matte Charcoal" in items[2][1]
-    )
+    assert "Bones PETG Basic Dark Beige (30403)" in items[1][1] and "eye whites PLA Basic Jade White" in items[1][1]
 
 
 def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_its_shop_code():
@@ -172,7 +169,7 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
         f"| test stand | 1 | Bones: {BONES} |",
     ]:
         assert row in parts["1"], row
-    mounts = '<span data-presets="default-build morty bart">PETG Basic Black (30105)</span>'  # the pedestal (#838)
+    mounts = '<span data-presets="default-build morty">PETG Basic Black (30105)</span>'  # the pedestal (#838)
     assert "| standard servo | 2 | bought |" in parts["2"] and f"| torso | 1 | Mounts: {mounts} |" in parts["2"]
     assert "It takes off: test stand." in parts["2"] and "test stand" not in parts["3"]
     assert f"| jaw | 1 | Bones: {BONES} |" in parts["3"] and "| servo | 1 | bought |" in parts["3"]
@@ -193,14 +190,10 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
     for row in [
         "| Skeleton | robot | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
-        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap, cansin L pupil plug, cansin R pupil plug, cansin"
-        " teeth, bart L pupil plug, bart R pupil plug | PLA Basic Jade White (10100) | #FFFFFF |",
-        # Morty's Shells (#665), Cansin's (#813), Bart's (#807)
-        "| Skin | morty | hair | morty hair, cansin hair, cansin L brow, cansin R brow, bart hair | PLA Basic Cocoa"
-        " Brown (10802) | #6F5034 |",
-        "| Skin | bart | clothes | morty shirt front, morty shirt back, cansin shirt front, cansin shirt back, bart"
-        " shirt front, bart shirt back | PLA Matte Scarlet Red (11200) | #DE4343 |",
-        "| Skin | default | accessories | cansin sunglasses | PLA Pure Apricot (17300) | #FFB673 |",
+        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
+        # no Shell is drawn by hand (#850): a group has no part until Morty's are cut from his Sculpt
+        "| Skin | morty | hair |  | PLA Basic Cocoa Brown (10802) | #6F5034 |",
+        "| Skin | default | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row
     assert (
@@ -353,10 +346,9 @@ def test_render_makes_six_stills_the_readmes_three_and_a_poster_per_stage():
         "mech-back-isometric.webp",
     ]
     assert pictures.DRAWN["stage1"] == ("stage1-mechanical", "Default build")  # the default
-    assert pictures.DRAWN["mech-back-bart"] == ("mech-back-bart", "Bart")  # in his own Skin (#807)
+    assert pictures.DRAWN["mech-back-morty"] == ("mech-back", "Morty")  # no Skin shape has Shells (#850)
     bare = {f"mech-back{s}-bare": f"mech-back{s}-bare.glb" for s in SHAPES}  # Stage 3 Skinless (#876)
-    dressed = {f"mech-back{s}-{k}": f"mech-back{s}-{k}.glb" for s in SHAPES for k in ("bart", "cansin")}
-    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare | dressed
+    assert build.PUBLIC == {f"{d}{s}": f"{d}{s}.glb" for s in SHAPES for d in STAGE_DOCS} | bare
     assert set(map(build.document, build.PUBLIC)) == {*g.STAGES, *g.DRESSED}
 
 
@@ -390,7 +382,7 @@ def test_pictures_shows_each_part_alone_in_the_viewer():
     assert len(cells) == len(re.findall("<figure", grid)) > 40
     figures = re.findall(r'<figure(?: data-presets="([\w -]+)")?><div[^>]+part=([^&"]+)', grid)
     marks = {part: mark for mark, part in figures}
-    assert marks["atlas"] == "morty bart" and marks["jaw"] == marks["Core+1"] == ""
+    assert marks["atlas"] == "morty" and marks["jaw"] == marks["Core+1"] == ""
 
 
 # #739: the front doors' three, in order, in the default Preset, the Default build (#819), bare of its Skin (#843):
@@ -452,8 +444,8 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     unranked = macros.stage_switch()
     assert unranked["buttons"] == [{"glb": d, "label": f"{n}"} for n, d in enumerate(STAGE_DOCS, 1)]
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
-    # #876, #813, #807: where Stage 3 has its GLB
-    assert unranked["skins"] == {"none": "-bare", "cansin": "-cansin", "bart": "-bart"}
+    # #876: where Stage 3 has its GLB; no Skin shape has Shells of its own to draw (#850)
+    assert unranked["skins"] == {"none": "-bare"}
     fails = {"mech-back-mechanical": ["head size", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))

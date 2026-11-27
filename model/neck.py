@@ -154,9 +154,7 @@ MANDIBLE_CHAIN = {
     ),
 }
 JAW_CHIN = (0.0, -13.0, -82.5)  # where the two chains meet, in the mandible's symphysis
-CHIN_Y = -33.4  # existing Skin rest contour; moving the anatomical carrier must not reshape a resting Skin
 JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
-JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
 # docs/research/2026-11-03-usb-c-power.md 7)

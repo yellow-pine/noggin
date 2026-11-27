@@ -24,6 +24,9 @@ BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mech
 _CONDYLE, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
 JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, _BODY, _BODY, _BODY)
 JAW_LAP = 2.0  # each Bone runs this far past its joints: flat ends meeting on a bend leave a notch to mid-section
+# at the chin the R chain ends this far past it, short of the L one's: ending together, their flat ends crossed on the
+# chains' own crossing and left a 0.015 mm edge, an invalid jaw in a document's STEP on Linux's OCCT (#850)
+JAW_CHIN_LAP_R = 1.0
 
 
 def tie(x, y, z):
@@ -245,17 +248,15 @@ def jaw_chains():
 @bone.grown
 def jaw(mechanical=False):
     """Hidden spatial carrier inside the mandible's ramus and body (#968), turning at its condyles: a chain of Bones
-    down each side to the chin, the drive's pin on a post inboard from the L chain to the jaw bar, and a Bone out of
-    the chin to the mouth cover's Seat."""
-    from model import skin
-
+    down each side to the chin, and the drive's pin on a post inboard from the L chain to the jaw bar."""
     points = jaw_chains()
     out = None
-    for chain in points.values():
+    for side, chain in points.items():
         for i, ((a, b), size) in enumerate(zip(itertools.pairwise(np.array(chain)), JAW_SPANS, strict=True)):
             lap = (b - a) / np.linalg.norm(b - a) * JAW_LAP
+            end = lap * (JAW_CHIN_LAP_R / JAW_LAP if side == "R" and i == len(JAW_SPANS) - 1 else 1.0)
             # but at the pivot, where a longer end would sweep into the frame's plate
-            link = bone.bone(a - lap * (i > 0), b + lap, *size, up=(1, 0, 0), round=True, heads=False)
+            link = bone.bone(a - lap * (i > 0), b + end, *size, up=(1, 0, 0), round=True, heads=False)
             out = link if out is None else out.union(link)
     jy, jz = nk.JAW
     for sign in (-1, 1):
@@ -265,10 +266,6 @@ def jaw(mechanical=False):
     post = (nk.JAW_BAR_X[1] + 0.3, points["L"][2][0])
     out = out.union(cyl("x", (0, *nk.JAW_PIN), 4.0 if mechanical else 3.5, post))
     out = out.cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, (post[0], post[0] + 8.0)))  # 8 mm deep, short of the chain
-    # Keep the existing resting mouth Shell on its actual Seat while the hidden anatomical load path changes.
-    seat = next(s for s in skin.SEATS if s.shell == "morty mouth cover")
-    at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad * 0.75))  # the strut's slanted end stays in the pad
-    out = out.union(strut(points["L"][-1], at, (3.2, 2.4), (2.8, 2)))
     return out
 
 

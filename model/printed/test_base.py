@@ -30,7 +30,7 @@ def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside
     bottom is the foot, so nothing hangs below it."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     parts = stages.neck_sub().parts | stages.base_sub().parts
-    foot = printed_base.torso().val().BoundingBox()  # without the Seats the Skin adds (model/skin.py)
+    foot = printed_base.torso().val().BoundingBox()
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in (
         "cervical carrier:1",
@@ -52,15 +52,11 @@ def placed(request):
 
 @pytest.mark.model
 def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
-    """No two overlap where one is the base's or the boards', but the hair's KNOWN_HAIR meetings #850 clears."""
-    from model.printed.test_skin import _known
-
+    """No two overlap where one is the base's or the boards'."""
     pairs = [
         (a, b)
         for a, b in itertools.combinations(placed, 2)
-        if (a.startswith(BASE) or b.startswith(BASE))
-        and frozenset((a, b)) not in PLUGGED
-        and not (_known(a, b) or _known(b, a))
+        if (a.startswith(BASE) or b.startswith(BASE)) and frozenset((a, b)) not in PLUGGED
     ]
     assert _overlaps(placed, pairs) == []
 

@@ -81,12 +81,10 @@ REFERENCE_CARRIERS = {r: c for r, c in review.CARRIERS.items() if c}  # the movi
 
 
 def test_the_reference_rides_the_same_live_parts_as_the_shells_of_its_regions():
-    """#969: a reference surface's carrier is its Motion region's, the part Morty's Shells of that region ride, and it is
-    in the review's document; the body's regions have none."""
+    """#969: a reference surface's carrier is its Motion region's (skin.MOTION), the part a Shell of that region rides,
+    and it is in the review's document; the body's regions have none."""
     assert set(review.CARRIERS) == set(skin.MOTION)
     assert review.CARRIERS["neck"] is review.CARRIERS["shoulders"] is review.CARRIERS["torso"] is None
-    for shell, region in {"morty face": "head", "morty mouth cover": "jaw", "morty L pupil": "L eye"}.items():
-        assert stages.RIDES[f"{shell}:1"] == REFERENCE_CARRIERS[region]
     assert set(REFERENCE_CARRIERS.values()) <= set(STAGE.parts)
 
 

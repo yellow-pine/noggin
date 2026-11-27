@@ -125,8 +125,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   clean-room: none of today's printed parts or their dimensions, only the Envelopes of the
   hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each eye's
   lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a PETG Skeleton (checked
-  as PETG HF, geometry.MATERIALS' worst case) wearing a magnet-mounted PLA Skin, Morty, Bart or cansin, each in its
-  Palette's filaments ([Themes](face-design.md)).
+  as PETG HF, geometry.MATERIALS' worst case) wearing a magnet-mounted PLA Skin in its Palette's filaments
+  ([Themes](face-design.md)). *Upcoming (#850): Morty's Skin, cut from his sculpt.*
   Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the Mech's documents, moved
   by its own kinematics, its numbers in the Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
@@ -247,9 +247,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   shelled to 4 mm, the orbits opened round the lids, every part of the
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
   under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
-  Morty cannot be worn over the full skull (its back 18 mm past his, its brow 10 mm ahead of his face), so the skull and
-  mandible are also carved 1.6 mm round every Skin's Shells (`geometry.WORN`, Cansin's pick): the documents, which wear
-  a Skin, carry the worn copies, the pictures' bare look the full ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
+  The skull and mandible are also carved 1.6 mm round a Skin's Shells (`geometry.WORN`, Cansin's pick), the eyeball
+  caps alone while they are the only Shells: the documents carry the worn copies, the pictures' bare look the full
+  ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
   0.497; #708's was 118.6 x 115.8 x 149.3, before it 120 x 134.5 x 129.5, eyes_up 0.78): the stack
   under the eyes shrank from 101 mm to 74.5, the tilt axis 0.5 mm under the gimbal frame's plate with the cheeks'
   bosses up into the head mount's flange and the whole neck 6 mm shorter, the jaw hinged beside the tilt lugs with its
