@@ -243,7 +243,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   realistic Back document cut out 1.6 mm round over each horn's range (what rides with the bone, exactly), crumbs
   under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
   The skull and mandible are also carved 1.6 mm round a Skin's Shells (`geometry.WORN`, Cansin's pick), the eyeball
-  caps alone while they are the only Shells: the documents carry the worn copies, the pictures' bare look the full
+  caps alone while they are the only Shells a document wears: the documents carry the worn copies, the pictures' bare look the full
   ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
   0.497; #708's was 118.6 x 115.8 x 149.3, before it 120 x 134.5 x 129.5, eyes_up 0.78): the stack
   under the eyes shrank from 101 mm to 74.5, the tilt axis 0.5 mm under the gimbal frame's plate with the cheeks'

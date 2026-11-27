@@ -181,6 +181,7 @@ PRINTED = {
 # The eyeball caps above are every Character's, and the eye whites. A Skin's Shells and their Colour groups: the face
 # with his nose and ears, the chin under the mouth line, the shirt the whole fixed body under the collar
 SKINS = {}
+BED = 256.0  # the printer's bed, each way, mm: every printed piece fits it whole
 SHELLS = {"morty": {"hair": "hair", "face": "face", "chin": "face", "shirt": "clothes"}}
 PRINTED |= {f"{skin} {name}": (group, "PLA Pure") for skin, names in SHELLS.items() for name, group in names.items()}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical

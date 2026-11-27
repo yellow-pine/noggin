@@ -103,7 +103,7 @@ sim-merge: venv
     {{PY}} -m model.report --merge
     {{PY}} -m pytest -q model/test_report.py
 
-# our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws), then the realistic Skeleton's bones Blender finishes round them from the Skeleton scene (model/skeleton, docs/adr/0025); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
+# our printed parts and hardware envelopes as STLs in model/build/ours (what CI simulates and every picture draws), then Morty's Shells cut from his Sculpt (model/morty/shells.py), then the realistic Skeleton's bones Blender finishes round them from the Skeleton scene (model/skeleton, docs/adr/0025); skipped while its sources are unchanged: model/ours.py and what it imports (scripts/inputs.py), which CI's parts cache key covers (test_derived.py)
 ours: venv
     @src=$({{PY}} scripts/inputs.py model/ours.py) && key=$(shasum $src uv.lock | shasum) && if [ "$(cat model/build/ours/.key 2>/dev/null)" = "$key" ]; then echo "model/build/ours: up to date"; else BLENDER={{BLENDER}} {{PY}} -m model.ours && echo "$key" > model/build/ours/.key; fi
 

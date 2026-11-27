@@ -369,7 +369,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their
   licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
   post on the pan yoke; the mechanical Skeleton has none. Worn skull, worn mandible: the skull and mandible carved
-  round a Skin's Shells too (the eyeball caps alone, while they are the only Shells), printed to wear a Skin; bare,
+  round a Skin's Shells too (the eyeball caps alone, while they are the only Shells a document wears), printed to wear a Skin; bare,
   the Skeleton shows the full ones.
 _Avoid_: the designer's file names, version suffixes, earlier part names (git history)
 

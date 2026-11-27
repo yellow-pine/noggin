@@ -2,8 +2,8 @@
 
 > [!NOTE]
 > **Upcoming (#51):** being designed, not built yet; #51 holds the whole spec. No Shell is drawn by hand: a Skin is
-> cut from its Character's sculpt (docs/adr/0027), and the eyeball caps are the only Shells in the model until
-> Morty's are cut (#850).
+> cut from its Character's sculpt (docs/adr/0027). Morty's are cut; the eyeball caps are the only Shells a document
+> wears until his go on (#850).
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
 set off and pressing the other on. Both are parts in the model (model/printed), our own design, but for the

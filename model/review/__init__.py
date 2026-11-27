@@ -52,7 +52,7 @@ REGIONS = {
 }  # else Pedestal
 FPS, FRAMES = 24, 240  # the loop: 10 s, frame 1 its rest pose
 STEP = 2  # a pose keyed every STEP frames
-BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
+BED, GAP, PLATE_GAP = g.BED, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
 MORTY_EYES = morty.EYES  # the Sculpt's eye centres, and placed(): model/morty's, which cuts his Skin by them too
 CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}

@@ -110,12 +110,12 @@ SEATS = [
     ],
 ]
 
-# every Shell a document wears: the caps on their Seats, then each worn Skin's, cut from its Sculpt (g.SKINS, g.SHELLS)
-SHELLS = [*dict.fromkeys(s.shell for s in SEATS), *(f"{k} {n}" for k in g.SKINS for n in g.SHELLS[k])]
+SHELLS = list(dict.fromkeys(s.shell for s in SEATS))
 DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly direction, in its carrier's frame
 # A Skin's Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so
 # the servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
-# their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py)
+# their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py). None until a
+# document wears a Skin's Shells (g.SKINS)
 DRAWN = [s for s in SHELLS if s.split()[0] in g.SKINS]
 # The Motion regions (#969, GLOSSARY): {region: the part that carries it, None for the body, fixed through every horn}.
 # One source for the Morty reference's semantic meshes (model/review) and the Shells cut from his Sculpt (#850), so a
