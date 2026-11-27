@@ -104,7 +104,8 @@ def _tick():
 
 
 def register():
-    _loaded(None)
+    # no look at the open file here: Blender registers its scripts, at its start and on a script reload, with bpy.data
+    # restricted (#1045); load_post sees each file it opens after
     if _loaded not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_loaded)
     if not bpy.app.timers.is_registered(_tick):
