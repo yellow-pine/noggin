@@ -385,6 +385,9 @@ def frame(mechanical=False):
         out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
     for s, x in zip((-1, 1), inner, strict=True):
         out = out.cut(box(sorted((x, s * gm.WINDOW_X)), (y0, gm.WINDOW_Y), gm.PLATE_Z))
+    for (x0, x1), depth, flare in gm.BACK_POCKETS:  # room for the neck past the pan's ends (#967)
+        pocket = [(x0, y1 + 1), (x0, y1 - depth), (x1, y1 - depth), (x1 + flare, y1), (x1 + flare, y1 + 1)]
+        out = out.cut(cq.Workplane("XY", origin=(0, 0, bottom)).polyline(pocket).close().extrude(top - bottom))
     for s in (-1, 1):  # room for each yoke's crank to turn: the lid servo's collar comes down beside it
         reach = gm.CRANK + CRANK_BONE[0][0] + 0.5  # its Bone's head, which the yoke grows into its mechanical one
         out = out.cut(cyl("z", (s * c, 0, 0), reach, (gm.YAW_CRANK_Z[0], gm.YAW_CRANK_Z[1] + 0.5)))

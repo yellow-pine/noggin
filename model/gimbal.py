@@ -154,6 +154,13 @@ UPRIGHT_FLAT, YOKE_CUT = 3.5, 2.0
 # (model/skeleton REACH), so the palate stays on the skull; a bar in front of each window, WINDOW_BAR deep, joins the
 # plate to its yoke's rail
 WINDOW_X, WINDOW_Y, WINDOW_BAR = 30.0, 21.0, 4.0
+# #967, #978: nodded, with the pan half a degree past either end (where its loaded servo sags to), the plate's back edge
+# passed 0.5 mm from the tilt servo's tab and 0.9 mm from the nod plate, less than their collision pieces stray: Linux's
+# sim read the frame 0.35 mm into each. A pocket in the edge at each, (x span, depth, how far its inboard end flares
+# out to the edge), keeps BACK_ROOM_MM on the exact solids: the first ends at the cranium tray's leg, the second 1.6 mm
+# short of the head mount's rear screw, flared round it
+BACK_ROOM_MM = 1.9
+BACK_POCKETS = (((37.5, 44.0), 1.7, 0.0), ((-27.5, -23.6), 1.4, 1.4))
 # the head the gimbal fits (#684, #838): width, depth, height; Morty's life-size cranium (#893: 160 x 176 x 175)
 HEAD_MM = (160.0, 176.0, 175.0)
 
