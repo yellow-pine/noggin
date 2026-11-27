@@ -36,13 +36,18 @@ def test_each_left_and_right_shell_keys_to_its_own_seat():
         assert {s.polarity for s in skin.SEATS if s.shell == right} == {-1}
 
 
-def test_the_shells_are_the_caps_and_mortys_each_printed_in_a_skin_colour_group():
-    """#850 (docs/adr/0027): no Shell is drawn by hand. The caps, the mechanism's own, sit on their Seats; Morty's are
-    cut from his Sculpt and drawn whole (DRAWN), with no Seat yet."""
+def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour_groups():
+    """#850 (docs/adr/0027): no Shell is drawn by hand. The caps, the mechanism's own, sit on their Seats and are the
+    only Shells a document wears; Morty's, cut from his Sculpt (g.SHELLS), are printed in PLA Pure, each in its Colour
+    group, and worn by no document until the gates on a worn Shell pass (g.SKINS)."""
     groups = {group for palette in g.THEMES["Skin palette"].values() for group in palette}
-    assert skin.DRAWN == ["morty hair", "morty face", "morty chin", "morty shirt"]
-    assert set(skin.SHELLS) == {f"{s} eyeball cap" for s in "LR"} | set(skin.DRAWN)
-    assert not {s.shell for s in skin.SEATS} & set(skin.DRAWN)
+    assert set(skin.SHELLS) == {f"{s} eyeball cap" for s in "LR"} and skin.DRAWN == [] and g.SKINS == {}
+    assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
+        "hair": ("hair", "PLA Pure"),
+        "face": ("face", "PLA Pure"),
+        "chin": ("face", "PLA Pure"),
+        "shirt": ("clothes", "PLA Pure"),
+    }
     for stem in skin.SHELLS:
         assert g.PRINTED[stem][0] in groups, stem
 

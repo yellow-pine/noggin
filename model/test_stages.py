@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from model import geometry as g
-from model import gimbal, printed, skin, stages
+from model import gimbal, printed, stages
 
 
 @pytest.mark.parametrize("doc,carrier", [("mech-back", "torso"), ("mech-back-mechanical", "torso mechanical")])
@@ -25,8 +25,7 @@ def test_the_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_
         + ["standard servo", "standard horn"] * 2
         + ["servo", "horn"] * 5
     )
-    # the skull's bones and Morty's Shells: meshes
-    assert {m for m in meshes if m in g.PRINTED} <= set(printed.PARTS) | set(g.BONES) | set(skin.DRAWN)
+    assert {m for m in meshes if m in g.PRINTED} <= set(printed.PARTS) | set(g.BONES)  # the skull: meshes
     assert carrier in meshes
     assert set(nxt.horns) == {"pan horn", "tilt horn", "jaw horn", *(f"{d} horn" for d in gimbal.drives())}
 
@@ -80,7 +79,7 @@ def test_the_mechs_stages_build_up_from_the_eye_block_on_its_stand_to_the_whole_
         "jaw bar:1",
         "mouth servo:1",
         "mouth horn:1",
-    } | {g.WORN.get(s, s) + ":1" for s in g.SKULL} | {s + ":1" for s in skin.DRAWN}
+    } | {g.WORN.get(s, s) + ":1" for s in g.SKULL}
     assert set(g.STAGES) == {d + look for d in list(g.STAGES)[:3] for look in ("", "-mechanical")}
 
 
@@ -96,25 +95,6 @@ def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():
     moved = stages.pose(one, "yaw horn", 10)
     for name in ("test stand:1", "gimbal frame:1", "Core 1:1"):
         assert np.allclose(moved.parts[name], one.parts[name].matrix), name
-
-
-@pytest.mark.parametrize("doc", sorted(g.MECH))
-def test_each_of_mortys_shells_moves_with_its_motion_region_alone(doc):
-    """#850, #969: the hair and the face turn with the head (pan, tilt), the chin with the head and then with the jaw,
-    and the shirt, the whole fixed body, with nothing: zero travel at either end of every horn's range."""
-    stage = stages.STAGES[doc]
-    moves = {s: set() for s in skin.DRAWN}
-    for horn, h in stage.horns.items():
-        for deg in h.limits:
-            posed = stages.pose(stage, horn, deg).parts
-            for shell in skin.DRAWN:
-                carrier = skin.MOTION[skin.region(shell)]
-                if not np.allclose(posed[f"{shell}:1"], stage.parts[f"{shell}:1"].matrix, atol=1e-9):
-                    moves[shell].add(horn)
-                    took = posed[f"{carrier}:1"] @ np.linalg.inv(stage.parts[f"{carrier}:1"].matrix)
-                    assert np.allclose(posed[f"{shell}:1"], took @ stage.parts[f"{shell}:1"].matrix), (shell, horn)
-    head = {"pan horn", "tilt horn"}
-    assert moves == {"morty hair": head, "morty face": head, "morty chin": head | {"jaw horn"}, "morty shirt": set()}
 
 
 def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take():

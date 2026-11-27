@@ -175,11 +175,12 @@ PRINTED = {
     "L eyeball cap": ("eye whites", "PLA Pure"),
     "R eyeball cap": ("eye whites", "PLA Pure"),
 }
-# The Skin shapes that have Shells, each its sub-assembly: Morty's, the documents' own, cut from his Sculpt (#850,
-# docs/adr/0027, model/morty/shells.py); the eyeball caps above are every Character's, and the eye whites. Each one's
-# Shells and their Colour groups: the face with his nose and ears, the chin under the mouth line, the shirt the whole
-# fixed body under the collar
-SKINS = {"morty": "morty"}
+# The Skin shapes whose Shells a document wears, each its sub-assembly: none yet. Morty's are cut from his Sculpt
+# (SHELLS: model/morty/shells.py, docs/adr/0027, 0028) and built beside our parts, but no document wears them until
+# the mechanism and the bones leave them room (#850: the gates in model/printed/test_skin.py hold every worn Shell).
+# The eyeball caps above are every Character's, and the eye whites. A Skin's Shells and their Colour groups: the face
+# with his nose and ears, the chin under the mouth line, the shirt the whole fixed body under the collar
+SKINS = {}
 SHELLS = {"morty": {"hair": "hair", "face": "face", "chin": "face", "shirt": "clothes"}}
 PRINTED |= {f"{skin} {name}": (group, "PLA Pure") for skin, names in SHELLS.items() for name, group in names.items()}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
@@ -204,8 +205,7 @@ SKULL_SUB = "skull"
 _HEAD = ((0, -150, 177), X, Z)
 MECH = {
     f"mech-{v}": {sub: _HEAD for sub in ("neck", "jaw", "eyes", "cranium", "base", *carriers)}
-    for v, carriers in (("back", [SKINS["morty"], SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
-    # Skin on it
+    for v, carriers in (("back", [SKULL_SUB]),)  # Back alone since Cansin picked it (#712)
 }
 # The Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head

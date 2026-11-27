@@ -1,7 +1,7 @@
 """The Mech's Skin (GLOSSARY Skin, Seat, Sculpt): how a Shell sits on what carries it and how hard its magnets hold it
 there, Morty's contours and the cuts they make on his Sculpt, and the Motion regions. No Shell is drawn by hand
 (docs/adr/0027, #850): the eyeball caps are the mechanism's own, and Morty's are cut from his Sculpt along these cuts
-(model/morty/shells.py), with no Seat yet.
+(model/morty/shells.py), with no Seat yet and worn by no document yet (g.SKINS).
 One source: model/printed/skin.py draws the caps and cuts the Seats from these numbers, model/stages.py places the caps
 on their cores, model/mujoco_report.py reads each Shell's peak acceleration and model/test_report.py holds it to
 hold_n().
@@ -110,8 +110,8 @@ SEATS = [
     ],
 ]
 
-# every Shell: the caps on their Seats, then each Skin's, cut from its Sculpt (g.SHELLS), which have no Seat yet (#850)
-SHELLS = [*dict.fromkeys(s.shell for s in SEATS), *(f"{k} {n}" for k, names in g.SHELLS.items() for n in names)]
+# every Shell a document wears: the caps on their Seats, then each worn Skin's, cut from its Sculpt (g.SKINS, g.SHELLS)
+SHELLS = [*dict.fromkeys(s.shell for s in SEATS), *(f"{k} {n}" for k in g.SKINS for n in g.SHELLS[k])]
 DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly direction, in its carrier's frame
 # A Skin's Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so
 # the servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
