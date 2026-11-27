@@ -33,9 +33,9 @@ CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
     ((3.5, 6.5), (3.0, 5.0)),
 )
 # The lid drives' Bones' longest span, mm (#967): one of their sizes 30 to 36 mm long comes out of OCCT invalid at
-# most of bone.chain's tries, at any angle (the lid bar's carved empty on macOS; all eight of the lower lid's 32.2 mm
-# spoke's failed on Linux), and one 28 mm or shorter at none. Not lower: the upper lid's 31.5 mm spoke builds as one
-# on both, and as two it carved in pieces
+# most of bone.chain's tries, at any angle (the lid bar's carved empty on macOS; all eight of a 32.2 mm spoke's failed
+# on Linux), and one 28 mm or shorter at none. Not lower: the upper lid's 31.5 mm spoke builds as one on both, and
+# as two it carved in pieces
 LID_SPAN = 32.0
 MM = 0.001  # MuJoCo's metres per mm
 NECK = gm.BALL_R + 1.2  # a ball's centre from what its neck stands on
@@ -370,8 +370,11 @@ def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    # outboard behind the cap, inboard over it: the rear-down route crossed the tie-bar as the lid closed (#937)
-    out = _lid(gm.LOWER_R, span, (-131.0, 160.0), "lower boss", gm.LOWER_PIN, mechanical)
+    # outboard behind the cap, inboard over it: the rear-down route crossed the tie-bar as the lid closed (#937).
+    # Inboard at 150 deg (160 before, #967): with the crank pin where the moved lid servo puts it, Linux's OCCT built
+    # no Bone to 160 as one span and carved it empty as two; to 150 it builds and carves as on macOS, and the shut
+    # lid passes 6.0 mm over the tie-bar (1.2 at 160)
+    out = _lid(gm.LOWER_R, span, (-131.0, 150.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
