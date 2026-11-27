@@ -132,7 +132,8 @@ Thanks for stopping by. noggin is a small hobby project, run in the open.
   A change to model/ (parts, geometry, MuJoCo) also passes `just linux-test <its tests>` before its push: `just ours`
   and those tests in the CI base image under Docker, since Linux's OCCT fails parts macOS's builds (#737, #772).
   `just check-light` is the PR gate's `Code` job: `just lint` and the tests not marked `model` (every test that builds
-  or reads our parts is, and runs in the `Model` shards, #808).
+  or reads our parts is, and runs in the `Model` shards, #808; a check that needs the private Morty reference runs
+  with the review's instead, on the parts `just review` built, `NOGGIN_REVIEW` set: `model/review/test_hidden.py`).
   A heavy Python job an agent needs before CI (the sim, CoACD, every test, the warp maths) runs on Cansin's GX10, never
   the laptop: `just gx10 <command>` (`just gx10 uv run just test`) runs the branch's pushed commits in the bounded native
   worker; `FETCH` names repo-relative outputs returned from its immutable job snapshot. `just gx10-setup` builds the CI

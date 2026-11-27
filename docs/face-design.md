@@ -87,7 +87,7 @@ held at the peak acceleration the sim reads for Morty's there (model/test_report
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
   carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852):
-  the face's in the front of the gimbal frame's beam (its bar to the lids' uprights, deepened its whole width; Stage
+  the face's in the front of the gimbal frame's beam (its bar under the eyes, hung from the lids' uprights' feet; Stage
   1's stand stands behind it), the mouth cover's in the jaw's chin, thickened inside its U, the shirt's in the Torso's
   front and back walls, thickened 1 mm inside (the shirt on bosses out to its sleeve); the face carries the hair's
   front Seats. The cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in

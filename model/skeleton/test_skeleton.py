@@ -20,9 +20,7 @@ SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
 HEAD = ("skull", "mandible")
 # the bare bones the mechanism cuts in two, strict so the fixing PR drops its mark: what rides with each cuts it exactly
-SEVERED = {
-    "skull": "the lower lids, the gimbal frame's plate and the yaw servo cut the palate (7.7 cm3) off the cranium (#967)",
-}  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
+SEVERED: dict[str, str] = {}  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -83,6 +81,17 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
     assert fit.canal(bones["atlas"]) == pytest.approx(pan[:2], abs=1.0)
     assert bones["atlas"].bounds[1][2] < tilt[2]
     assert all(bones[a].bounds[0][2] < bones[b].bounds[0][2] for b, a in zip(g.NECK, g.NECK[1:]))
+
+
+@pytest.mark.model
+@pytest.mark.bones
+def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
+    """#967: the skull's one piece (the test below) reaches under the gimbal frame's plate in front of it, between its
+    windows: the palate, which the plate cut off before the maxillae rose through them (a piece that small is still
+    kept, skeleton.KEEP, so losing it again shows there as a second piece)."""
+    v = trimesh.load(stages.stl("skull"), force="mesh").vertices
+    under = (v[:, 2] < gm.PLATE_Z[0]) & (v[:, 1] < gm.PLATE_Y[0]) & (np.abs(v[:, 0]) < gm.WINDOW_X)
+    assert under.sum() > 1000
 
 
 @pytest.mark.model
