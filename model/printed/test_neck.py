@@ -134,37 +134,36 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
 
 @pytest.mark.model
 def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
-    """#1039: the carrier's strut from its R rail back to the reduction's anchor, longer since the rails run straight:
-    SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts at the
-    bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends it by
-    the bar's lean and by the bar's place inboard of it. The rails it hangs on are not sectioned here."""
+    """#1039: the carrier's strut from its R rail straight back to the reduction's anchor, longer since the rails run
+    straight: SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts
+    at the bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends
+    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on are not sectioned here."""
     solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
     _, ay, az = nk.TILT_ANCHOR
     (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
-    t = (az - z0) / (z1 - z0)
-    x = nk.REACTION_TAP_X[1] - 5.0
-    a, b = np.array((x, y0 + t * (y1 - y0), az)), np.array((x, ay, az))  # as cervical_carrier() draws it
-    along, pin = (b - a) / np.linalg.norm(b - a), np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))
+    rail = y0 + (az - z0) / (z1 - z0) * (y1 - y0)  # the rail's middle at the anchor's height
+    x, pin = nk.REACTION_TAP_X[1] - 5.0, np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))  # x: the strut's middle, about
     force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
     force /= math.sin(math.radians(_tilt_angle()))
     pulls = []  # the bar's direction as the fixed carrier sees it: the case's, turned back by the head's turn
     for s in nk._sweep("tilt"):
         rocker, p, q = nk.TILT_LOOP(s)
-        pulls.append(linkage.rotation(g.X, -rocker, (0, 0, 0))[:3, :3] @ np.subtract(p, q) / math.dist(p, q) * force)
-    across = np.cross(along, g.Z) / np.linalg.norm(np.cross(along, g.Z))
+        pulls.append(linkage.rotation(g.X, -rocker)[:3, :3] @ np.subtract(p, q) / math.dist(p, q) * force)
     for t in (0.15, 0.3, 0.5, 0.7, 0.85):
-        cut = _section(solid, tuple(a + (b - a) * t), tuple(along), tuple(across), (13, 13))
-        area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
-        inertia = np.array(cq.Shape.matrixOfInertia(cut)) / 0.01
-        corners = np.array([v.toTuple() for v in cut.Vertices()]) - centre
+        cut = _section(solid, (x, rail + (ay - rail) * t, az), (0, 1, 0), (1, 0, 0), (13, 13))
+        box, centre = cut.BoundingBox(), np.array(cut.Center().toTuple())
+        inertia = np.asarray(cq.Shape.matrixOfInertia(cut)) / 0.01
+        wide, tall = (
+            max(hi - c, c - lo) for hi, lo, c in ((box.xmax, box.xmin, centre[0]), (box.zmax, box.zmin, centre[2]))
+        )
 
         def stress(pull):
-            moment = np.cross(pin - centre, pull)
-            bent = sum(
-                abs(moment @ axis) * abs(corners @ np.cross(along, axis)).max() / (axis @ inertia @ axis)
-                for axis in (across, np.array(g.Z, float))
+            about = np.cross(pin - centre, pull)  # the pull's moment at the section: about x it bends it up and down
+            return (
+                abs(pull[1]) / (cut.Volume() / 0.01)
+                + abs(about[0]) * tall / inertia[0, 0]
+                + abs(about[2]) * wide / inertia[2, 2]
             )
-            return abs(pull @ along) / area + bent
 
         assert mat["tensile_mpa"]["z"] / max(map(stress, pulls)) >= beams.MIN_SF, t
 
