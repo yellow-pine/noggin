@@ -15,14 +15,15 @@ branch's worktree to review that branch. Written beside OUT and renamed into pla
 The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
 it): a collection `Morty reference` of editable semantic meshes in morty-fixed.stl's raw frame, with painted material
 slots named by Skin Colour group. Each mesh names its `reference_region`, a Motion region (skin.MOTION: head, jaw, an
-eye, a lid, or the fixed neck, shoulders and torso), which names the live part carrying it (CARRIERS), and its
+eye, a lid, the neck, whose skin rides the head, or the fixed shoulders and torso), which names the live part carrying it (CARRIERS), and its
 `display_region`; a `carrier` it still names must agree. The recipe reads it without changing it, applies the Default Skin
 palette, cuts it at the model's floor and along Morty's cuts (skin.cuts(), #992), which share its faces out among its
 regions and Colour groups anew. Its layer, Morty, shares the Skin's surface, so it is a toggle that starts off (it
 keeps what the Shells have none of: his eye domes and pupils, and the witnesses below). Without this reference,
 Morty's layer stays empty, including in a fresh clone.
-Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the fixed
-anatomical surfaces for the output's motion checks; their positions stay private with the reference.
+Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the neck's skin,
+which rides the head, and the fixed shoulders for the output's motion checks; their positions stay private with the
+reference.
 """
 
 import fcntl

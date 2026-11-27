@@ -77,8 +77,8 @@ _Avoid_: reference (what Morty's was while it stayed local), donor mesh, hull
 
 **Motion region**:
 A part of a Skin that moves as one with the Skeleton part that carries it: the head, the jaw, each eye, each lid; the
-neck, shoulders and torso carried by nothing, fixed whatever the head does. The Morty reference and the Shells share
-the same regions.
+neck, whose skin rides the head down to the collar, round neck bones that stand still (docs/adr/0030); the shoulders
+and torso carried by nothing, fixed whatever the head does. The Morty reference and the Shells share the same regions.
 _Avoid_: band, section (a Colour group's), zone
 
 **Character**:
