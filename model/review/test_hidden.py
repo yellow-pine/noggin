@@ -1,8 +1,9 @@
 """Seam: the eye gimbal inside the private Morty reference (#967), as model/review places him: the gimbal frame and every
 eye drive part (servos, horns, bars, links, yokes, cores, the bail), with each eye servo at either end of its range, at
 least a Shell's wall and its clearance inside his outer surface, in both Skeleton styles. The caps and lids are the
-eyes' own surfaces, seen through his eye openings, so they are left out. Local only: it reads the reference through
-Blender (review.MORTY); CI has neither, and nothing of the reference leaves the run."""
+eyes' own surfaces, seen through his eye openings, so they are left out. Local only, after `just ours`: it reads the
+reference through Blender (review.MORTY), which CI does not have, so it skips there (and is not marked model: the Model
+shards would only skip it), and nothing of the reference leaves the run."""
 
 import functools
 import os
@@ -21,7 +22,8 @@ from model import review, skeleton, skin, stages
 MARGIN = skin.WALL + gm.LID_CLEAR_MM  # a Shell's wall, and its least room to a part it does not sit on
 VISIBLE = ("eyeball cap", "upper lid", "lower lid")  # seen through his eye openings, not hidden behind his Skin
 HORNS = ("yaw horn", "pitch horn", "L lid horn", "R lid horn")  # the eyes Core's; the head's move the Skin with them
-PITCH, REACH = 1.0, 6.0  # depth()'s voxel, and how far from his surface it measures, mm
+FRAME = "gimbal frame"
+PITCH, FAR = 1.0, 6.0  # depth()'s voxel, and how far from his surface it measures, mm
 EXPORT = """
 import bpy, numpy as np
 with bpy.data.libraries.load({blend!r}) as (src, dst):
@@ -56,8 +58,8 @@ def _points(mesh, step):
 
 
 def depth(mesh):
-    """(points) -> mm each lies outside the closed mesh's outer surface (negative: inside; past REACH either way,
-    REACH). His sculpt crosses itself (hair, lids, collar), so the room outside is flooded from a corner of his box
+    """(points) -> mm each lies outside the closed mesh's outer surface (negative: inside; past FAR either way,
+    FAR). His sculpt crosses itself (hair, lids, collar), so the room outside is flooded from a corner of his box
     through the PITCH voxels his surface does not cross: a point in a voxel the flood reached, or one his surface
     crosses, is outside, and his outer surface is the part of it beside the flood. The distance is to that surface's
     points, exact to their spacing; the voxels only sort inside from outside and skip the deep points."""
@@ -79,10 +81,10 @@ def depth(mesh):
         inside = ((points > lo) & (points < lo + shape * PITCH)).all(axis=1)
         d = np.zeros(len(points))
         d[inside] = deep[cell(points[inside])]
-        near = d < REACH  # the rest lie REACH or more inside
-        exact = np.minimum(outer.query(points[near], distance_upper_bound=REACH)[0], REACH)
+        near = d < FAR  # the rest lie FAR or more inside
+        exact = np.minimum(outer.query(points[near], distance_upper_bound=FAR)[0], FAR)
         d[near] = np.where(d[near] > 0, exact, -exact)
-        return -np.minimum(d, REACH)
+        return -np.minimum(d, FAR)
 
     return mm
 
@@ -96,17 +98,20 @@ def test_depth_reads_a_ball_through_a_ball_as_one_surface():
     mm = depth(mesh)
     points = np.array([(0.0, 0, 0), (12.5, 0, 0), (18.0, 0, 0), (0, 18.0, 0), (0, 21.0, 0), (60.0, 0, 0)])
     # the middle of the lens is 7.5 mm inside each ball, and 15.6 mm from where the two meet, the outer surface there
-    assert mm(points) == pytest.approx([-REACH, -REACH, -REACH, -2.0, 1.0, REACH], abs=0.15)
+    assert mm(points) == pytest.approx([-FAR, -FAR, -FAR, -2.0, 1.0, FAR], abs=0.15)
 
 
 @pytest.fixture(scope="module")
 def outside(tmp_path_factory):
     """depth() of Morty's reference at rest, in the documents' world."""
-    if not os.path.isfile(review.MORTY) or not shutil.which(skeleton.BLENDER):
-        pytest.skip("no local Morty reference (review.MORTY) or no Blender")
+    if not (os.path.isfile(review.MORTY) and shutil.which(skeleton.BLENDER) and os.path.isfile(stages.stl(FRAME))):
+        pytest.skip("needs the local Morty reference (review.MORTY), Blender and the parts (just ours)")
     path = str(tmp_path_factory.mktemp("morty") / "reference.npz")
-    # no review.SLOT here: the model tests run under that same heavy lock (just test), which a second flock would wait on
-    review._blender(["--python-expr", EXPORT.format(blend=review.MORTY, out=path)])
+    held = review.lock(review.SLOT, wait=True)  # the laptop's one Blender slot, as test_review.py takes it
+    try:
+        review._blender(["--python-expr", EXPORT.format(blend=review.MORTY, out=path)])
+    finally:
+        held.close()
     with np.load(path) as z:
         meshes = [trimesh.Trimesh(z[f"v{i}"], z[f"f{i}"], process=False) for i in range(len(z.files) // 2)]
     os.remove(path)  # the reference stays where it is
@@ -127,7 +132,6 @@ def _poses(stage):
             yield f"{horn} {deg:.0f}", stages.pose(stage, horn, deg).parts
 
 
-@pytest.mark.model
 @pytest.mark.parametrize("doc", list(g.MECH))
 def test_the_eye_gimbal_hides_inside_mortys_reference(doc, outside):
     """#967: at rest and with each eye servo at either end, every point of the eye gimbal's frame and drives lies

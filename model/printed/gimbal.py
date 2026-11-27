@@ -296,9 +296,9 @@ def frame(mechanical=False):
     lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, the face's
     Seats flush in its front, #852, its ends and the feet inside Morty's cheeks, #967), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
-    servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), and the
-    holes the head mount
-    (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
+    servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), a window
+    either side of the yaw servo's for the realistic skull's maxillae (#967, model/gimbal.py WINDOW_X), and the holes
+    the head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
     waisted strut up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
     in (bone.grown: OCCT carved the Bones out of it empty or broken, #838)."""
     from model.printed.neck import TAP_R, strut  # here: model.printed.neck imports this module
