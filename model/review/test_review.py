@@ -33,6 +33,46 @@ def test_the_bones_ride_their_regions():
     assert region["torso:1"] == "Pedestal"
 
 
+SHELLS = [f"{k} {n}:1" for k, names in g.SHELLS.items() for n in names]  # every Shell cut from a Sculpt
+CAPS = ["L eyeball cap:1", "R eyeball cap:1"]  # the eye whites, the mechanism's own
+
+
+def test_the_review_wears_mortys_skin_whatever_the_documents_wear():
+    """#850, #998: the review shows the newest Skin, failing its wearing gates or not. Its own copy of the Stage 3
+    document has every Shell cut from the Sculpt beside what the document has, and its Skin layer is those Shells and
+    the eyeball caps, the eye whites."""
+    worn = review.worn()
+    assert len(SHELLS) == 4 and set(worn.parts) == set(STAGE.parts) | set(SHELLS)
+    assert {n for n, p in worn.parts.items() if review.layer(p.file) == "Skin"} == {*SHELLS, *CAPS}
+    region = review.regions()
+    assert region["morty hair:1"] == region["morty face:1"] == region["morty chin:1"] == "Skull"
+    assert region["morty shirt:1"] == "Pedestal"
+
+
+def test_each_shell_moves_with_what_carries_its_motion_region_and_the_shirt_with_nothing():
+    """#969: the hair and the face turn with the head, the chin with the jaw, the shirt stays fixed through every
+    horn's range."""
+    worn = review.worn()
+    rest = {n: p.matrix for n, p in worn.parts.items()}
+
+    def moved(mats, part):
+        return mats[part] @ np.linalg.inv(rest[part])
+
+    for horn, h in worn.horns.items():
+        for deg in h.limits:
+            mats = stages.pose(worn, horn, deg).parts
+            np.testing.assert_allclose(mats["morty shirt:1"], rest["morty shirt:1"])
+            for shell, carrier in (("hair", "gimbal frame"), ("face", "gimbal frame"), ("chin", "jaw")):
+                np.testing.assert_allclose(
+                    moved(mats, f"morty {shell}:1"), moved(mats, f"{carrier}:1"), atol=1e-9, err_msg=f"{shell} {horn}"
+                )
+    pan = stages.pose(worn, "pan horn", worn.horns["pan horn"].limits[1]).parts
+    jaw = stages.pose(worn, "jaw horn", worn.horns["jaw horn"].limits[0]).parts
+    assert not np.allclose(pan["morty hair:1"], rest["morty hair:1"])
+    assert not np.allclose(jaw["morty chin:1"], rest["morty chin:1"])
+    np.testing.assert_allclose(jaw["morty face:1"], rest["morty face:1"])
+
+
 def test_pack_keeps_every_piece_on_a_plate_clear_of_its_edge():
     """Each footprint inside its plate, GAP from the edge; a new plate once one is full; too big a piece refused."""
     sizes = [(120, 100), (200, 60), (90, 90), (240, 30), (100, 120), (50, 50)] * 3
@@ -70,6 +110,8 @@ def test_a_second_writer_is_refused_while_the_lock_is_held(tmp_path):
 
 
 REFERENCE_CARRIERS = {r: c for r, c in review.CARRIERS.items() if c}  # the moving Motion regions'
+# {a Shell cut from the Sculpt: the live part its Motion region rides, None for the fixed body's}
+SKIN_CARRIERS = {s: review.CARRIERS[skin.region(s.removesuffix(":1"))] for s in SHELLS}
 
 
 def test_the_reference_rides_the_same_live_parts_as_the_shells_of_its_regions():
@@ -94,6 +136,7 @@ HEAD = np.linalg.inv(stages.align(*stages.DOCS[review.DOC]["eyes"])).tolist()  #
 INSPECT = (
     "import json, bmesh, bpy, numpy as np\n"
     f"EXPECTED_REFERENCE = {REFERENCE_CARRIERS!r}\nCONTOURS = {review.contours()!r}\nHEAD = np.array({HEAD!r})\n"
+    f"LAYERS = {tuple(review.ALPHA)!r}\nSKIN_CARRIERS = {SKIN_CARRIERS!r}\n"
     + """
 def off(points, poly):
     # each (n, 2) point's distance to the closed polygon's sides
@@ -133,13 +176,19 @@ def walk(lc):
     for c in lc.children:
         yield from walk(c)
 a = bpy.data.scenes["Assembled"]
-a.frame_set(a.frame_start)
+tops = a.view_layers[0].layer_collection.children
 out = {"scenes": [s.name for s in bpy.data.scenes], "first": bpy.context.window_manager.windows[0].scene.name}
+out["hidden"] = sorted(l.name for l in tops if l.hide_viewport)
+tops["Morty"].hide_viewport = False  # switched on, for what follows reads it moving
+a.frame_set(a.frame_start)
 out["layers"] = {c.name: {k.name: sorted({round(o.color[3], 2) for o in k.objects}) for k in c.children}
-                 for c in bpy.data.collections if c.name in ("Mech", "Skeleton", "Morty")}
+                 for c in bpy.data.collections if c.name in LAYERS}
 out["layer_material_alpha"] = {c.name: sorted({round(slot.material.diffuse_color[3], 2)
     for o in c.all_objects for slot in o.material_slots if slot.material})
-    for c in bpy.data.collections if c.name in ("Mech", "Skeleton", "Morty")}
+    for c in bpy.data.collections if c.name in LAYERS}
+out["skin_layer"] = {o["part"]: {"region": next(k.name for k in o.users_collection), "colour": list(o.color),
+    "material": [list(s.material.diffuse_color) for s in o.material_slots], "travel": 0.0, "carrier_error": 0.0,
+    "visible": o.visible_get(view_layer=a.view_layers[0])} for o in bpy.data.collections["Skin"].all_objects}
 out["morty"] = len(bpy.data.collections["Morty"].all_objects)
 out["shading"] = a.display.shading.color_type
 out["sections"], out["seams"] = seams([o for o in bpy.data.collections["Morty"].all_objects if o.get("reference_region")])
@@ -177,6 +226,8 @@ for o in bpy.data.collections["Morty"].all_objects:
                 out["reference_witnesses"].setdefault(g.name, []).append({"region": o["reference_region"],
                     "vertices": len(points), "travel": 0.0})
 actors = {o["part"]: o for o in a.objects if o.get("part")}
+shells = {n: (actors[n], np.array(actors[n].matrix_world), c and (actors[c], np.linalg.inv(actors[c].matrix_world)))
+          for n, c in SKIN_CARRIERS.items() if n in actors}
 actor_rest = {role: np.array(actors[part].matrix_world) for role, part in EXPECTED_REFERENCE.items() if part in actors}
 actor_back = {role: np.linalg.inv(m) for role, m in actor_rest.items()}
 out["carriers"] = {part: [] for part in EXPECTED_REFERENCE.values() if part in actors}
@@ -189,6 +240,12 @@ for f in range(a.frame_start, a.frame_end + 2):
         deg[o.name[5:]].append(o["deg"])
     for part, mats in out["carriers"].items():
         mats.append([f, [list(r) for r in actors[part].matrix_world]])
+    for n, (o, rest, carrier) in shells.items():  # a Shell's travel, and how far it strays from what carries it
+        now, s = np.array(o.matrix_world), out["skin_layer"][n]
+        s["travel"] = max(s["travel"], float(abs(now - rest).max()))
+        if carrier:
+            expected = np.array(carrier[0].matrix_world) @ carrier[1] @ rest
+            s["carrier_error"] = max(s["carrier_error"], float(abs(now - expected).max()))
     for o, v, rest in reference.values():
         m = np.array(o.matrix_world)
         travel = np.linalg.norm(v @ m[:3, :3].T + m[:3, 3] - rest, axis=1).max()
@@ -255,16 +312,35 @@ def test_the_file_opens_on_assembled_beside_exploded_and_print_bed(blend):
 
 
 def test_each_layer_has_its_regions_at_its_alpha_and_helpers_are_hidden(blend):
-    """Mech, Skeleton and Morty, each in Skull, Mechanism and Pedestal, every object at the layer's alpha; Morty's
-    objects only with the local reference (a fresh clone builds without them)."""
+    """Mech, Skeleton, Skin and Morty, each in Skull, Mechanism and Pedestal, every object at the layer's alpha;
+    Morty's objects only with the local reference (a fresh clone builds without them), and his layer a toggle, off
+    when the file opens: the Skin's Shells show his surface (#850)."""
     for layer, alpha in review.ALPHA.items():
         regions = blend["layers"][layer]
         assert sorted(regions) == sorted(f"{layer} {r}" for r in ("Skull", "Mechanism", "Pedestal"))
         assert all(a in ([], [alpha]) for a in regions.values()), (layer, regions)
         assert blend["layer_material_alpha"][layer] in ([], [alpha])
     assert bool(blend["morty"]) == os.path.isfile(review.MORTY)
-    assert blend["helpers"]
+    assert blend["helpers"] and blend["hidden"] == ["Morty", "helpers"]
     assert blend["reference_visible_without_mech"]
+
+
+def test_the_skin_layer_is_mortys_shells_and_the_caps_in_the_skins_colours_each_with_what_carries_it(blend):
+    """#850: the four Shells cut from the Sculpt and the eyeball caps, seen when the file opens, each in its Colour
+    group's filament (the Default Skin palette) at the Skin's alpha; through the loop the hair, the face and the chin
+    stay on what carries them and the shirt never moves."""
+    layer = blend["skin_layer"]
+    assert set(layer) == {*SHELLS, *CAPS}
+    for part, shell in layer.items():
+        hex_ = g.filament(g.PRINTED[part.removesuffix(":1")][0], review.PRESET)[3]
+        srgb = [int(hex_[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+        linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in srgb]
+        assert shell["colour"] == pytest.approx([*linear, review.ALPHA["Skin"]], abs=1e-4), part
+        assert shell["material"] == [pytest.approx(shell["colour"])] and shell["visible"], part
+    assert {s["region"] for n, s in layer.items() if n != "morty shirt:1"} == {"Skin Skull"}
+    assert layer["morty shirt:1"]["region"] == "Skin Pedestal" and layer["morty shirt:1"]["travel"] < 1e-6
+    for part in ("morty hair:1", "morty face:1", "morty chin:1"):
+        assert layer[part]["travel"] > 1.0 and layer[part]["carrier_error"] < 1e-3, part
 
 
 def test_one_looping_action_sweeps_each_horn_over_its_servos_range(blend):
@@ -373,13 +449,14 @@ def test_exploded_and_print_bed_materials_are_opaque(blend):
 
 
 def test_every_printed_piece_lies_on_a_plate(blend):
-    """Each plate's pieces inside its BED square, on it (z 0 and up); every printed part placed once."""
+    """Each plate's pieces inside its BED square, on it (z 0 and up); every printed part placed once, the Shells the
+    review wears too."""
     n = 0
     for plate, (x0, y0, z0, x1, y1, count) in blend["plates"].items():
         assert -0.5 <= x0 and x1 <= review.BED + 0.5 and -0.5 <= y0 and y1 <= review.BED + 0.5, plate
         assert z0 >= -0.5, plate
         n += count
-    assert n == len(review.plates(STAGE))
+    assert n == len(review.plates(review.worn())) == len(review.plates(STAGE)) + len(SHELLS)
 
 
 NORMAL_REFERENCE = """

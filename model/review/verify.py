@@ -16,7 +16,7 @@ assembled = bpy.data.scenes["Assembled"]
 assert assembled.frame_end > assembled.frame_start, "review motion range missing"
 assert "Review motion" in bpy.data.actions, "review action missing"
 counts = {}
-for name in ("Mech", "Skeleton", "Morty"):
+for name in ("Mech", "Skeleton", "Skin", "Morty"):
     collection = bpy.data.collections.get(name)
     assert collection is not None, f"review layer missing: {name}"
     meshes = [o for o in collection.all_objects if o.type == "MESH"]

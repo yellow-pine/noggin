@@ -1,12 +1,15 @@
 """The latest file (#998): Cansin's one Blender file of where the Mech stands, each layer from its newest candidate.
 
 `just latest` (`python -m model.latest`, local only, never the GX10 or CI) writes LATEST: one rest-pose scene in the
-head's frame with four collections, Mechanism, Skeleton, Skin reference (the private Morty) and Skin Shells, each from
+head's frame with four collections, Mechanism, Skeleton, Skin reference (the private Morty, a toggle that starts off:
+it shares the Shells' surface) and Skin Shells, each from
 its layer's candidate (pick: the newest pushed of main and the open PRs whose changes touch the layer's files, else
 main) and labelled with its PR or branch, commit, date and gate status. A candidate's commit is exported once and
 cached by commit (CACHE): its parts built without the Finish (`model.ours` without Blender), then its own review's
 assemble step (model/review, export.py); the Skeleton is the raw warped bones of the candidate's own Skeleton scene,
-so it shows even when the candidate's assemble fails. Written beside LATEST and
+and the Skin Shells are the Shells its own build cut from the Sculpt (shells(): their STLs, in the Skin's colours)
+with its eyeball caps, so both show even when the candidate's assemble fails, and the Shells whether or not a
+document wears them yet (#850). Written beside LATEST and
 renamed into place with the review's receipt, under its own lock and the Mac's heavy lock (review.SLOT); Cansin's
 Blender reloads it like the review (model/review/reload.py). Nothing here is committed, uploaded or published: the
 Morty reference is read in place, and the file and cache stay on the Mac.
@@ -20,16 +23,19 @@ import subprocess
 import tempfile
 from datetime import datetime
 
+from model import geometry as g
 from model import review, skeleton, stages
 from scripts.gx10 import atomic_json, checksum
 
 LATEST = os.environ.get("NOGGIN_LATEST", os.path.expanduser("~/Desktop/noggin-latest.blend"))  # Cansin's latest file
 CACHE = os.environ.get("NOGGIN_LATEST_CACHE", os.path.expanduser("~/Library/Caches/noggin-latest"))  # by commit
 LAYERS = ("Mechanism", "Skeleton", "Skin reference", "Skin Shells")
-# a layer's files: the Skeleton scene and its pipeline; the Skin and Shell code and the Morty reference workflow
-# (model/review's); the rest of the model is the Mechanism's (this recipe and CI's test timings aside)
+# a layer's files: the Skeleton scene and its pipeline; what cuts the Shells and places and cuts the reference too (the
+# Skin's code, the Sculpt and its cutter, Morty's contours); the Morty reference's own workflow (model/review's); the
+# rest of the model is the Mechanism's (this recipe and CI's test timings aside)
 SKELETON = re.compile(r"model/(skeleton|skull)/")
-SKIN = re.compile(r"model/(.+/)?(test_)?skin\.py$|model/review/")
+SKIN = re.compile(r"model/(.+/)?(test_)?skin\.py$|model/morty/|model/contours\.json$")
+REFERENCE = re.compile(r"model/review/")
 NOT_MODEL = re.compile(r"model/(latest/|durations\.json$)")
 OK, WAIT = {"SUCCESS", "SKIPPED", "NEUTRAL"}, {None, "", "PENDING", "EXPECTED"}
 PRS = 100  # shortcut: the open PRs read in one query; page them once there are more
@@ -54,6 +60,8 @@ def layers(path):
         return {"Skeleton"}
     if SKIN.match(path):
         return {"Skin reference", "Skin Shells"}
+    if REFERENCE.match(path):
+        return {"Skin reference"}
     return {"Mechanism"}
 
 
@@ -178,6 +186,19 @@ def export(c, morty=review.MORTY):
     return blend, os.path.join(home, f"job-{stamp}.json")
 
 
+def shells(src):
+    """[[Shell, its STL, its filament's hex]]: each Shell the build in the source tree `src` cut from a Sculpt
+    (g.SHELLS), which lies in the head's frame at rest, in its Colour group's filament (the review's Preset); none
+    where that commit cut none."""
+    ours = os.path.join(src, os.path.relpath(stages.OURS, stages.REPO))
+    return [
+        [f"{shape} {n}", path, g.filament(group, review.PRESET)[3]]
+        for shape, names in g.SHELLS.items()
+        for n, group in names.items()
+        if os.path.isfile(path := os.path.join(ours, f"{shape} {n}.stl"))
+    ]
+
+
 def _logged(what, args, cwd, log, **env):
     """Runs args in cwd, its output appended to log; raises with its last line on a failure."""
     with open(log, "a") as f:
@@ -208,13 +229,14 @@ def build(out=LATEST, morty=review.MORTY):
                 blend, job, reason = os.path.join(home, "src", skeleton.SCENE), os.path.join(home, "head.json"), None
             if not reason and layer == "Skin reference" and not os.path.isfile(morty):
                 reason = f"no Morty reference at {morty}"
+            cut = shells(os.path.join(home, "src")) if layer == "Skin Shells" else []
             layers_[layer] = {"label": c["label"], "sha": c["sha"], "blend": None if reason else blend, "job": job}
-            layers_[layer]["reason"] = reason
+            layers_[layer] |= {"shells": cut, "reason": None if cut else reason}  # its cut Shells show regardless
             print(f"latest: {layer}: {c['label']}" + (f" (empty: {reason})" if reason else ""), flush=True)
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "latest.json")
             with open(path, "w") as f:
-                json.dump({"layers": layers_}, f)
+                json.dump({"layers": layers_, "alpha": review.ALPHA["Skin"]}, f)
             review._blender(["-P", SCRIPT, "--", path, part])
         os.replace(part, out)
         atomic_json(out.removesuffix(".blend") + ".blend.ready.json", {"sha256": checksum(out), "layers": layers_})
