@@ -18,9 +18,9 @@ from model.envelopes import box
 from model.printed import bone
 
 LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every printed arm's width
-# the Bones' (head, waist) as (semi-width, height): the tie-bar's heads flattened to its 3 mm slab, each push-rod's
-# inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so); the
-# lid drives' (#698) low enough to lie within their 3 mm slabs
+# the Bones' (head, waist) as (semi-width, height): each push-rod's inside its cups and within CUP_R of the line
+# between the balls (the lids' clearance, gimbal.report, reads it so); the lid drives' (#698) low enough to lie within
+# their 3 mm slabs
 ROD_BONE, LID_BONE = ((3.6, 5.5), (2.4, 4.0)), ((4.0, 2.9), (3.0, 2.6))
 TIE_BOSS = ARM / 2  # the tie-bar's bosses' radius, round each pin's bore
 # (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending, its waist 0.5 mm over the slab so the
@@ -393,15 +393,16 @@ def lower_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
-# Each yaw bearing's rail (#967, model/gimbal.py RAIL_R): its strip's sides from its middle line (- inboard and forward),
-# wider from RAIL_WIDE deg along it on; the web that stands on its middle line, a blade in the plane of the yaw axis and
-# the rail's way out, from RAIL_WEB mm from the eye's centre out to the strip, its sides WEB_LAT (the strip alone is a
-# 1.5 mm leaf: with the eye held and the pitch servo stalled its post would bend it at 120 MPa); the neck it leaves the
+# Each yaw bearing (#967, model/gimbal.py RAIL_R), about the plane of the yaw axis and the bearing's way out of the
+# sphere: its strip's sides from that plane (RAIL_LAT, - inboard and forward); the web on it, a blade from RAIL_WEB mm
+# from the eye's centre out to the strip, its sides WEB_LAT, which keeps RAIL_ROOM from what the yaw swings over it;
+# the pad under that sweep, as deep as the sphere leaves and PAD_LAT wide (a 1.5 mm strip alone, as the layout's rough
+# CAD drew it, bends at 120 MPa under its post with the eye held and the pitch servo stalled); the neck it leaves the
 # lids' shell by, RAIL_NECK deg on from the strip's end and out to RAIL_OUT mm; and the pylon under the neck's tip, its
 # sides from that tip in x and y, a buttress forward from PYLON_KNEE (z) down to PYLON_TOE (y from the tip) on the plate
 RAIL_LAT, WEB_LAT, PAD_LAT = (-5.0, 3.0), (-3.0, 1.0), (-16.0, 16.0)
 RAIL_WEB, RAIL_NECK, RAIL_OUT, RAIL_ROOM = 27.0, 16.0, 39.0, 2.0
-PYLON, PYLON_KNEE, PYLON_TOE = ((-5.0, 3.0), (-2.5, 2.5)), -23.0, -9.0
+PYLON, PYLON_KNEE, PYLON_TOE = ((-5.0, 1.0), (-2.5, 2.5)), -23.0, -9.0
 
 
 def rail():
@@ -453,13 +454,13 @@ def rail():
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
     (#838, model/gimbal.py PLATE_Z), with a yaw bearing under each yoke, on a pylon behind its eye (#967, rail), the
-    bail's and the lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, its ends
-    and the feet inside Morty's cheeks, #967), the
+    bail's and the lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep,
+    #901, its ends and the feet inside Morty's cheeks, #967), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
     servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), a window
     either side of the yaw servo's for the realistic skull's maxillae (#967, model/gimbal.py WINDOW_X), and the holes
-    the head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each upright and riser a
-    waisted strut up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
+    the head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each upright and riser a waisted strut
+    up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
     in (bone.grown: OCCT carved the Bones out of it empty or broken, #838)."""
     from model.printed.neck import TAP_R, strut  # here: model.printed.neck imports this module
 

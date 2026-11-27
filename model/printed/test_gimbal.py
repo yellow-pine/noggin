@@ -142,7 +142,8 @@ def _lids_shell(side):
     eye, (lo, hi) = gm.EYE[side], gm.LIDS_SHELL
     arc = np.radians(np.linspace(*gm.LIDS_SWEEP, 64))
     fan = [(0.0, 0.0)] + [(-(hi + 5) * math.cos(t), (hi + 5) * math.sin(t)) for t in arc]
-    reach = (-hi * math.sin(math.radians(58.0)), gm.LID_X["upright"][0] - 3.0)  # along the eye line, + outboard
+    # along the eye line, + outboard: from the lids' inboard ends, 58 deg inboard of straight ahead (#967's layout)
+    reach = (-hi * math.sin(math.radians(58.0)), gm.LID_X["upright"][0] - 3.0)
     x = sorted(eye[0] + (1 if side == "L" else -1) * u for u in reach)
     wedge = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
     return gimbal.ball(hi, eye).cut(gimbal.ball(lo, eye)).intersect(wedge).val()
@@ -150,15 +151,14 @@ def _lids_shell(side):
 
 @pytest.mark.model
 @pytest.mark.parametrize("side", "LR")
-@pytest.mark.parametrize("yaw", [-gm.YAW, 0.0, gm.YAW])
-def test_the_yaw_drive_leaves_each_eyes_sphere_through_the_belt_behind_it_alone(rest, side, yaw):
+def test_the_yaw_drive_leaves_each_eyes_sphere_through_the_belt_behind_it_alone(rest, side):
     """#967: the tie-bar, over the yaw, and the frame with its yaw bearings share no volume with the shell the hidden
     lids and their cap will sweep: each finger and each bearing's neck cross it behind the eye, past the stowed lower
     lid's back edge."""
     shell = _lids_shell(side)
-    tie = _posed(rest, gm.moved(0.0, 0.0, yaw), "tie-bar:1")
-    assert tie.intersect(shell).Volume() < 1e-3
     assert rest["gimbal frame:1"].intersect(shell).Volume() < 1e-3
+    for yaw in (-gm.YAW, 0.0, gm.YAW):
+        assert _posed(rest, gm.moved(0.0, 0.0, yaw), "tie-bar:1").intersect(shell).Volume() < 1e-3
 
 
 @pytest.mark.model
