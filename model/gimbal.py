@@ -146,9 +146,9 @@ BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' co
 # cut back BEAM_CUT and the arms start that far up
 BEAM_X, BEAM_CUT = 53.0, 4.0
 FOOT_Y = (14.0, 20.0)
-# each lid upright's head, round its shank's boss, inside the temple's Skin; the mechanical yoke's lower corners cut back
-# this far, which yawed near the cheek's
-UPRIGHT_R, YOKE_CUT = 3.5, 2.0
+# each lid upright's head is flat in front, this far from the lids' axis, inside the temple's Skin; the mechanical
+# yoke's lower corners are cut back this far, which yawed near the cheek's
+UPRIGHT_FLAT, YOKE_CUT = 3.5, 2.0
 # #967: a window through the plate either side of the yaw servo's collar, out to WINDOW_X and back to WINDOW_Y: the
 # realistic skull's maxillae rise through them from the palate to the cranium's base, behind the orbits' openings
 # (model/skeleton REACH), so the palate stays on the skull; a bar in front of each window, WINDOW_BAR deep, joins the

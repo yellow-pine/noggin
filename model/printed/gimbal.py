@@ -338,9 +338,7 @@ def frame(mechanical=False):
         if mechanical:
             out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4)))
             # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
-            out = out.union(box(ux, (-gm.UPRIGHT_R, gm.UPRIGHT_R), (-12, 0))).union(
-                cyl("x", (0, 0, 0), gm.UPRIGHT_R, ux)
-            )
+            out = out.union(box(ux, (-4, 4), (-12, 0))).union(cyl("x", (0, 0, 0), 4.0, ux))
             out = out.union(box(ux, (0, 8), (top, -6)))  # up behind the head: the two meet over 6 mm
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
@@ -349,7 +347,7 @@ def frame(mechanical=False):
             # the lid upright leaning back to the plate, behind the cheek (#967)
             for xs, y, foot, z, r in (
                 (bx, by, by, bz, 4.0),
-                (ux, 0.0, 4.0, 0.0, gm.UPRIGHT_R),
+                (ux, 0.0, 4.0, 0.0, 4.0),
                 (lx, jy, jy, jz, neck.JAW_FIXED_R),
             ):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
@@ -360,6 +358,9 @@ def frame(mechanical=False):
                 )
         out = out.cut(cyl("z", (s * c, 0, 0), gm.PIN_R, (stem - 8, stem)))
         out = holes(holes(out, [(by, bz)], bx), [(0, 0)], ux).cut(cyl("x", (0, jy, jz), TAP_R, lx))
+        # the lid upright's head flat in front, inside the temple's Skin (#967): cut, as a head drawn smaller came back
+        # null or in pieces from Linux's OCCT at 3.5, 3.6 and 3.0 mm
+        out = out.cut(box(ux, (-5.0, -gm.UPRIGHT_FLAT), (-12, 5)))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
