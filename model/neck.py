@@ -125,10 +125,10 @@ def jaw_y(y):
 # carved round them in one piece
 # the frame's lugs (model/printed/gimbal.py), the jaw's hinge bosses 0.5 mm outside
 JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
-JAW_PIN = (34.5, -48.0)  # in the ramus' plate, under the notch (inferred)
-# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978, inferred); the bar's slab,
-# the horn's face on its inside, the pin's post from its outside out to the chain
-MOUTH_HORN, JAW_BAR_X = (29.0, -70.0), (24.4, 27.4)
+JAW_PIN = (35.5, -48.0)  # in the ramus' plate, under the notch (inferred)
+# the mouth horn's (y, z): its collar 1 mm behind the yaw servo's case, which it now stands behind (#1005, #978,
+# inferred); the bar's slab, the horn's face on its inside, the pin's post from its outside out to the chain
+MOUTH_HORN, JAW_BAR_X = (31.0, -70.0), (24.4, 27.4)
 # #968: the carrier's chain of joints down each side of #976's mandible (the Skeleton scene's, warped: docs/adr/0025),
 # measured on it: the hinge, the condyle's neck, the pin, then down the ramus' plate and the body toward the chin, each
 # mid-wall or 4.9 mm in from the bone's outer face where it is thinner (model/skeleton/test_skeleton.py holds the chain
@@ -146,7 +146,7 @@ MANDIBLE_CHAIN = {
     "R": (
         (-40.5, *JAW),
         (-42.8, 50.5, -47.5),
-        (-39.6, *JAW_PIN),
+        (-40.1, *JAW_PIN),
         (-37.5, 26.0, -54.2),
         (-30.2, 16.5, -61.1),
         (-25.2, 6.5, -68.3),
