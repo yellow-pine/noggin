@@ -67,6 +67,25 @@ def test_the_block_fits_the_compact_head(rest):
     assert all(b <= h for b, h in zip(gimbal.bounds(rest), gm.HEAD_MM))
 
 
+@pytest.mark.model
+@pytest.mark.parametrize("mechanical", [False, True])
+@pytest.mark.parametrize("pitch", [-gm.PITCH, 0.0, gm.PITCH])
+def test_the_bail_turns_clear_of_the_pitch_servos_collar(mechanical, pitch):
+    """#967: over the pitch the bail shares no volume with the frame, and between its L arm and its upright, where its
+    rod passes the pitch servo's collar, it keeps the lids' clearance from it. Its rod reaches 5.0 mm about its axis
+    and the collar's rim stood 4.35 mm from it: at pitch -15 the two shared 0.26 mm3, which the sim read as 0.1 mm
+    deeper than at rest once the eyes moved 0.3 mm."""
+    from model.envelopes import box
+    from model.printed import PARTS, styled
+
+    frame, bail = (PARTS[styled(stem, mechanical)]().val() for stem in ("gimbal frame", "bail"))
+    turned = bail.moved(gimbal._at(gm.moved(0.0, pitch)["bail:1"]))
+    assert turned.intersect(frame).Volume() < 1e-3
+    x = gm.EYE["L"][0]
+    beside = frame.intersect(box((x + 3, x + gm.BAIL_END - 3), (0, 99), (gm.PLATE_Z[1] + 0.1, 99)).val())
+    assert turned.distance(beside) >= gm.LID_CLEAR_MM
+
+
 SAG_DEG = 0.5  # how far past either end of the pan its loaded servo sags, inside its band (#978)
 
 

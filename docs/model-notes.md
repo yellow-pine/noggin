@@ -137,15 +137,18 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
   servo under the tie-bar, hanging under the frame's plate, the pitch servo beside the pitch bar, each lid servo upright
   behind its eye (#838: out of the realistic mandible's ramus; under the eye before), its horn between the eyes (#698).
-  Since #901 the eyes are Morty's at life size (#872's round 2): on his pupils, 72.7 mm apart, the cap his eye's 40.4 mm
+  Since #901 the eyes are Morty's at life size (#872's round 2), since #967 on his Sculpt's own eyeballs, each a
+  sphere fitted to its dome: 73.3 mm apart, a 37.1 mm ball (his pupils sit 9 deg outward on it; the domes' feet, seen
+  from the front, are 80 mm apart, as each dome faces outward). The cap is still a 40.4 mm
   sphere, the core, yoke, lever and bail x1.5 with it, the upper lid 1 mm off the cap; each eye's inboard drives (bar,
   link, ears) within 33.75 mm of it, the two eyes' 5.2 mm apart about their shared axis. The bigger lower lids sweep
   under the eyes, so the frame's plate starts behind that sweep (the yokes' bearings reach forward from it) and its bar,
   a beam the face sits on, hangs under it from the lids' uprights; the yaw servo hangs behind it too. Since #967 the
   frame hides inside Morty's Skin: the beam ends inside his cheeks, its lower outer corners cut back, an arm runs back
   from each end to its lid upright's foot behind the lower lid's sweep, and each upright leans back down to the plate,
-  so the frame and the eyes' drives lie a Shell's wall and its clearance inside the private Morty reference at rest and
-  over each eye servo's range (model/review/test_hidden.py, one of the review's checks: the reference stays private). A
+  so the frame and the eyes' drives lie a Shell's wall and its clearance inside Morty's Sculpt at rest and over each
+  eye servo's range (model/review/test_hidden.py, on the Sculpt git holds, in every run of the Model's tests; over the
+  head's turns it reads the private reference's regions, with the review's checks). A
   window through the plate either side of the yaw servo's collar lets the realistic skull's maxillae up from the
   palate to the cranium's base, so the bare skull is one piece (`gimbal.WINDOW_X`). Each eye has an
   upper and a lower lid on that one servo: the upper lid's crank through the lid bar (a
