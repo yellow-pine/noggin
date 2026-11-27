@@ -426,9 +426,10 @@ test('the Roadmap, under Model, lists every mark by its issue, each linking the 
   expect(nav.indexOf(`${HOME}/roadmap/`)).toBe(nav.indexOf(`${HOME}/reports/`) - 1);
 });
 
-// main's Checks alone, with the workflow's token (checks.yml's Site): a PR closing #N clears #N's marks (ADR 0024)
+// main's Checks alone, with the workflow's token (checks.yml's Site): a PR closing #N clears #N's marks (ADR 0024).
+// A request an issue, one after another: 3.5 to 4 s on CI, and past vitest's 5 s once (#1019's run)
 const token = process.env.GITHUB_TOKEN;
-test.skipIf(!token)("every mark's issue is open on GitHub", async () => {
+test.skipIf(!token)("every mark's issue is open on GitHub", { timeout: 30_000 }, async () => {
   const issues = [...new Set(roadmap().map(([n]) => n))];
   const closed = [];
   for (const n of issues) {

@@ -59,7 +59,8 @@ the Shells over it, the hair and the shirt, for a plug.*
   outside the upper one when a shut eye looks down;
 - the mouth cover (face), his chin under the jaw, in the face's mouth opening;
 - the shirt (clothes), his T-shirt: a front and a back half round the Torso, its sides and shoulders rounded, each
-  with its half of the round crew neck's collar.
+  with its half of the round crew neck's collar, the back's open 15 mm wide in its middle, where the realistic
+  Skeleton's C7 reaches back over the Torso's wall.
 
 ## Cansin's Shells
 *Upcoming (#917): refitted to the life-size head once Morty's are.* Cansin in Rick and Morty style, in four PLA Pure
@@ -67,7 +68,8 @@ colours, on Morty's head and his Seats: the same
 Shells, but for these (model/printed/skin.py; every size inferred; his reference photo stays local, never in git):
 - the hair (hair, Absolute Black): short, the temples higher, so the face (Milky Pink) takes the sides of the
   forehead, and tufted on top, a short quiff standing out of the head's forward slope within its 150 mm height;
-- the brows (hair): straight bars over the eyes, each glued in a pocket in the face and standing 1.5 mm proud;
+- the brows (hair): straight bars over the eyes, each glued in a pocket in the face and standing 1.5 mm proud, the
+  hair stopping 2 mm short of each;
 - the pupils (pupils): small round dots, each glued in a plug (eye whites, Pure White) that fills the cap's jagged
   seat, so every Skin shares the caps;
 - the teeth (eye whites): his toothy smile, a band glued in the chin's top front on the mouth cover, which the jaw
