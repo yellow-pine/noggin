@@ -34,8 +34,8 @@ C0_BELOW = (
     3.0  # the occipital condyles' lowest points under the tilt axis, which runs through their curvature (inferred)
 )
 # a Warp's vertex under Morty's skin, at least: the limit and half the Finish's voxel, which its remesh can grow a
-# bone by (model/skeleton PITCH); AIM: the solve's margin inside it, so the check passes
-RAW, AIM = envelope.ROOM + 0.4, 0.5
+# bone by; AIM: the solve's margin inside it, so the check passes
+RAW, AIM = envelope.ROOM + skeleton.PITCH / 2, 0.5
 # the eyes-and-nose gate (#991), from the fit measured in Morty's skin on 2026-11-27: within FACE_R of each orbit's
 # centre and the nasal aperture's middle, where the Finish leaves bone (outside the lids' shell round each eye, 2,791
 # triangles of 12,655), no triangle may fold; a sound one (its longest edge at most SOUND heights) shears at most
@@ -49,7 +49,7 @@ FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 2.4, 0.5
 # which lies 10 mm and more under his skin there, and (#991's skull-base guides) the growth zone's under side comes
 # down toward his nape and under-jaw, each vertex of it under BASE_Z at least CLEAR_MM off what moves under it: the
 # vertebrae over the tilt's and the pan's ranges
-FILL, MIDDLE, BASE_Z, CLEAR_MM = 2.0, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
+FILL, MIDDLE, BASE_Z, CLEAR_MM = 2.0, (0.0, 80.0, 45.0), TILT[2] + 20.0, skeleton.CLEAR_MM
 VAULT, VAULT_EL = (*sorted(budget.CRANIAL), "frontal bone"), -20.0  # its bones; degrees up from MIDDLE
 POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
@@ -80,8 +80,7 @@ def lattice(points, lo, shape):
 
 
 def spread(x, faces):
-    """Points about 1 mm apart on the mesh's faces (surface()'s), as their vertices' weights: a sparse (points,
-    vertices)."""
+    """Points about 1 mm apart on the mesh's faces, as their vertices' weights: a sparse (points, vertices)."""
     mesh = trimesh.Trimesh(x, faces, process=False)
     p, f = trimesh.sample.sample_surface(mesh, int(mesh.area) + 1, seed=0)
     w = trimesh.triangles.points_to_barycentric(mesh.triangles[f], p)
@@ -215,9 +214,8 @@ def gate(x, y, faces, det, centres, opened=()):
 
 
 def surface(v, faces):
-    """The mesh's vertices and points sampled about 1 mm apart on its faces: its surface, for a distance."""
-    mesh = trimesh.Trimesh(v, faces, process=False)
-    return np.vstack([v[np.unique(faces)], trimesh.sample.sample_surface(mesh, int(mesh.area) + 1, seed=0)[0]])
+    """The mesh's vertices and the points spread about 1 mm apart on its faces: its surface, for a distance."""
+    return np.vstack([v[np.unique(faces)], spread(v, faces) @ v])
 
 
 def aperture(basis):
@@ -320,6 +318,8 @@ def outer(x, caps, step=3.0, skin=3.0):
     """Which of the skull's vertices `x` lie on its outer side, where Morty's skin is to be reached: within `skin` mm
     of the farthest one from the cranium's MIDDLE in their direction (`step` degrees a bin), over the skull base
     (VAULT_EL up from MIDDLE) or on the growth zone's under side (`caps` over halfway to its 1.5)."""
+    # shortcut: a bin that holds inner vertices alone counts them outer (a soft pull, the budget's to stop); cast rays
+    # from MIDDLE if a bone thins by it
     v = x - MIDDLE
     r = np.linalg.norm(v, axis=1)
     az, el = np.degrees(np.arctan2(v[:, 0], v[:, 1])), np.degrees(np.arcsin(v[:, 2] / r))

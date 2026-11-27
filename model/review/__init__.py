@@ -61,7 +61,20 @@ CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 
 
-MORTY = os.environ.get("NOGGIN_MORTY", os.path.join(envelope.REFERENCES, "morty-review.blend"))
+def _main_checkout():
+    """The repo's main checkout (a worktree's references live there alone: gitignored, never copied)."""
+    common = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=stages.REPO,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    return os.path.dirname(common) if common else stages.REPO
+
+
+MORTY = os.environ.get(
+    "NOGGIN_MORTY", os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith/morty-review.blend")
+)
 
 
 def regions(doc=DOC):

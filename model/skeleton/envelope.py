@@ -10,7 +10,6 @@ between grid points linearly. morty() is the sculpt's, built once and kept in mo
 import functools
 import hashlib
 import os
-import subprocess
 
 import numpy as np
 import trimesh
@@ -76,23 +75,6 @@ class Skin:
         points = np.asarray(points, float)
         g = np.stack([self.depth(points + h * e) - self.depth(points - h * e) for e in np.eye(3)], 1)
         return g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)
-
-
-def _main_checkout():
-    """The repo's main checkout (a worktree's references live there alone: gitignored, never copied)."""
-    try:
-        common = subprocess.run(
-            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            cwd=stages.REPO,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    except OSError:  # no git here (every bone's module imports this one): no worktree either
-        common = ""
-    return os.path.dirname(common) if common else stages.REPO
-
-
-REFERENCES = os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith")  # the review's local file's
 
 
 def sculpt():

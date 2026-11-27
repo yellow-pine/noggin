@@ -77,6 +77,18 @@ def test_the_canal_path_runs_from_its_foot_to_the_tilt_axis():
     assert fit.canal_y(-146.0) == pytest.approx(91.6) and fit.canal_y(-48.7) == pytest.approx(76.6)
 
 
+def test_the_outer_side_is_the_farthest_bone_in_each_direction_over_the_base_or_in_the_growth_zone():
+    """Two balls of points round the cranium's MIDDLE, 60 and 40 mm: the outer side is the 60 mm one's points over the
+    skull base, and under it only where the growth zone's cap says so."""
+    turn = trimesh.transformations.rotation_matrix(0.1, (1, 2, 3))  # off the bins' edges
+    ball = trimesh.transform_points(trimesh.creation.icosphere(subdivisions=3).vertices, turn)
+    x = np.vstack([ball * 60, ball * 40]) + fit.MIDDLE
+    low = np.degrees(np.arcsin(np.tile(ball[:, 2], 2))) <= fit.VAULT_EL
+    far = np.arange(len(x)) < len(ball)
+    assert (fit.outer(x, np.full(len(x), 1.25)) == (far & ~low)).all()
+    assert (fit.outer(x, np.full(len(x), 1.5)) == far).all()
+
+
 def test_the_neck_keeps_its_canals_on_the_path_and_its_spines_under_the_skin():
     """Seven rings, their spines longer down the neck as C1 to C7's are, the lowest two past the skin's back (a box's
     wall at y 123) before the fit: fitted, every canal on the cervical path, C1's round the pan axis, every vertex RAW
