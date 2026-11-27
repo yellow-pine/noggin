@@ -23,10 +23,6 @@ ROOM = skin.WALL + 0.5  # under Morty's surface: the Skin's wall and its clearan
 GRID, BAND = 1.0, 16.0  # the grid's pitch; how deep the exact distances reach, mm
 DENSITY = 8.0  # surface samples a mm2: about 0.35 mm apart, so a depth is good to 0.2 mm
 FLOOR = -200.0  # the sculpt is read down to here in the head's frame: under C7 and the shoulders' tops
-# the Sculpt's eye centres that place it on the Mech's eyes, raw mm: model/review's MORTY_EYES, a copy (importing the
-# review would make every bone's test depend on it) that model/review/test_review.py holds to it (ADR 0011). When
-# they move, the scene is rewarped (`just rewarp`): the Warp is fitted to the Sculpt where it stands
-SCULPT_EYES = {"L": (84.467, 245.677, 107.54), "R": (74.186, 245.682, 107.54)}
 
 
 class Skin:
@@ -79,12 +75,13 @@ class Skin:
 
 
 def sculpt():
-    """(The Sculpt in the head's frame, its file): model/morty's adopted copy (docs/adr/0027), its eyes' middle on the
-    Mech's, scaled to their spacing, as model/review places it."""
+    """(The Sculpt in the head's frame, its file): model/morty's adopted copy (docs/adr/0027) where model/morty
+    places it (placed(): his eyes on the Mech's, scaled to their spacing), which his Shells are cut from too. When
+    his eye centres or the Mech's move, the scene is rewarped (`just rewarp`): the Warp is fitted to him where he
+    stands."""
     path = os.path.join(stages.REPO, morty_.SCULPT)
-    mesh = trimesh.load(path, force="mesh")
-    eyes = np.array([SCULPT_EYES[s] for s in "LR"])
-    mesh.vertices = (mesh.vertices - eyes.mean(0)) * (gimbal.SPACING / np.linalg.norm(eyes[0] - eyes[1]))
+    mesh = trimesh.load(path, force="mesh").apply_transform(morty_.placed())
+    mesh.apply_translation(-np.array(stages.DOCS[morty_.DOC]["eyes"][0]))
     return mesh, path
 
 
