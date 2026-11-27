@@ -89,8 +89,9 @@ def swap(job, ratio=None):
                 pts = [m @ Vector(p) for p in corners[job["files"][name]]]
                 if all(max(p[i] for p in pts) > lo[i] and min(p[i] for p in pts) < hi[i] for i in range(3)):
                     near.append((name, m))
-            # never an empty set: its SDF is empty, and the Finish cut by it leaves no bone (#968: C7, once the jaw's
-            # box no longer swept near it); one place far from the bone cuts nothing
+            # a set with nothing near links one far place, which cuts nothing: an empty set's SDF is empty, and the
+            # Finish cut by it leaves no bone (#968: C7, once the jaw's box no longer swept near it)
+            # shortcut: a kind with no places at all still links nothing; give it a far dummy if a document has one
             for name, m in near or [(name, Matrix(at)) for name, at in places[:1]]:
                 x = bpy.data.objects.new(name, meshes[job["files"][name]])
                 x.matrix_world = m

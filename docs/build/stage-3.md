@@ -34,14 +34,18 @@ calibrated ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
 
-1. **Jaw** on the gimbal frame's lugs, turning at the mandible's condyles; it turns down to open the mouth. Its
+1. **Jaw bar** on the jaw's pin, a post reaching in from the left ramus of the jaw's carrier. Its screw goes in from
+   inside the jaw, where the mouth servo will stand, so it is fitted first.
+
+2. **Jaw** on the gimbal frame's lugs, turning at the mandible's condyles; it turns down to open the mouth. Its
    carrier is a chain of Bones inside the mandible, down each ramus and along the body to the chin, sized to hold the
-   mouth servo's stall.
+   mouth servo's stall. *Upcoming (#968): how the mandible comes off its carrier (#874's magnets), and the jaw's
+   Shell, cut from Morty's sculpt (#850, #992).*
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 
-2. **Jaw servo** in the gimbal frame's collar, forward under its plate, between the mandible's two sides; the
-   **jaw bar** joins its horn to the jaw's pin, a post reaching in from the left ramus.
+3. **Mouth servo** in the gimbal frame's collar, forward under its plate, between the mandible's two sides; the jaw
+   bar's other end joins its Horn, from the left.
 
 The jaw rides the head mount, so it pans and tilts with the head. Each sub-assembly apart:
 

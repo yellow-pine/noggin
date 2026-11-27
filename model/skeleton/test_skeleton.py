@@ -2,6 +2,7 @@
 0025): on the Mech's eyes and neck, held by the head's box (base.DOME), one piece each; the scene itself committed
 light, its one source under its own licence."""
 
+import itertools
 import os
 import subprocess
 
@@ -111,11 +112,12 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
-def test_the_jaw_carrier_lies_inside_the_mandible(side):
+def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
     """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), straight
     outboard of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
-    bone) and stands the print floor thick beyond it, to a voxel. nk.MANDIBLE_CHAIN is a copy of the scene's mandible:
-    this holds it to the bone (ADR 0011)."""
+    bone) and stands the print floor thick beyond it, to a voxel. Inboard the carrier may show: its post, and the
+    chain where the ramus is thinner than it. nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to
+    the bone (ADR 0011)."""
     from model.printed import neck
 
     rng = np.random.default_rng(0)
@@ -123,25 +125,23 @@ def test_the_jaw_carrier_lies_inside_the_mandible(side):
         np.asarray(trimesh.sample.sample_surface(trimesh.load(stages.stl(stem), force="mesh"), 400_000, seed=rng)[0])
         for stem in ("mandible", "jaw")
     )
-    out = 1.0 if side == "L" else -1.0
+    sign = 1.0 if side == "L" else -1.0
     bare = []
-    for a, b in zip(chain := np.array(neck.jaw_chains()[side]), chain[1:]):
+    for a, b in itertools.pairwise(np.array(neck.jaw_chains()[side])):
         for t in (0.1, 0.3, 0.5, 0.7, 0.9):
             p = a + (b - a) * t
             # each surface's points straight outboard of the chain here, mm from it
-            b_x, j_x = (out * (s[np.linalg.norm(s[:, 1:] - p[1:], axis=1) < 1.0, 0] - p[0]) for s in (bone, jaw))
-            face = j_x[(j_x > 0) & (j_x < 6.0)].max()  # the carrier's own outboard face (not the other chain's)
-            beyond = b_x[b_x > face - skeleton.PITCH]
+            of_bone, of_jaw = (
+                sign * (s[np.linalg.norm(s[:, 1:] - p[1:], axis=1) < 1.0, 0] - p[0]) for s in (bone, jaw)
+            )
+            face = of_jaw[
+                (of_jaw > 0) & (of_jaw < 6.0)
+            ].max()  # the carrier's own outboard face (not the other chain's)
+            beyond = of_bone[of_bone > face - skeleton.PITCH]
             if not (
                 len(beyond)
                 and beyond.min() < face + skeleton.PITCH
                 and beyond.max() - face >= skeleton.FLOOR - skeleton.PITCH
             ):
-                bare.append(
-                    (
-                        tuple(np.round(p, 1)),
-                        round(float(face), 2),
-                        np.round(np.sort(beyond)[[0, -1]], 2).tolist() if len(beyond) else None,
-                    )
-                )
+                bare.append((tuple(np.round(p, 1)), round(float(face), 2)))
     assert bare == []

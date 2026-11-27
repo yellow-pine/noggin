@@ -119,18 +119,18 @@ def jaw_y(y):
     return JAW[0] + (y - JAW[0]) * JAW_K
 
 
-# #968: the jaw's lever forward along its L ramus to its pin (its chain's third joint), the bar down from it to the mouth
-# horn's pin, the horn's arm back, its servo hanging under the frame's plate inside the mandible's U, in front of the
-# neck's cheeks however the head tilts (#838): the bar and the horn inboard of the ramus' inner face, so the mandible is
+# #968: the jaw's crank forward along its L ramus to its pin (its chain's third joint), the bar down from it to the mouth
+# Horn's pin, the Horn pointing back, its servo hanging under the frame's plate inside the mandible's U, in front of the
+# neck's cheeks however the head tilts (#838): the bar and the Horn inboard of the ramus' inner face, so the mandible is
 # carved round them in one piece
-# the frame's lugs (model/printed/gimbal.py), the jaw's hinge bosses 0.5 mm outside
+# the frame's lugs (model/printed/gimbal.py), the jaw's pivot bosses 0.5 mm outside
 JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
 JAW_PIN = (35.5, -48.0)  # in the ramus' plate, under the notch (inferred)
 # the mouth horn's (y, z): its collar 1 mm behind the yaw servo's case, which it now stands behind (#1005, #978,
 # inferred); the bar's slab, the horn's face on its inside, the pin's post from its outside out to the chain
 MOUTH_HORN, JAW_BAR_X = (31.0, -70.0), (24.4, 27.4)
 # #968: the carrier's chain of joints down each side of #976's mandible (the Skeleton scene's, warped: docs/adr/0025),
-# measured on it: the hinge, the condyle's neck, the pin, then down the ramus' plate and the body toward the chin, each
+# measured on it: the pivot, the condyle's neck, the pin, then down the ramus' plate and the body toward the chin, each
 # mid-wall or 4.9 mm in from the bone's outer face where it is thinner (model/skeleton/test_skeleton.py holds the chain
 # to the finished bone, ADR 0011); their (y, z) path is inferred
 MANDIBLE_CHAIN = {
@@ -189,7 +189,7 @@ def pins():
     }
 
 
-TURN = {"jaw": -1}  # the mouth horn's arm back, its jaw's lever forward
+TURN = {"jaw": -1}  # the mouth Horn pointing back, the jaw's crank forward
 LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items() if d == "jaw"}
 LINKAGES["pan"] = linkage.four_bar(PAN_SHAFT, PAN_PIN, HEAD_AXES["pan"][0], PAN_ANCHOR, g.Z)
 # seen from the moving case, the fixed carrier is the rocker: the head turns the other way (model/stages.py Reaction)
