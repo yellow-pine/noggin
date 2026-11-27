@@ -9,7 +9,11 @@ the open air reaches: this Sculpt's brows are sheets buried deep in its head, jo
 wall would follow them in. A groove deeper than BACKING still has wall behind it, so no wall is open. The wall has no
 floor at the base. It is open round each eye (skin.EYE_OPENING_R, and inside the eye white's cut): the eyeball caps,
 the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
-and behind the hairline, the chin under the mouth line, and the face. Solids are cut with manifold3d."""
+and behind the hairline, the chin under the mouth line, and the face. Solids are cut with manifold3d.
+
+Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair and the chin, and the shirt from
+the collar; and where Shells move against each other the one that stands still gives way (cleared()): the shirt to the
+head through tilt, pan and the jaw's range together, the face to the opening chin."""
 
 import os
 
@@ -43,9 +47,11 @@ SPHERE, SAG = 128, 0.05  # an eye opening's sphere: segments round, and how far 
 # steps back this far from the hair and the chin, and the shirt from the collar; where the head's Shells turn into the
 # shirt, the shirt gives way (cleared())
 SEAM = 0.8
-REACH = 0.5  # the grid the head's reach into the shirt is measured on, mm
+REACH, PAD = 0.5, 4.0  # the grid a Shell's reach into another is measured on, and how far from it, mm
 TURN = 0.1  # the jaw and the tilt are sampled every so many degrees of what they turn
-LIFT = 60.0  # the head's Shells are measured to this far above the shirt's top, mm: cleared() holds the rest clear
+LIFT = (
+    60.0  # the head's Shells are measured to this far above the shirt's top, mm: cleared() holds the rest clear of it
+)
 
 
 def head():
@@ -147,72 +153,106 @@ def moves(horn, region, step):
     return [at(deg) for deg in np.linspace(low, high, n)]
 
 
-def _cells(points, low):
-    return tuple(np.rint((points - low) / REACH).astype(int).T)
+def _far(clouds):
+    """(its low corner, a grid of REACH: mm from each cell to the nearest point of `clouds`, out to PAD past them)."""
+    low = np.min([p.min(axis=0) for p in clouds], axis=0) - PAD
+    high = np.max([p.max(axis=0) for p in clouds], axis=0) + PAD
+    free = np.ones(np.ceil((high - low) / REACH).astype(int) + 1, bool)
+    for points in clouds:
+        free[tuple(np.rint((points - low) / REACH).astype(int).T)] = False
+    return low, ndimage.distance_transform_edt(free).astype(np.float32) * REACH
 
 
-def cleared(shirt, head, chin):
-    """`shirt` less wherever the head's Shells come within SEAM of it: `head` (the hair and the face) as tilt and pan
-    turn it, `chin` as the jaw opens too. Measured on grids of REACH, in three steps. How far each point is from where
-    those Shells are, in the head's frame, the chin at every TURN of the jaw. The least of that over the pan, which
-    turns the head about an upright axis under the tilt (model/neck.py HEAD_PARENTS): on a grid round that axis, each
-    point's least along its own circle, as far each way as the pan swings. Then each point by the shirt's wall, turned
-    back by the tilt every TURN, reads that."""
-    pivot = np.array(neck.HEAD_AXES["tilt"][0])  # on the tilt's axis and the pan's: every turn leaves it where it is
-    top = _mesh(shirt).bounds[1][2]
-    carried = [_points(_mesh(head.trim_by_plane((0, 0, -1), -(top + LIFT))).triangles, 0.5 * REACH)]
-    chin = _points(_mesh(chin).triangles, 0.5 * REACH)
-    carried += [chin @ m[:3, :3].T + m[:3, 3] for m in moves("jaw horn", "jaw", TURN)]
-    pad = 4.0  # past the level the shirt is cut back to
-    low = np.min([p.min(axis=0) for p in carried], axis=0) - pad
-    free = np.ones(
-        np.ceil((np.max([p.max(axis=0) for p in carried], axis=0) + pad - low) / REACH).astype(int) + 1, bool
-    )
-    for points in carried:
-        free[_cells(points, low)] = False
-    far = ndimage.distance_transform_edt(free).astype(np.float32) * REACH  # mm to what the head carries, its frame
+def _turned(points, move):
+    return points @ move[:3, :3].T + move[:3, 3]
 
-    wall = _points(_mesh(shirt.trim_by_plane((0, 0, 1), top - LIFT)).triangles, 0.5 * REACH)
+
+def _given_way(solid, reach, pivot, turn, box):
+    """`solid` less wherever what moves against it comes within SEAM: `reach(points)` is the least mm from each point
+    to it over its poses, read at each point of a grid of REACH by the solid's wall inside `box` (low, high). The level
+    cut to allows the move between two poses (a point's distance from `pivot` times half the `turn` between them,
+    radians) and the grids' rounding (inferred: model/morty/test_shells.py holds the gap that is left)."""
+    wall = _points(_mesh(solid).triangles, 0.5 * REACH)
+    wall = wall[((wall > box[0]) & (wall < box[1])).all(axis=1)]
     corner = wall.min(axis=0) - 4 * REACH
     by = np.zeros(np.ceil((wall.max(axis=0) - corner) / REACH).astype(int) + 5, bool)
-    by[_cells(wall, corner)] = True
+    by[tuple(np.rint((wall - corner) / REACH).astype(int).T)] = True
     nodes = np.argwhere(ndimage.binary_dilation(by, iterations=2))
     points = nodes * REACH + corner
-    radius = np.linalg.norm(points - pivot, axis=1).max()
+    level = SEAM + np.linalg.norm(points - pivot, axis=1).max() * turn / 2 + REACH
+    assert level < PAD
+    least = np.full(by.shape, np.float32(PAD))
+    least[tuple(nodes.T)] = reach(points)
+    if not (least < level).any():
+        return solid
+    v, f, _, _ = measure.marching_cubes(least, level=level, spacing=(REACH,) * 3)
+    return solid - _solid(v + corner, f)
 
-    pan, tilt = moves("pan horn", "head", TURN), moves("tilt horn", "head", TURN)
-    for m in (*pan, *tilt):
-        assert np.allclose(m[:3, :3] @ pivot + m[:3, 3], pivot, atol=1e-6)
+
+def cleared(face, shirt, hair, chin):
+    """(the face, the shirt), each less wherever a Shell that moves against it comes within SEAM (_given_way()): the
+    chin against the face as the jaw opens, and the hair, the face and the chin (wherever the jaw has it) against the
+    shirt as tilt and pan turn the head.
+
+    The pan turns the head about an upright axis under the tilt (model/neck.py HEAD_PARENTS). So the head's reach is
+    read in two steps: on a grid round the pan's axis, each point's least distance to the head's Shells along its own
+    circle, as far each way as the pan swings; then each point by the shirt's wall, turned back by the tilt every TURN,
+    reads that grid."""
+    jaw, tilt, pan = moves("jaw horn", "jaw", TURN), moves("tilt horn", "head", TURN), moves("pan horn", "head", TURN)
+    hinge, pivot = (np.array(neck.HEAD_AXES[k][0]) for k in ("jaw", "tilt"))  # the pivot is on the pan's axis too
+    for point, turns in ((hinge, jaw), (pivot, (*tilt, *pan))):  # each turn leaves its axis where it is
+        assert all(np.allclose(_turned(point, m), point, atol=1e-6) for m in turns)
     assert all(np.allclose(m[2, :3], (0, 0, 1), atol=1e-9) for m in pan)  # about an upright axis
-    swing = max(abs(np.arctan2(m[1, 0], m[0, 0])) for m in pan)
-    step = REACH / radius  # radians round the pan's axis: REACH at the furthest point
-    r, n = np.arange(0, radius + REACH, REACH), int(np.ceil(2 * np.pi / step))
-    angle = np.arange(n) * (2 * np.pi / n)
-    x = np.rint((pivot[0] + np.outer(r, np.cos(angle)) - low[0]) / REACH).astype(int)
-    y = np.rint((pivot[1] + np.outer(r, np.sin(angle)) - low[1]) / REACH).astype(int)
-    inside = (x >= 0) & (x < far.shape[0]) & (y >= 0) & (y < far.shape[1])
-    round_ = np.where(inside[:, :, None], far[np.where(inside, x, 0), np.where(inside, y, 0)], np.float32(pad))
-    # each point's least over the pan: along its circle, the swing each way and a step more
-    round_ = ndimage.minimum_filter1d(round_, 2 * int(np.ceil(swing / (2 * np.pi / n))) + 3, axis=1, mode="wrap")
 
-    least = np.full(len(points), np.float32(pad))
-    for m in tilt:
-        back = np.linalg.inv(m)
-        q = points @ back[:3, :3].T + back[:3, 3]
-        i = np.rint(np.hypot(q[:, 0] - pivot[0], q[:, 1] - pivot[1]) / REACH).astype(int)
-        j = np.rint(np.arctan2(q[:, 1] - pivot[1], q[:, 0] - pivot[0]) / (2 * np.pi / n)).astype(int) % n
-        k = np.rint((q[:, 2] - low[2]) / REACH).astype(int)
-        ok = (i < len(r)) & (k >= 0) & (k < far.shape[2])
-        least[ok] = np.minimum(least[ok], round_[i[ok], j[ok], k[ok]])
-    # the tilt between two of its poses, and the grids' own rounding (inferred; model/morty/test_shells.py holds the gap)
-    level = SEAM + radius * max(map(_angle, tilt, tilt[1:])) / 2 + 2.5 * REACH
-    assert level < pad
-    reach = np.full(by.shape, np.float32(pad))
-    reach[tuple(nodes.T)] = least
-    if not (reach < level).any():
-        return shirt
-    v, f, _, _ = measure.marching_cubes(reach, level=level, spacing=(REACH,) * 3)
-    return shirt - _solid(v + corner, f)
+    def read(grid, cells):
+        """The grid at each cell (n, 3), PAD outside it."""
+        ok = ((cells >= 0) & (cells < grid.shape)).all(axis=1)
+        out = np.full(len(cells), np.float32(PAD))
+        out[ok] = grid[tuple(cells[ok].T)]
+        return out
+
+    rest = _points(_mesh(chin).triangles, REACH).astype(np.float32)  # the jaw's poses are closer than the grid
+    opened = [_turned(rest, m.astype(np.float32)) for m in jaw]
+    low, far = _far([rest])
+
+    def by_the_chin(points):
+        return np.min(
+            [read(far, np.rint((_turned(points, np.linalg.inv(m)) - low) / REACH).astype(int)) for m in jaw], 0
+        )
+
+    box = np.min([p.min(axis=0) for p in opened], axis=0) - PAD, np.max([p.max(axis=0) for p in opened], axis=0) + PAD
+    face = _given_way(face, by_the_chin, hinge, max(map(_angle, jaw, jaw[1:], strict=False)), box)
+
+    top, head = _mesh(shirt).bounds[1][2], _mesh(hair + face)
+    # what stands higher than LIFT over the shirt never comes down to it: a point moves at most its turn's chord
+    drop = 2 * np.sin(max(_angle(np.eye(4), m) for m in tilt) / 2) * np.linalg.norm(head.vertices - pivot, axis=1)
+    assert (head.vertices[:, 2] - drop)[head.vertices[:, 2] > top + LIFT].min() > top + PAD
+    head = head.triangles[head.triangles[:, :, 2].min(axis=1) < top + LIFT]
+    low, far = _far([_points(head, 0.5 * REACH), *opened])  # the head's frame
+
+    def by_the_head(points):
+        step = REACH / np.linalg.norm(points - pivot, axis=1).max()  # radians: REACH at the furthest point
+        r, n = np.arange(0, REACH / step + REACH, REACH), int(np.ceil(2 * np.pi / step))
+        angle = np.arange(n) * (2 * np.pi / n)
+        x = np.rint((pivot[0] + np.outer(r, np.cos(angle)) - low[0]) / REACH).astype(int)
+        y = np.rint((pivot[1] + np.outer(r, np.sin(angle)) - low[1]) / REACH).astype(int)
+        inside = (x >= 0) & (x < far.shape[0]) & (y >= 0) & (y < far.shape[1])
+        round_ = far[np.where(inside, x, 0), np.where(inside, y, 0)]
+        round_[~inside] = PAD
+        # each point's least over the pan: along its circle, the swing each way and a step more
+        swing = max(abs(np.arctan2(m[1, 0], m[0, 0])) for m in pan)
+        round_ = ndimage.minimum_filter1d(round_, 2 * int(np.ceil(swing / (2 * np.pi / n))) + 3, axis=1, mode="wrap")
+        least = np.full(len(points), np.float32(PAD))
+        for m in tilt:
+            q = _turned(points, np.linalg.inv(m))
+            i = np.rint(np.hypot(q[:, 0] - pivot[0], q[:, 1] - pivot[1]) / REACH).astype(int)
+            j = np.rint(np.arctan2(q[:, 1] - pivot[1], q[:, 0] - pivot[0]) / (2 * np.pi / n)).astype(int) % n
+            k = np.rint((q[:, 2] - low[2]) / REACH).astype(int)
+            np.minimum(least, read(round_, np.stack([np.minimum(i, len(r)), j, k], axis=1)), out=least)
+        return least
+
+    box = (-skin.FAR,) * 3, (skin.FAR,) * 3
+    return face, _given_way(shirt, by_the_head, pivot, max(map(_angle, tilt, tilt[1:], strict=False)), box)
 
 
 def _whole(name, solid):
@@ -245,7 +285,7 @@ def shells():
     moving = wall - cuts["collar"]
     skinned = moving - grown("hairline", SEAM)
     out = {"hair": moving ^ cuts["hairline"], "chin": skinned ^ cuts["mouth"], "face": skinned - grown("mouth", SEAM)}
-    out["shirt"] = cleared(wall ^ grown("collar", -SEAM), out["hair"] + out["face"], out["chin"])
+    out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), out["hair"], out["chin"])
     assert set(out) == set(g.SHELLS["morty"]), sorted(out)
     return {f"morty {name}": _mesh(_whole(name, solid)) for name, solid in out.items()}
 
