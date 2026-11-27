@@ -1,10 +1,14 @@
 """Seam: model/skeleton/envelope.py's Skin, on a ball small enough to build in a test: a point's depth is its distance
 under the outer surface, whatever sheets the mesh holds inside, and `inward` points away from that surface."""
 
+import threading
+import time
+
 import numpy as np
 import pytest
 import trimesh
 
+from model import stages
 from model.skeleton import envelope
 
 
@@ -37,3 +41,30 @@ def test_a_cut_mesh_is_closed_at_its_floor():
     cup = trimesh.creation.icosphere(subdivisions=4, radius=30.0)
     cup = trimesh.Trimesh(cup.vertices, cup.faces[(cup.vertices[cup.faces][:, :, 2] > -10).all(1)])
     assert envelope.Skin(cup, floor=-8.0).depth(np.array(((0, 0, 20.0),))) == pytest.approx(10.0, abs=0.2)
+
+
+def test_mortys_skin_is_built_once_and_read_from_its_file_by_whoever_waited(tmp_path, monkeypatch):
+    """morty() on a small cut ball, asked for twice at once (two of a test run's workers): one builds it and keeps
+    the grid in model/build, the other waits on the build's lock and reads that file."""
+    ball = trimesh.creation.icosphere(subdivisions=4, radius=30.0)
+    monkeypatch.setattr(envelope, "sculpt", lambda: (ball, __file__))
+    monkeypatch.setattr(envelope, "FLOOR", -8.0)
+    monkeypatch.setattr(stages, "REPO", str(tmp_path))
+    builds, made = [], envelope.Skin.__init__
+
+    def slow(self, *args, **kwargs):
+        builds.append(1)
+        time.sleep(0.5)  # long enough for the other to arrive
+        made(self, *args, **kwargs)
+
+    monkeypatch.setattr(envelope.Skin, "__init__", slow)
+    skins = []
+    both = [threading.Thread(target=lambda: skins.append(envelope.morty.__wrapped__())) for _ in range(2)]
+    for t in both:
+        t.start()
+    for t in both:
+        t.join()
+    build = tmp_path / "model" / "build"
+    assert len(builds) == 1 and len(list(build.glob("envelope-*.npz"))) == 1
+    for skin in skins:
+        assert skin.depth(np.array(((0, 0, 20.0),))) == pytest.approx(10.0, abs=0.2)

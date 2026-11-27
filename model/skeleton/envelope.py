@@ -7,6 +7,7 @@ sheets the mesh holds inside itself (the sculpt's hair has an under side inside 
 point within BAND of the skin given its exact distance to the nearest sample (deeper ones a voxel-rounded one), read
 between grid points linearly. morty() is the sculpt's, built once and kept in model/build."""
 
+import fcntl
 import functools
 import hashlib
 import os
@@ -87,7 +88,8 @@ def sculpt():
 
 @functools.cache
 def morty():
-    """Morty's Skin: the sculpt's, above FLOOR. Built once a sculpt and a placement (about 30 s) and kept in
+    """Morty's Skin: the sculpt's, above FLOOR. Built once a sculpt and a placement (about 30 s on the Mac, minutes
+    on CI's four shared cores: a test takes it in a fixture, which CI's 60 s a test leaves out) and kept in
     model/build: where he stands is in the key, so his eye centres moving never reads an older grid."""
     mesh, path = sculpt()
     with open(path, "rb") as f:
@@ -96,12 +98,16 @@ def morty():
     cache = os.path.join(stages.REPO, "model", "build", f"envelope-{key}.npz")
     out = Skin.__new__(Skin)
     out.floor = FLOOR
-    if os.path.exists(cache):
+    os.makedirs(os.path.dirname(cache), exist_ok=True)
+    with open(cache + ".lock", "w") as lock:
+        # one build a machine (2.5 GB, 144 s of CPU): a second process, a test run's other worker, waits and reads it
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not os.path.exists(cache):
+            keep = (mesh.vertices[mesh.faces][:, :, 2] > FLOOR - 2 * GRID).any(1)
+            built = Skin(trimesh.Trimesh(mesh.vertices, mesh.faces[keep]), floor=FLOOR)
+            whole = cache.removesuffix(".npz") + ".tmp.npz"  # renamed once written: a killed build leaves no half
+            np.savez_compressed(whole, grid=built.grid, lo=built.lo)
+            os.replace(whole, cache)
         with np.load(cache) as z:
             out.grid, out.lo = z["grid"], z["lo"]
-        return out
-    keep = (mesh.vertices[mesh.faces][:, :, 2] > FLOOR - 2 * GRID).any(1)
-    built = Skin(trimesh.Trimesh(mesh.vertices, mesh.faces[keep]), floor=FLOOR)
-    os.makedirs(os.path.dirname(cache), exist_ok=True)
-    np.savez_compressed(cache, grid=built.grid, lo=built.lo)
-    return built
+    return out

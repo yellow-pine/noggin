@@ -72,14 +72,22 @@ def test_the_skull_keeps_out_of_the_lids_shell_and_the_belt_behind_each_eye():
         assert not ((v > lo) & (v < hi)).all(axis=1).any()
 
 
+@pytest.fixture(scope="module")
+def skin():
+    """Morty's skin as a depth, taken in a fixture: its build is 144 s of CPU, over the 60 s a test gets on CI's
+    four shared cores, where the timeout cut it off mid-query and the worker crashed (#874's first full Checks
+    runs). One worker builds it and the others wait for its file (envelope.morty())."""
+    return envelope.morty()
+
+
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("stem", g.BONES)
-def test_each_bone_lies_under_mortys_skin(stem):
+def test_each_bone_lies_under_mortys_skin(stem, skin):
     """Every finished bone at least envelope.ROOM (the Skin's wall and its clearance) under Morty's skin, the sculpt's
     surface, to SKIN_TOL: the skull's limit since 2026-11-27, where the compact head's box was (#893, #874). On main
     before the refit the forehead stood 10.9 mm out of him, the chin 4.6 and C7's spine 8.6."""
-    depth = envelope.morty().depth(trimesh.load(stages.stl(stem), force="mesh").vertices)
+    depth = skin.depth(trimesh.load(stages.stl(stem), force="mesh").vertices)
     assert depth.min() >= envelope.ROOM - SKIN_TOL
 
 
