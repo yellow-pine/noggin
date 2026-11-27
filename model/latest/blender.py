@@ -3,7 +3,7 @@
   blender -b --factory-startup -P model/latest/blender.py -- <latest.json> <out.blend>
 
 One scene, Latest, at rest: a collection per layer named for it and its candidate's label (the whole label in its
-`label` property, a failed export's reason in `reason`), holding that candidate's collection: Mech (Mechanism), the
+`label` property, what its candidate's export failed on in `reason`), holding that candidate's collection: Mech (Mechanism), the
 raw warped bones (Skeleton: its own Skeleton scene's Skull), Morty (Skin reference, hidden until switched on: it
 shares the Shells' surface) and Skin (Skin Shells; Shells, the caps alone, in a candidate from before #850's Skin
 layer), then each Shell the candidate cut from the Sculpt that its collection lacks, from its STL, which is in the
@@ -64,7 +64,7 @@ def shell(top, name, path, hexc):
 
 for layer, sources in SOURCE.items():
     c = JOB["layers"][layer]
-    label = c["label"] + (f" (empty: {c['reason']})" if c["reason"] else "")
+    label = c["label"] + (f" ({c['reason']})" if c["reason"] else "")
     top = bpy.data.collections.new(f"{layer}: {label}"[:63])  # Blender's name limit; the whole label is a property
     top["layer"], top["label"], top["reason"] = layer, label, c["reason"] or ""
     scene.collection.children.link(top)
