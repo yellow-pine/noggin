@@ -224,6 +224,7 @@ def _eyes():
 # tooth's width; his lapels' proud; and the L aviator lens' outline (x, z) round the bridge's Seat
 TEMPLES = (sk.grown(66.0, 2.0, 38.0), 20.0 * sk.GROW)
 BROW, BROW_SUNK, BROW_PROUD = (sk.grown(12.0, 40.0), sk.grown(41.0, 45.0)), 1.0, 1.5
+BROW_CLEAR = 2.0  # the hair stops this far short of each brow: the face's wall (sk.WALL) round the brow's pocket
 DOT = (3.0, 2.0)
 # the teeth across the jaw's chin, grown with it (model/neck.py JAW_K)
 TEETH, TOOTH = ((-18.0 * nk.JAW_K, 18.0 * nk.JAW_K), (-77.5, -75.0), 3.0), 6.0
@@ -232,7 +233,8 @@ LENS = ((3.0, 4.0), (26.0, 5.0), (28.0, -2.0), (22.0, -10.0), (12.0, -11.0), (5.
 
 
 def _hair(grow, skin="morty"):
-    """The hair's region (model/skin.py outline("hairline"), NAPE), `grow` mm out of it; Cansin's less his temples."""
+    """The hair's region (model/skin.py outline("hairline"), NAPE), `grow` mm out of it; Cansin's less his temples and
+    the face round his brows."""
     # sampled every 5 mm: within 0.1 mm of the curve, with few enough planes for OCCT's booleans (#992)
     side = (
         cq.Workplane("YZ", origin=(-200, 0, 0))
@@ -244,6 +246,10 @@ def _hair(grow, skin="morty"):
         (x, ty, tz), tr = TEMPLES
         for s in (-1, 1):
             out = out.cut(ball(tr - grow, (s * x, ty, tz)))
+        # the face round each brow too: since #992 the sheet's hairline comes down the forehead to their tops (#1018)
+        (x0, x1), (z0, z1), c = *BROW, BROW_CLEAR - grow
+        for s in (-1, 1):
+            out = out.cut(box(sorted((s * (x0 - c), s * (x1 + c))), (-200, 0), (z0 - c, z1 + c)))
     return out
 
 
@@ -365,12 +371,17 @@ def mouth_cover(skin="morty"):
 SHIRT_SPLIT = nk.AXIS[0]  # the halves part across the neck's pan axis
 SHIRT_TOP = 6.0  # the collar's rise over the shirt's top, round the neck
 SHIRT_ROUND = (10.0, 3.0, 25.0)  # his T-shirt's rounding: its sides, its shoulders, and the crew neck's corners
+# the collar's back open this far each side of the middle, down to the shoulders: C7's spinous process (BodyParts3D's,
+# #976) reaches back through it over the Torso's wall, within 5.5 mm of the middle (inferred: read off the finished
+# bone, which is carved after the Shells; model/printed/test_skin.py holds the room)
+C7_SLOT = 7.5
 
 
 def shirt(skin, half):
     """The shirt's `half` (front, back) (shirt and collar), his T-shirt: a sleeve round the Torso GAP outside its Seats'
     pads, its sides and shoulders rounded, a rim over its walls' top and the round crew neck's collar rising round the
-    neck; each half off its Torso wall's Seats, the front forward, the back backward."""
+    neck, open at its back round C7 (C7_SLOT); each half off its Torso wall's Seats, the front forward, the back
+    backward."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
     sides, shoulders, neck = SHIRT_ROUND
     front = next(s for s in sk.SEATS if s.shell == f"{skin} shirt front")
@@ -389,6 +400,7 @@ def shirt(skin, half):
         (z1 + 0.5, z1 + 0.5 + sk.WALL + SHIRT_TOP),  # clear of the Torso's lid (#838)
     )
     collar = collar.edges("|Z").fillet(neck + sk.WALL).edges(">Z").fillet(sk.WALL / 2)
+    collar = collar.cut(box((-C7_SLOT, C7_SLOT), (y1 - 5.0, y1 + 5.0), (z1 + 0.5 + sk.WALL, z1 + 30)))
     out = outer.cut(inner).union(collar).cut(hole)
     ys = (y0 - 20, SHIRT_SPLIT - 0.1) if half == "front" else (SHIRT_SPLIT + 0.1, y1 + 20)
     out = out.intersect(box((-80, 80), ys, (z0 - 5, z1 + 30)))
