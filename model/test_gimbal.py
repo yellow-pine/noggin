@@ -11,10 +11,11 @@ from model import envelopes, gimbal, mujoco_report
 
 
 def test_the_eyes_are_mortys_at_life_size():
-    """#901 (#872 step 3 round 2): the eyes sit on Morty's pupils, 72.7 mm apart; the cap is his eye's 40.4 mm sphere,
+    """#901, #967: the eyes sit on his Sculpt's eyeballs, 73.3 mm apart (model/test_skin.py refits them); the cap is
+    a 40.4 mm sphere,
     the core x1.5 with it; the upper lid rides 1 mm off it. At rest each lid's edge is on his outline (68 deg over the
     gaze, 52 under) or, past the cap's 45 deg rim, on the rim: no eye white shows beyond it."""
-    assert gimbal.SPACING == pytest.approx(72.7)
+    assert gimbal.SPACING == pytest.approx(73.3)
     assert gimbal.CAP_R == pytest.approx(40.4)
     assert gimbal.CORE_R == pytest.approx(13.0 * 1.5)
     assert gimbal.LID_R[0] == pytest.approx(41.4)

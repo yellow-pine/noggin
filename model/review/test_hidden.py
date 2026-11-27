@@ -1,12 +1,12 @@
-"""Seam: the eye gimbal inside the private Morty reference (#967), as model/review places him: the gimbal frame and every
-eye drive part (servos, horns, bars, links, yokes, cores, the bail), with each eye servo over its range, at
-least a Shell's wall and its clearance inside his outer surface, in both Skeleton styles; and, as the head pans and
-tilts and the jaw opens, that far from each region of his Skin that moves against the gimbal then. The caps and lids
-are the eyes' own surfaces, seen through his eye openings, so they are left out. One of the review's own checks, as
-test_review.py's on the written file: `just review` runs it on the parts it just built (NOGGIN_REVIEW set), and by hand
-it is `NOGGIN_REVIEW=1 pytest model/review/test_hidden.py` after `just ours`. It reads the reference through Blender
-(review.MORTY), which CI does not have, so it skips there (and is not marked model: the Model shards would only skip
-it), and nothing of the reference leaves the run."""
+"""Seam: the eye gimbal inside Morty's Sculpt (#967), as model/review places it on the Mech's eyes: the gimbal frame
+and every eye drive part (servos, horns, bars, links, yokes, cores, the bail), with each eye servo over its range, at
+least a Shell's wall and its clearance inside his outer surface, in both Skeleton styles: read on the Sculpt git holds
+(model/morty), so every run of the Model's tests holds it. And, as the head pans and tilts and the jaw opens, that far
+from each region of his Skin that moves against the gimbal then: the regions are the private reference's painted
+meshes, read through Blender (review.MORTY), so that half is one of the review's own checks, as test_review.py's on
+the written file (`just review` sets NOGGIN_REVIEW; by hand `NOGGIN_REVIEW=1 pytest model/review/test_hidden.py` after
+`just ours`), skips in CI, and nothing of the reference leaves the run. The caps and lids are the eyes' own surfaces,
+seen through his eye openings, so they are left out."""
 
 import functools
 import os
@@ -20,7 +20,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import review, skeleton, skin, stages
+from model import morty, review, skeleton, skin, stages
 
 MARGIN = skin.WALL + gm.LID_CLEAR_MM  # a Shell's wall, and its least room to a part it does not sit on
 VISIBLE = ("eyeball cap", "upper lid", "lower lid")  # seen through his eye openings, not hidden behind his Skin
@@ -110,8 +110,15 @@ def test_depth_reads_a_ball_through_a_ball_as_one_surface():
 
 
 @pytest.fixture(scope="module")
-def morty(tmp_path_factory):
-    """(depth() of Morty's reference, {Motion region: its surface's points every mm}), at rest in the documents' world."""
+def sculpt():
+    """depth() of Morty's Sculpt as git holds it, placed on the Mech's eyes in the documents' world."""
+    mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False)
+    return depth(mesh.apply_transform(review.placed()))
+
+
+@pytest.fixture(scope="module")
+def regions(tmp_path_factory):
+    """{Motion region: its surface's points every mm} of Morty's reference, at rest in the documents' world."""
     if not (os.environ.get("NOGGIN_REVIEW") and os.path.isfile(review.MORTY) and shutil.which(skeleton.BLENDER)):
         pytest.skip("the review's check (NOGGIN_REVIEW, as just review sets it): needs the Morty reference and Blender")
     path = str(tmp_path_factory.mktemp("morty") / "reference.npz")
@@ -128,11 +135,11 @@ def morty(tmp_path_factory):
             ]
     finally:
         os.remove(path)  # the reference stays where it is
-    meshes = [(region, mesh.apply_transform(review.placed())) for region, mesh in meshes]
     regions = {}
     for region, mesh in meshes:
-        regions[region] = np.vstack([*([regions[region]] if region in regions else []), _points(mesh, 1.0)])
-    return depth(trimesh.util.concatenate([m for _, m in meshes])), regions
+        points = _points(mesh.apply_transform(review.placed()), 1.0)
+        regions[region] = np.vstack([*([regions[region]] if region in regions else []), points])
+    return regions
 
 
 @functools.cache
@@ -151,11 +158,12 @@ def _poses(stage):
             yield f"{horn} {deg:.0f}", stages.pose(stage, horn, deg).parts
 
 
+@pytest.mark.model
 @pytest.mark.parametrize("doc", list(g.MECH))
-def test_the_eye_gimbal_hides_inside_mortys_reference(doc, morty):
+def test_the_eye_gimbal_hides_inside_mortys_sculpt(doc, sculpt):
     """#967: at rest and with each eye servo over its range, every point of the eye gimbal's frame and drives lies
     MARGIN inside Morty's outer surface; a part that comes nearer or pokes through is listed with its worst mm."""
-    (outside, _), stage, near = morty, stages.STAGES[doc], {}
+    outside, stage, near = sculpt, stages.STAGES[doc], {}
     for pose, mats in _poses(stage):
         for n in _parts(stage):
             worst = float(outside(trimesh.transform_points(_cloud(stages.stem(stage.parts[n].file)), mats[n])).max())
@@ -165,12 +173,12 @@ def test_the_eye_gimbal_hides_inside_mortys_reference(doc, morty):
 
 
 @pytest.mark.parametrize("doc", list(g.MECH))
-def test_no_region_of_his_skin_moving_against_the_eye_gimbal_comes_near_it(doc, morty):
+def test_no_region_of_his_skin_moving_against_the_eye_gimbal_comes_near_it(doc, regions):
     """#967, the head's articulation: over the pan's, the tilt's and the jaw's range, each region of his Skin that then
     moves against the eye gimbal (the fixed neck, shoulders and torso under a turning head, the jaw's as it opens;
     review.CARRIERS) keeps MARGIN from every point of the frame and the drives. A seam that opens between two regions
     is the Skin's own (#850)."""
-    (_, regions), stage, near = morty, stages.STAGES[doc], {}
+    stage, near = stages.STAGES[doc], {}
     rest = {n: p.matrix for n, p in stage.parts.items()}
     for horn in (h for h in stage.horns if h not in HORNS):
         for deg in np.linspace(*stage.horns[horn].limits, STEPS):

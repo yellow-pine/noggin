@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pytest
 import trimesh
+from scipy import optimize
 from scipy.spatial import cKDTree
 
 from model import geometry as g
@@ -154,15 +155,16 @@ def _inside(points, poly):
 def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
     """#992, docs/adr/0027: every cut is where the Sculpt itself has the form (mm in the head's frame, as measured). The
     hairline is its hair's boundary, from the top of the forehead on the midline back and down behind the ears to the
-    collar; each eye white its whole dome, 34 mm round a centre 4 mm outward of its eye (gm.EYE, the Sculpt's eyes on
-    ours), and its pupil the Sculpt's ring on it, 14 mm across; the mouth line the middle of the lips' ridge, corner to
-    corner; the collar where the head meets the shirt, highest under the ears. No lid has a cut."""
+    collar; each eye white its whole dome, 34 mm round a centre 3 mm outward of its eyeball's (gm.EYE, the Sculpt's
+    eyes on ours: the dome faces outward), and its pupil the Sculpt's ring on it, 14 mm across; the mouth line the
+    middle of the lips' ridge, corner to corner; the collar where the head meets the shirt, highest under the ears.
+    No lid has a cut."""
     cuts = skin.cuts()
     whites, pupils = [f"{s} eye white" for s in "LR"], [f"{s} pupil" for s in "LR"]
     assert set(cuts) == {"hairline", *whites, *pupils, "mouth", "collar"}
     assert {n for n, (view, _) in cuts.items() if view == "side"} == {"hairline", "collar"}
     line = skin.contour("sculpt hairline")
-    assert line[0] == pytest.approx((0.2, 74.9), abs=0.2) and line[-1] == pytest.approx((84.4, -94.0), abs=0.2)
+    assert line[0] == pytest.approx((1.5, 73.2), abs=0.2) and line[-1] == pytest.approx((85.7, -95.7), abs=0.2)
     # (y, z): hair on the crown, at the nape and all the way down behind the ears; none on the forehead, an ear, the chin
     crown, nape, behind, forehead, ear, chin = (
         (0.0, 100.0),
@@ -183,18 +185,47 @@ def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
     for s, out in (("L", 1), ("R", -1)):
         white, pupil = cuts[f"{s} eye white"][1], cuts[f"{s} pupil"][1]
         x, _, z = gm.EYE[s]
-        assert white.mean(axis=0) == pytest.approx((x + 4.0 * out, z + 2.0), abs=1.5)
+        assert white.mean(axis=0) == pytest.approx((x + 3.1 * out, z + 1.2), abs=0.5)
         assert np.linalg.norm(white - white.mean(axis=0), axis=1) == pytest.approx(34.0, abs=1.5)
         assert _inside(pupil, white).all()
         assert np.linalg.norm(pupil - pupil.mean(axis=0), axis=1) == pytest.approx(7.0, abs=0.7)
     mouth, collar = skin.contour("mouth"), skin.contour("collar")
-    assert mouth[0] == pytest.approx((-27.0, -76.6), abs=0.2) and mouth[-1] == pytest.approx((27.5, -77.8), abs=0.2)
-    assert mouth[:, 1].max() == pytest.approx(-71.5, abs=0.5)  # a frown: its middle over its corners
-    assert collar[0] == pytest.approx((27.6, -117.8), abs=0.2) and collar[-1] == pytest.approx((110.9, -109.8), abs=0.2)
-    assert collar[collar[:, 1].argmax()] == pytest.approx((79.0, -94.6), abs=2.0)  # under an ear, the hairline's end
+    assert mouth[0] == pytest.approx((-27.5, -78.4), abs=0.2) and mouth[-1] == pytest.approx((27.0, -79.6), abs=0.2)
+    assert mouth[:, 1].max() == pytest.approx(-73.3, abs=0.5)  # a frown: its middle over its corners
+    assert collar[0] == pytest.approx((28.9, -119.6), abs=0.2) and collar[-1] == pytest.approx((112.1, -111.6), abs=0.2)
+    assert collar[collar[:, 1].argmax()] == pytest.approx((80.2, -96.3), abs=2.0)  # under an ear, the hairline's end
     # the jaw under the mouth line between its corners, the shirt under the collar
     assert _inside(np.array([(0.0, -skin.FAR / 2), (0.0, 0.0), (40.0, -100.0)]), cuts["mouth"][1]).tolist() == [1, 0, 0]
     assert _inside(np.array([(60.0, -120.0), (60.0, -60.0), (120.0, -100.0)]), cuts["collar"][1]).tolist() == [1, 0, 0]
+
+
+# an eye's dome: his surface this many deg off straight ahead of its centre, and this near its ball, mm
+DOME, NEAR = 50.0, 1.5
+
+
+def test_the_mechs_eyes_sit_on_the_sculpts_own_each_ball_fitted_to_its_dome():
+    """#967 (Cansin, 2026-11-27), docs/adr/0011: review.MORTY_EYES are the centres of the Sculpt's eyeballs, each a
+    sphere fitted to its dome by least squares, its centre and radius free, settled from the listed centre; gm.SPACING
+    is their distance at his life size (#872, #901), and his eye a 37.1 mm ball. The domes' feet seen from the front
+    are 80 mm apart (their cuts): each dome faces outward, so its foot's centre is not its ball's."""
+    mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False)
+    listed = {s: np.array(e) for s, e in review.MORTY_EYES.items()}
+    scale = gm.SPACING / np.linalg.norm(listed["L"] - listed["R"])
+    assert scale == pytest.approx(7.126, abs=0.005)
+    for s, eye in listed.items():
+        c, r = eye, 37.0 / scale
+        near = np.linalg.norm(mesh.triangles_center - eye, axis=1) < 2 * r  # the git copy's faces are large on a dome
+        v = np.asarray(trimesh.sample.sample_surface(mesh.submesh([near], append=True), 40000, seed=0)[0])
+        for _ in range(8):
+            d = np.linalg.norm(v - c, axis=1)
+            dome = v[(np.abs(d - r) < NEAR / scale) & ((c - v)[:, 1] / d > np.cos(np.radians(DOME)))]
+            fit = optimize.least_squares(
+                lambda x, dome=dome: np.linalg.norm(dome - x[:3], axis=1) - x[3], [*c, r], loss="soft_l1", f_scale=0.05
+            )
+            c, r = fit.x[:3], fit.x[3]
+        assert len(dome) > 2000
+        assert (c - eye) * scale == pytest.approx(0.0, abs=0.1), s
+        assert r * scale == pytest.approx(37.1, abs=0.1)
 
 
 def test_each_cut_lies_on_its_form_on_the_sculpt_git_holds():
