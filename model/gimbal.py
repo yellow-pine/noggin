@@ -49,13 +49,14 @@ YAW_Y = 16.0
 # The pitch drive (#967, the re-layout round the lids' shell): the belt behind each eye, between its two stowed lids, is
 # the only way out of the eye's sphere, so each push-rod leans down to the back through it, from the lever's ball to a
 # ball on the bail's arm; the bail's axis stands up behind the eyes, over the lid servos' cases and under the cranium
-# tray, each arm hanging forward and down from it, square to its rod at rest (the rod meets the arm at 72 deg or more
-# over the pitch, the lever at 50), bent at a knee to pass its lid servo's corner; the input arm leans down to the back
-# over the lid servos, to the pitch bar from the pitch horn, which stays where it was. (y, z) each, inferred, from the
-# rough CAD of the layout (#967, comment 7209502441)
+# tray, each arm hanging forward and down from it, square to its rod at rest (over the pitch and the yaw the rod meets
+# the arm at 70 deg or more and the lever at 50, the pitch bar its horn and the input arm at 51); the input arm leans
+# down to the back over the lid servos, to the pitch bar from the pitch horn, which stays where it was. (y, z) each,
+# inferred, from the rough CAD of the layout (#967, comment 7209502441)
 BAIL = (50.9, 23.7)  # the bail's axis
-BAIL_BALL = (38.2, 2.7)  # each arm's ball at rest: the arm 24.5 mm
-BAIL_KNEE = (14.0, -124.0)  # each arm's knee: mm from the axis, deg from +y toward +z
+# each arm's ball at rest, 24.5 mm from the axis: 1.5 mm forward of the layout's, so the rod's cup stays 2.3 mm from
+# its lid servo's case at the pitch's upper end (0.9 there)
+BAIL_BALL = (38.2, 2.7)
 BAIL_IN, BAIL_IN_DEG = 30.0, -15.0  # the input arm: mm, deg from +y toward +z
 BAIL_TIP = (
     BAIL[0] + BAIL_IN * math.cos(math.radians(BAIL_IN_DEG)),
@@ -91,8 +92,9 @@ LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edg
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
 # #967: its case stood across the belt behind the eye, where the push-rod, the tie-bar and the yaw bearing's rail have
-# to leave the eye's sphere once the lids stow under Morty's skin; now behind that belt, under the bail's axis
-LID_HORN = (56.5, -8.5)
+# to leave the eye's sphere once the lids stow under Morty's skin; now behind that belt, under the bail's axis (the
+# layout's 56.5, -8.5, comment 7209502441, a tenth up: its horn's hub 2.0 mm over the pan's moving cap, 1.9 before)
+LID_HORN = (56.5, -8.4)
 
 
 # the upper lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's)

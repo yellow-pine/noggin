@@ -39,7 +39,7 @@ NECK = gm.BALL_R + 1.2  # a ball's centre from what its neck stands on
 ROD_BED = (2.0, gm.BALL_R + 0.1 + 0.8)
 # each bail arm's way down from the axis, deg from +y toward +z: steeper than the line to its ball, so it passes its
 # lid servo's top front corner at the pitch's upper end; its ball stands off the arm's round end on its neck
-BAIL_ARM_DEG = -124.0
+BAIL_ARM_DEG = -128.0
 # the bail's arms' width in their planes, the input arm's too (ARM before): the leaned bar loads the input arm 1.3
 # times the horn's stall, the leaned rod its arm 1.5 times
 BAIL_ARM_W = 7.0
@@ -99,23 +99,27 @@ def bail_foot():
     return tuple(np.add(gm.BAIL, d * u))
 
 
-# the flat on the core's upper back (#967): pitched down 15 deg, the leaned push-rod passes this far from the core's
-# centre, facing this way (y, z); the core's own ball would stand 2 mm into it
-CORE_FLAT = (16.5, (0.643, 0.766))
+# the relief on the core's top (#967): pitched down 15 deg, the leaned push-rod's underside passes 16.9 mm from the
+# core's centre, 2.6 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
+# round the lever's axis, its side this far from the centre and facing (out, up) this way, 2 mm under the rod's bar
+# wherever the eye turns (fitted to its underside over the pitch and the yaw)
+CORE_RELIEF = (14.8, (0.661, 0.750))
 
 
 def core():
     """The eyeball core: a ball, the seat its cap sits on (forward), the lever up the yaw axis to its ball, whose neck
-    leans forward, square to the push-rod's bed (#967), a flat on its upper back where that rod passes, and the pitch
-    axle's bores along x."""
+    leans forward, square to the push-rod's bed (#967), a cone round the lever cut from its top where that rod passes,
+    and the pitch axle's bores along x."""
     up = rod_bed()[:3, 2]  # the push-rod's bed's normal: its lever cup's mouth faces down it
     at = np.array([0.0, 0.0, gm.LEVER])
     foot = at - NECK * up
-    d, (ny, nz) = CORE_FLAT
-    turn = linkage.rotation((1, 0, 0), math.degrees(math.atan2(nz, ny)) - 90.0)  # z onto the flat's normal
-    out = ball(gm.CORE_R).cut(_placed(box((-gm.CORE_R, gm.CORE_R), (-gm.CORE_R, gm.CORE_R), (d, gm.CORE_R + 1)), turn))
+    d, (out_, up_) = CORE_RELIEF
+    far = gm.CORE_R + 1  # the cone's section (out, z), past the ball
+    section = [(0.0, d / up_), (far, (d - out_ * far) / up_), (far, far), (0.0, far)]
+    relief = cq.Workplane("YZ").polyline(section).close().revolve(360, (0, 0, 0), (0, 1, 0))
+    out = ball(gm.CORE_R).cut(relief)
     out = out.union(cyl("y", (0, 0, 0), gm.SEAT_R, (-CAP_BACK, -gm.CORE_R + 3)))
-    out = out.union(rod(foot - (gm.LEVER - gm.CORE_R + 3 - NECK) * up, foot, LEVER_R)).union(ball_on(foot, at))
+    out = out.union(rod(foot - 12.0 * up, foot, LEVER_R)).union(ball_on(foot, at))  # the lever, rooted in the cone
     for s in (-1, 1):
         out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, sorted((s * 8.0, s * (gm.CORE_R + 1)))))
     return out
@@ -288,7 +292,7 @@ def lid_bone(points, x, sizes=LID_BONE):
 def pitch_bar(mechanical=False):
     """The pitch bar: the pitch horn's pin up to the bail's input arm, mechanical or a Bone (#708)."""
     hy, hz = gm.PITCH_HORN
-    return link((hy + gm.CRANK, hz), (gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1]), gm.PITCH_BAR_X, mechanical)
+    return link((hy + gm.CRANK, hz), gm.BAIL_TIP, gm.PITCH_BAR_X, mechanical)
 
 
 def _slab(name, side=1):

@@ -80,6 +80,61 @@ def test_the_bail_turns_clear_of_the_frame(mechanical, pitch):
     assert turned.intersect(frame).Volume() < 1e-3
 
 
+def _posed(rest, moved, name):
+    return rest[name].moved(gimbal._at(moved[name])) if name in moved else rest[name]
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("pitch", [-gm.PITCH, 0.0, gm.PITCH])
+@pytest.mark.parametrize("yaw", [-gm.YAW, 0.0, gm.YAW])
+def test_each_push_rod_turns_on_its_balls_clear_of_its_core_and_the_bail(rest, pitch, yaw):
+    """#967: the leaned rod passes over the core's top and its cups turn on a neck that leans too, so over the pitch
+    and the yaw each rod shares no volume with its core or the bail, and past its lever cup its bar keeps the room
+    the plate's back edge keeps (gm.BACK_ROOM_MM: more than a collision piece strays) from the core, whose top is cut
+    to a cone under it."""
+    moved = gm.moved(0.0, pitch, yaw)
+    bail = _posed(rest, moved, "bail:1")
+    for s, (x, _, _) in gm.EYE.items():
+        rod, core = (_posed(rest, moved, f"{s} {part}:1") for part in ("push-rod", "eyeball core"))
+        assert rod.intersect(core).Volume() < 1e-3 and rod.intersect(bail).Volume() < 1e-3
+        ball = (moved[f"{s} eyeball core:1"] @ (x, 0, gm.LEVER, 1))[:3]
+        bar = rod.cut(gimbal.ball(8.0, tuple(ball)).val())  # past its cup, which turns on the lever's ball
+        assert bar.distance(core) >= gm.BACK_ROOM_MM
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("pitch", list(np.linspace(-gm.PITCH, gm.PITCH, 5)))
+def test_the_pitch_drive_keeps_room_from_the_lid_servos_and_the_cranium_tray(rest, pitch):
+    """#967: each lid servo stands where the bail's axis was, so the bail turns over them and under the cranium tray,
+    and each push-rod's cup comes back at its lid servo's case as the eyes pitch up: over the pitch each keeps
+    gm.BACK_ROOM_MM, on the exact solids (the prototype's cup came 0.9 mm from the case)."""
+    from model import stages
+    from model.printed import PARTS
+
+    moved = gm.moved(0.0, pitch)
+    tray = PARTS["cranium tray"]().val().moved(gimbal._at(stages.cranium_sub().parts["cranium tray:1"].matrix))
+    bail = _posed(rest, moved, "bail:1")
+    assert bail.distance(tray) >= gm.BACK_ROOM_MM
+    for s in gm.EYE:
+        servo = rest[f"{s} lid servo:1"]
+        assert bail.distance(servo) >= gm.BACK_ROOM_MM
+        assert _posed(rest, moved, f"{s} push-rod:1").distance(servo) >= gm.BACK_ROOM_MM
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+def test_each_lid_servo_keeps_room_from_the_pitch_servo_and_its_horn_from_the_pans_moving_cap(rest, side):
+    """#967: behind the belt each lid servo stands between the bail's ball and the pitch servo, its horn's hub over
+    the pan's moving cap: gm.BACK_ROOM_MM from each, on the exact solids."""
+    from model.printed import PARTS
+
+    cap = PARTS["pan moving cap"]().val()  # drawn where it rides, in the gimbal's frame
+    assert rest[f"{side} lid servo:1"].distance(rest["pitch servo:1"]) >= gm.BACK_ROOM_MM
+    for lid in np.subtract(gm.LID_EDGES, gm.LID_REST):
+        horn = _posed(rest, gm.moved(float(lid), 0.0), f"{side} lid horn:1")
+        assert horn.distance(cap) >= gm.BACK_ROOM_MM
+
+
 SAG_DEG = 0.5  # how far past either end of the pan its loaded servo sags, inside its band (#978)
 
 
@@ -177,6 +232,15 @@ def test_the_tie_bar_keeps_its_three_pin_bores():
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             assert not tie.isInside(cq.Vector(x + dx * (gm.PIN_R - 0.05), y + dy * (gm.PIN_R - 0.05), z))
             assert tie.isInside(cq.Vector(x + dx * (gm.PIN_R + 0.5), y + dy * (gm.PIN_R + 0.5), z))
+
+
+def test_the_pitch_bar_keeps_its_two_pin_bores():
+    """#967: the bar leans from the pitch horn's pin to the bail's input arm's, a bore for the M3 shank at each."""
+    bar, x = gimbal.pitch_bar().val(), sum(gm.PITCH_BAR_X) / 2
+    for y, z in ((gm.PITCH_HORN[0] + gm.CRANK, gm.PITCH_HORN[1]), gm.BAIL_TIP):
+        for dy, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            assert not bar.isInside(cq.Vector(x, y + dy * (gm.PIN_R - 0.05), z + dz * (gm.PIN_R - 0.05)))
+            assert bar.isInside(cq.Vector(x, y + dy * (gm.PIN_R + 0.5), z + dz * (gm.PIN_R + 0.5)))
 
 
 def test_each_push_rod_cup_closes_on_its_ball_under_the_equator():

@@ -152,7 +152,9 @@ def eyes_sub():
         parts[stem + ":1"] = part(stl(stem), None, printed(stem))
     for label, (face, shaft, tab, arm) in gimbal.drives().items():
         parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, label, arm))
-    lo, hi = (gimbal.servos(0, p)[1] for p in (gimbal.PITCH, -gimbal.PITCH))
+    # the pitch horn's ends, whichever way it turns the gaze up (#967: up is its positive way now, the bail's arms
+    # hanging from its axis)
+    lo, hi = sorted(gimbal.servos(0, p)[1] for p in (gimbal.PITCH, -gimbal.PITCH))
     limits = {
         "yaw": (-gimbal.YAW, gimbal.YAW),
         "pitch": (lo, hi),
