@@ -37,10 +37,18 @@ def test_each_left_and_right_shell_keys_to_its_own_seat():
         assert {s.polarity for s in skin.SEATS if s.shell == right} == {-1}
 
 
-def test_the_eyeball_caps_are_the_only_shells_each_printed_in_a_skin_colour_group():
-    """#850 (docs/adr/0027): no Shell is drawn by hand; the caps, the mechanism's own, sit on their Seats."""
+def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour_groups():
+    """#850 (docs/adr/0027): no Shell is drawn by hand. The caps, the mechanism's own, sit on their Seats and are the
+    only Shells a document wears; Morty's, cut from his Sculpt (g.SHELLS), are printed in PLA Pure, each in its Colour
+    group, and worn by no document until the gates on a worn Shell pass (g.SKINS)."""
     groups = {group for palette in g.THEMES["Skin palette"].values() for group in palette}
-    assert set(skin.SHELLS) == {f"{s} eyeball cap" for s in "LR"} and skin.DRAWN == []
+    assert set(skin.SHELLS) == {f"{s} eyeball cap" for s in "LR"} and skin.DRAWN == [] and g.SKINS == {}
+    assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
+        "hair": ("hair", "PLA Pure"),
+        "face": ("face", "PLA Pure"),
+        "chin": ("face", "PLA Pure"),
+        "shirt": ("clothes", "PLA Pure"),
+    }
     for stem in skin.SHELLS:
         assert g.PRINTED[stem][0] in groups, stem
 
@@ -51,7 +59,7 @@ def test_a_shell_comes_off_along_its_seats_normal():
 
 
 def test_every_shell_belongs_to_one_motion_region():
-    """#969: each Shell moves with the Motion region its name shows: the head's on the head, the mouth on the jaw, a lid
+    """#969: each Shell moves with the Motion region its name shows: the head's on the head, the chin on the jaw, a lid
     cover on its lid, a cap or pupil on its eye, the shirt on the fixed torso; the neck, shoulders and torso have no
     carrier."""
     assert {skin.region(s) for s in skin.SHELLS} <= skin.MOTION.keys()
@@ -59,12 +67,12 @@ def test_every_shell_belongs_to_one_motion_region():
     for shell, region in {
         "morty face": "head",
         "morty hair": "head",
-        "morty mouth cover": "jaw",
+        "morty chin": "jaw",
         "morty L upper lid cover": "L upper lid",
         "morty R lower lid cover": "R lower lid",
         "L eyeball cap": "L eye",
         "morty R pupil": "R eye",
-        "morty shirt front": "torso",
+        "morty shirt": "torso",
     }.items():
         assert skin.region(shell) == region, shell
     with pytest.raises(KeyError):

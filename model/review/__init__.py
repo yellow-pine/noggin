@@ -32,8 +32,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import gimbal as gm
-from model import skeleton, skin, stages
+from model import morty, skeleton, skin, stages
 from model.render import pictures, scene
 from scripts.gx10 import blender_ceiling
 
@@ -53,11 +52,9 @@ REGIONS = {
 }  # else Pedestal
 FPS, FRAMES = 24, 240  # the loop: 10 s, frame 1 its rest pose
 STEP = 2  # a pose keyed every STEP frames
-BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
+BED, GAP, PLATE_GAP = g.BED, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
-# the Morty sculpt's eyeballs' centres, its own mm, z up, -y forward: each a sphere fitted to its dome, which
-# model/test_skin.py refits (#967; #872's measure on a front depth map before). His pupils sit 9 deg outward of them
-MORTY_EYES = {"L": (84.467, 245.677, 107.54), "R": (74.186, 245.682, 107.54)}
+MORTY_EYES = morty.EYES  # the Sculpt's eye centres, and placed(): model/morty's, which cuts his Skin by them too
 CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 
@@ -203,19 +200,7 @@ def plates(stage):
     return out
 
 
-def placed():
-    """4x4 taking the Morty reference's raw frame to the documents' world: his eyes on the Mech's, scaled to their
-    spacing."""
-    eyes = stages.align(*stages.DOCS[DOC]["eyes"])
-    mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
-    raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
-    scale = np.linalg.norm(mech["L"] - mech["R"]) / np.linalg.norm(raw["L"] - raw["R"])
-    mid, raw_mid = (mech["L"] + mech["R"]) / 2, (raw["L"] + raw["R"]) / 2
-    return (
-        trimesh.transformations.translation_matrix(mid)
-        @ np.diag([scale] * 3 + [1])
-        @ (trimesh.transformations.translation_matrix(-raw_mid))
-    )
+placed = morty.placed  # the Morty reference's raw frame is his Sculpt's
 
 
 def _morty(stage):
