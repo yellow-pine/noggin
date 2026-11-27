@@ -1,0 +1,89 @@
+push-rod: lever ball [36.67  0.   23.8 ] -> bail ball [36.67 39.73  2.67]; bail axis (y, z) [50.91 23.69]; input arm 30.00
+pitch  bail  rod-lever  rod-arm   (deg; a rod square to its lever reads 90)
+  -15.0 -12.75     52.3     71.9
+   -7.5  -6.47     56.8     81.2
+    0.0   0.00     62.0     90.0
+    7.5   6.82     68.1     81.8
+   15.0  14.09     75.1     74.0
+pitch servo for pitch -15..15: {-15: -28.4, -7.5: -14.1, 0: 0.0, 7.5: 15.2, 15: 33.2}  bar meets horn, input arm at [(52.1, 52.7), (81.9, 66.9), (60.0, 85.9)]
+building
+rail leaves the sphere at [ 15.7  31.5 -18.2]
+
+== against the lids' swept shell (r 37.4..39.6 about each eye centre)
+  septum                     lids' shell (cut): clear
+  septum                     lids' shell (band): clear
+  rail                       lids' shell (cut): clear
+  rail                       lids' shell (band): L CROSSES 51 pts a -40..-30 phi -144..-140; R CROSSES 51 pts a -40..-30 phi -144..-140
+  pylon                      lids' shell (cut): clear
+  pylon                      lids' shell (band): clear
+  bail upright               lids' shell (cut): clear
+  bail upright               lids' shell (band): clear
+  L lid servo                lids' shell (cut): clear
+  L lid servo                lids' shell (band): clear
+  pitch servo                lids' shell (cut): clear
+  pitch servo                lids' shell (band): clear
+  yaw servo                  lids' shell (cut): clear
+  yaw servo                  lids' shell (band): clear
+  plate front                lids' shell (cut): clear
+  plate front                lids' shell (band): clear
+  tie-bar, yaw -25..25       lids' shell (cut): clear
+  push-rod, pitch -15..15    lids' shell (cut): clear
+  bail, pitch -15..15        lids' shell (cut): clear
+  tie-bar, yaw -25..25       lids' shell (band): clear
+  push-rod, pitch -15..15    lids' shell (band): L CROSSES 683 pts a -5..5 phi 164..166; R CROSSES 683 pts a -5..5 phi 164..166
+  bail, pitch -15..15        lids' shell (band): L CROSSES 68 pts a -2..2 phi 163..166; R CROSSES 68 pts a -2..2 phi 163..166
+
+== against the caps (37.4 mm, out to the opening's edge, 4 mm thick), over yaw x pitch
+  rail                       caps: clear
+  pylon                      caps: clear
+  L lid servo                caps: clear
+  septum                     caps: clear
+  tie-bar at yaw -25: 0 pts in a cap
+  tie-bar at yaw 0: 0 pts in a cap
+  tie-bar at yaw 25: 0 pts in a cap
+  push-rod at pitch -15: 0 pts in the L cap
+  push-rod at pitch 0: 0 pts in the L cap
+  push-rod at pitch 15: 0 pts in the L cap
+
+== gaps, mm (clouds, to about 0.3): least over yaw -25..25 (tie-bar, yoke) and pitch -15..15 (rod, bail, core)
+  tie-bar / yoke (as it would be), past its pin's 5.5 mm   2.03
+  rail / yoke (as it would be)                           0.43   <-- UNDER 0.5
+  pylon / yoke (as it would be)                         15.83
+  push-rod / yoke (as it would be)                      17.31
+  tie-bar / rail                                         2.58
+  tie-bar / pylon (both sides)                           1.36
+  tie-bar / core                                         6.22
+  tie-bar / yaw servo                                    6.41
+  tie-bar / L lid servo (both)                           4.07
+  tie-bar / push-rod                                     9.99
+  tie-bar / bail                                        11.49
+  tie-bar / septum                                       3.50
+  bail / septum                                         16.19
+  septum / lid servos, yaw servo                         8.41
+  rail / core                                            4.40
+  push-rod / core, past the lever ball's 5 mm            0.53
+  push-rod / L lid servo                                 0.88
+  bail / L lid servo (both)                              2.32
+  bail / pitch servo                                    15.93
+  L lid servo / pitch servo                              3.85
+  L lid servo / pylon                                   16.72
+  pitch bar / L lid servo                               14.84
+
+== the rest of the head (others swept over pan, tilt, jaw; mm voxels)
+  septum                     others (voxels, mm): clear
+  pylon                      others (voxels, mm): clear
+  bail upright               others (voxels, mm): clear
+  L lid servo                others (voxels, mm): clear
+  pitch servo                others (voxels, mm): clear
+  pitch bar                  others (voxels, mm): {np.str_('head mount:1'): 1.0, np.str_('pan moving cap:1'): 2.2}
+  tie-bar swept              others (voxels, mm): clear
+  bail swept                 others (voxels, mm): clear
+  push-rod swept             others (voxels, mm): clear
+
+== under Morty's skin (2.1 mm at least)
+  bail upright               under Morty's skin: least 8.00 mm
+  L lid servo                under Morty's skin: least 8.00 mm
+  pylon                      under Morty's skin: least 8.00 mm
+  bail swept                 under Morty's skin: least 8.00 mm
+  tie-bar swept              under Morty's skin: least 8.00 mm
+  pitch servo                under Morty's skin: least 8.00 mm
