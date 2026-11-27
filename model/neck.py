@@ -89,7 +89,8 @@ CERVICAL_PATH = (
     (78.5, -60.7),
     (76.6, -48.7),
 )
-CERVICAL_X = (16.0, 9.0, 9.0, 22.0, 22.0)  # upper fixed rails outside the moving trunnions, leaving the canal open
+# upper fixed rails outside the moving trunnions; at C7's foot the R rail's inner side stands WIRE_R off the midline
+CERVICAL_X = (16.0, 9.2, 9.2, 22.0, 22.0)
 # #1060: each rail's section, an ellipse lying flat, (its half-depth fore and aft, its half-width across) at the path's
 # points from the foot up and, fourth, at the anchor's height. The rails do not share the tilt servo's stall reaction:
 # the anchor is on the R rail, which also takes 0.89 of the nod plate's push on the trunnions, so the head's torque

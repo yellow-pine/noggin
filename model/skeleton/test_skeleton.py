@@ -20,7 +20,10 @@ SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
 HEAD = ("skull", "mandible")
 # the bare bones the mechanism cuts in two, strict so the fixing PR drops its mark: what rides with each cuts it exactly
-SEVERED: dict[str, str] = {}  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
+SEVERED: dict[str, str] = {  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
+    "c3": "#1060: the cervical carrier's R rail, as thick as the tilt servo's stall takes, runs through C3's R lateral "
+    "mass and cuts its transverse process off; #874's rewarp fits C3 round the rail and drops this mark",
+}
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
