@@ -3,8 +3,9 @@
   blender -b <in.blend> -P model/review/blender.py -- <job.json> <out.blend> assemble | <bone stem> | scenes
 
 assemble: on the Skeleton scene, the Scene Mech swapped for the document (model/skeleton/export.py swap), the finish's
-numbers set, the layers made (Mech, Skeleton, Morty, each in Skull, Mechanism and Pedestal; Shells and raw bones to
-helpers), coloured at their alpha. <bone stem>: that bone's finish baked into its mesh. scenes: the motion, then the
+numbers set, the layers made (Mech, Skeleton, Skin and Morty, each in Skull, Mechanism and Pedestal; raw bones to
+helpers), coloured at their alpha: the Skin the Shells cut from the Sculpt and the eyeball caps, Morty the private
+reference, which the scenes step hides until it is switched on (it shares the Skin's surface). <bone stem>: that bone's finish baked into its mesh. scenes: the motion, then the
 Exploded, Print bed and (before) Before and after scenes, linked copies of the same meshes."""
 
 import json
@@ -22,7 +23,7 @@ import export  # noqa: E402
 
 JOB_PATH, OUT, STEP = sys.argv[sys.argv.index("--") + 1 :][:3]
 JOB = json.load(open(JOB_PATH))
-LAYERS, REGIONS = ("Mech", "Skeleton", "Morty"), ("Skull", "Mechanism", "Pedestal")
+LAYERS, REGIONS = ("Mech", "Skeleton", "Skin", "Morty"), ("Skull", "Mechanism", "Pedestal")
 MORTY_FACES = 100_000  # the sculpt decimated to about this many
 bpy.context.preferences.filepaths.save_version = 0  # no .blend1 beside the file
 
@@ -290,18 +291,11 @@ def assemble():
     for c in ("Skull", export.FINISHED):  # out of Skeleton: the raw bones to helpers, the finished ones to regions
         bpy.data.collections["Skeleton"].children.unlink(bpy.data.collections[c])
     helpers.children.link(bpy.data.collections["Skull"])
-    shells = export.collection("Shells", helpers)
     mech = {o.name.split(".")[0]: o for o in bpy.data.collections[export.MECH].objects}  # a carve copy took the name
     for name, p in JOB["parts"].items():
         o = finished(name.removesuffix(":1")) if p["layer"] == "Skeleton" else mech[name]
-        if p["layer"] is None:
-            for c in list(o.users_collection):
-                c.objects.unlink(o)
-            shells.objects.link(o)
-            o["part"] = name
-        else:
-            place(o, name, p["region"], p["layer"])
-        o.color = lin(p["colour"], JOB["alpha"][p["layer"] or "Mech"])
+        place(o, name, p["region"], p["layer"])
+        o.color = lin(p["colour"], JOB["alpha"][p["layer"]])
         paint(o)
         o.hide_set(False)
     for o in list(bpy.data.collections[export.FINISHED].objects):  # the bare copies: the document wears the worn
@@ -342,7 +336,8 @@ def shading(s):
 
 def animate(scene, objects):
     """One looping action ("Review motion", a slot per object): each part where the document's pose puts it every
-    keyed frame, Morty with what carries him, and a horn empty per horn keying its angle (helpers > Rig)."""
+    keyed frame (a Shell with what carries it), Morty with what carries him, and a horn empty per horn keying its
+    angle (helpers > Rig)."""
     scene.render.fps, scene.frame_start, scene.frame_end = JOB["fps"], 1, JOB["frames"] - 1  # FRAMES is frame 1 again
     action = bpy.data.actions.new("Review motion")
     rest = JOB_REST
@@ -355,7 +350,7 @@ def animate(scene, objects):
             o.parent = parts[carrier]
             o.matrix_parent_inverse = parts[carrier].matrix_world.inverted()
             o.matrix_world = world
-    # every moving part, a helper too: a hidden eyeball cap still carries Morty's eye (#969)
+    # every moving part: an eyeball cap carries Morty's eye (#969)
     moving = [
         (o, part, o.matrix_world.copy())
         for part, o in parts.items()
@@ -454,6 +449,8 @@ def scenes():
         bpy.data.collections.remove(before)
     for s in bpy.data.scenes:  # each scene's matrix_world, else stale until it is shown
         s.view_layers[0].update()
+    # the private reference: a toggle, off while the Skin's Shells show the same surface
+    main.view_layers[0].layer_collection.children["Morty"].hide_viewport = True
     for w in bpy.context.window_manager.windows:
         w.scene = main
     bounds = [

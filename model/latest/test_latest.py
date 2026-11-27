@@ -6,7 +6,9 @@ import os
 import re
 
 import pytest
+import trimesh
 
+from model import geometry as g
 from model import latest, review, skeleton
 
 MAIN = {"name": "main", "sha": "a" * 40, "date": "2026-11-20T10:00:00Z", "files": [], "checks": [("Checks", "SUCCESS")]}
@@ -51,6 +53,33 @@ def test_a_pr_touching_two_layers_counts_for_both_and_the_skin_is_both_its_colle
     assert pick["Mechanism"]["name"] == "main"
 
 
+def test_the_shells_candidate_is_one_that_changes_what_cuts_them_not_the_reviews_code():
+    """#850: the Shells are cut by model/morty along skin.py's cuts on contours.json, and the reference is placed and
+    cut by the same; model/review assembles the reference alone, so a PR that edits only it never takes the Shells'
+    layer with what its older base cut (#1032's hand-drawn Shells)."""
+    both = {"Skin reference", "Skin Shells"}
+    assert latest.layers("model/morty/shells.py") == latest.layers("model/contours.json") == both
+    assert latest.layers("model/skin.py") == latest.layers("model/printed/test_skin.py") == both
+    assert (
+        latest.layers("model/review/test_review.py") == latest.layers("model/review/blender.py") == {"Skin reference"}
+    )
+
+
+def test_a_candidates_cut_shells_are_listed_with_their_filaments_colour_and_none_where_it_cut_none(tmp_path):
+    """Each Shell a candidate's own `just ours` cut from the Sculpt, by its STL, in its Colour group's filament (the
+    review's Preset); a commit from before the Sculpt's Shells lists none."""
+    assert latest.shells(str(tmp_path)) == []
+    ours = tmp_path / "model/build/ours"
+    ours.mkdir(parents=True)
+    for name in ("morty hair", "morty shirt", "gimbal frame"):
+        (ours / f"{name}.stl").write_bytes(b"")
+    palette = g.THEMES["Skin palette"]["default"]  # Cansin's owned filaments, the review's
+    assert latest.shells(str(tmp_path)) == [
+        ["morty hair", str(ours / "morty hair.stl"), palette["hair"][3]],
+        ["morty shirt", str(ours / "morty shirt.stl"), palette["clothes"][3]],
+    ]
+
+
 def test_main_stands_in_when_nothing_open_touches_a_layer():
     other = pr(988, "2026-11-21T11:00:00Z", ["site/package.json", "uv.lock", "model/latest/__init__.py"])
     assert {c["name"] for c in latest.pick(MAIN, [other]).values()} == {"main"}
@@ -73,6 +102,8 @@ for c in bpy.data.scenes[0].collection.children:
     meshes = [o for o in c.all_objects if o.type == "MESH"]
     out["layers"][c["layer"]] = {"name": c.name, "label": c["label"], "reason": c["reason"], "meshes": len(meshes),
         "at": {o.name: list(o.matrix_world.translation) for o in meshes},
+        "colour": {o.name: [round(x, 3) for x in o.color] for o in meshes},
+        "hidden": bpy.context.view_layer.layer_collection.children[c.name].hide_viewport,
         "moving": sum(bool(o.animation_data) for o in c.all_objects)}
 print("INSPECT " + json.dumps(out))
 print("review: done")
@@ -123,7 +154,11 @@ def test_a_candidate_lands_in_its_head_frame_and_a_missing_one_leaves_its_reason
     }
     layers["Mechanism"] |= {"blend": cand, "job": str(job), "reason": None}
     layers["Skin reference"]["reason"] = "no Morty reference at /nowhere"
-    (tmp_path / "latest.json").write_text(json.dumps({"layers": layers}))
+    # the candidate's own cut Shell, in the head's frame as cut, shown though its assemble failed
+    hair = tmp_path / "morty hair.stl"
+    trimesh.creation.box((2, 2, 2)).apply_translation((0, 0, 50)).export(hair)
+    layers["Skin Shells"] |= {"shells": [["morty hair", str(hair), "#FFFFFF"]], "reason": None}
+    (tmp_path / "latest.json").write_text(json.dumps({"layers": layers, "alpha": review.ALPHA["Skin"]}))
     out = str(tmp_path / "latest.blend")
     review._blender(["-P", latest.SCRIPT, "--", str(tmp_path / "latest.json"), out])
     got = inspect(out)["layers"]
@@ -131,6 +166,10 @@ def test_a_candidate_lands_in_its_head_frame_and_a_missing_one_leaves_its_reason
     assert got["Mechanism"]["label"] == label and got["Mechanism"]["name"] == f"Mechanism: {label}"
     assert got["Skin reference"]["meshes"] == 0 and "no Morty reference" in got["Skin reference"]["label"]
     assert got["Skeleton"]["reason"] == "export.py failed: boom"
+    assert got["Skin Shells"]["at"] == {"morty hair": pytest.approx([0, 0, 0])} and got["Skin Shells"]["meshes"] == 1
+    assert got["Skin Shells"]["colour"] == {"morty hair": [1.0, 1.0, 1.0, review.ALPHA["Skin"]]}
+    # the private reference shares the Shells' surface: a toggle, off when the file opens
+    assert [k for k, c in got.items() if c["hidden"]] == ["Skin reference"]
 
 
 def test_a_fork_or_an_outside_authors_pr_is_never_picked_its_code_never_runs_here():
