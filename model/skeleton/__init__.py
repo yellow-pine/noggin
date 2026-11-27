@@ -1,6 +1,6 @@
 """The realistic Skeleton's bones (docs/adr/0025): authored in the Skeleton scene (model/skeleton/skeleton.blend), its
 bones in the Stage 3 document's frame, each finished by its own Geometry Nodes modifier (model/skeleton/build.py wrote
-them: the cranium shelled to WALL, the orbits opened round the lids, everything
+them: the skull's bones sealed into one, the cranium shelled to WALL, the orbits opened round the lids, everything
 riding the bone cut out and everything moving against it CLEAR_MM round, crumbs dropped, meshed at PITCH).
 
 finish() hands Blender the scene and the document just built: Blender (model/skeleton/export.py) deletes the Scene
@@ -25,6 +25,9 @@ BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Bl
 DOC = "mech-back"  # the realistic document the bones are carved for
 PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round every moving part; the cranium's shell
 FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of it (export.rounded)
+# the skull's 21 bones are one bone across every gap under twice this (export.rounded): BodyParts3D's only abut, and
+# the palate hangs on the R maxilla's back, 1.3 to 1.8 mm off the sphenoid's pterygoid process (#874)
+SEAL = 1.5
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
 # The Sculpt's own eyeballs' centres in today's head frame: a ball fitted to each eye dome in 3D (#967's measure, its
@@ -97,7 +100,14 @@ def job():
             [[x - BELT[0], y, z + BELT_Z[0] - CLEAR_MM], [x + BELT[0], y + BELT[1], z + BELT_Z[1] + CLEAR_MM]]
             for x, y, z in EYES.values()
         ],
-        "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP, "Round": FLOOR / 2},
+        "numbers": {
+            "Voxel": PITCH,
+            "Clearance": CLEAR_MM,
+            "Wall": WALL,
+            "Keep": KEEP,
+            "Seal": SEAL,
+            "Round": FLOOR / 2,
+        },
     }
 
 

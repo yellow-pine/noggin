@@ -19,11 +19,6 @@ from model.skeleton import envelope, fit
 SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
 SKIN_TOL = 0.2  # a depth under Morty's skin is good to this (envelope.DENSITY), mm
-# the bare bones the mechanism cuts in two, strict so the fixing PR drops its mark
-SEVERED = {
-    "skull": "#874: refitted inside Morty's skin, the palate (5.3 cm3) is cut off under the gimbal frame's plate "
-    "again: #967's windows stand where the box-fitted maxillae rose",
-}
 # strict, so #968's follow-up, which re-measures nk.MANDIBLE_CHAIN on the refitted mandible, drops the mark
 CHAIN = "#968: the jaw carrier's chain still follows the box-fitted mandible, not #874's refit inside Morty's skin"
 
@@ -113,12 +108,11 @@ def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
 
 @pytest.mark.model
 @pytest.mark.bones
-@pytest.mark.parametrize(
-    "stem",
-    [pytest.param(s, marks=pytest.mark.xfail(strict=True, reason=SEVERED[s])) if s in SEVERED else s for s in g.BONES],
-)
+@pytest.mark.parametrize("stem", g.BONES)
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
-    """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid."""
+    """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid. The skull's
+    palate holds on behind the R maxilla, between the gimbal frame's plate and the tie-bar's sweep, where the Finish
+    seals the maxilla to the sphenoid (skeleton.SEAL): unsealed, it came off as a second piece of 5.3 cm3 (#874)."""
     mesh = trimesh.load(stages.stl(stem), force="mesh")
     pieces = [p for p in mesh.split(only_watertight=False) if abs(p.volume) > skeleton.PITCH**3 * 8]
     assert len(pieces) == 1
