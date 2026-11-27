@@ -113,7 +113,8 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
   mechanism's sweep by its wall and clearance, so the Finish closes it, and the growth zone's under side comes down
   toward his nape (#991's skull-base guides), 1.6 mm clear of the vertebrae over the tilt's and the pan's ranges.
 - The neck's vertebrae take a field of their own: each canal and each body's front pinned, the spines bent in under
-  his neck's skin.
+  his neck's skin. On #1055's straight canal (C7's foot at y 72, where it was 91.6) the vertebrae already stand 7.2 mm
+  under his skin at rest, so that field moves nothing (local lengths 0.999 to 1.0).
 - BodyParts3D's decimated meshes hold slivers a smooth field folds; `slivers.py` turned their long edges once, moving
   no vertex. The Warp refuses a fold, a shear past 2.1 or a Jacobian under 0.5 at the eyes and nose (#991), read
   outside the lids' shell alone. The shear limit is Cansin's (2026-11-27, #893): 2.1, where the box fit's was 1.8
