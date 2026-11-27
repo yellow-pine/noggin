@@ -200,8 +200,7 @@ SKULL_SUB = "skull"
 _HEAD = ((0, -150, 177), X, Z)
 MECH = {
     f"mech-{v}": {sub: _HEAD for sub in ("neck", "jaw", "eyes", "cranium", "base", *carriers)}
-    for v, carriers in (("back", [SKULL_SUB]),)  # Back alone since Cansin picked it (#712); a Skin's Shells join
-    # with its sub-assembly (SKINS)
+    for v, carriers in (("back", [SKULL_SUB]),)  # Back alone since Cansin picked it (#712)
 }
 # The Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head
