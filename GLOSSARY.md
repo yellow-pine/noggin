@@ -309,15 +309,16 @@ _Avoid_: skeleton.blend (the file), the prototype, the bust file
 Cansin's one local Blender file of the Mech (`just review`, model/review): the Skeleton scene fitted to the Stage 3
 document, in Assembled (Mech, Skeleton, Skin and Morty layers, a looping motion), Exploded and Print bed scenes: the
 Skin layer is the Shells cut from the Sculpt and the eyeball caps, whether or not a document wears them yet; the Morty
-layer is the private reference, switched off until asked for. Never committed or published.
+layer is the private reference, out of view among the hidden helpers, where the motion checks read it. Never committed
+or published.
 _Avoid_: the Desktop file, the preview
 
 **Latest file**:
 Cansin's second local Blender file (`just latest`, model/latest): one rest-pose scene with each layer (Mechanism,
-Skeleton, Skin reference, Skin Shells) from its candidate, the newest pushed open PR whose changes touch that layer and
-whose head contains main's newest commit touching it, else main, labelled with where it came from, its gate status and
-the PRs passed over for lacking main's commit; the Skin Shells are the candidate's own cut of the Sculpt, the Skin
-reference switched off until asked for. Never committed or published.
+Skeleton, Skin Shells) from its candidate, the newest pushed open PR whose changes touch that layer and whose head
+contains main's newest commit touching it, else main, labelled with where it came from, its gate status and the PRs
+passed over for lacking main's commit; the Skin Shells are the candidate's own cut of the Sculpt. Never committed or
+published.
 _Avoid_: the dashboard, the overview, the status file
 
 **Scene Mech**:

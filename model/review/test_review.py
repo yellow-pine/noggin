@@ -209,7 +209,9 @@ a = bpy.data.scenes["Assembled"]
 tops = a.view_layers[0].layer_collection.children
 out = {"scenes": [s.name for s in bpy.data.scenes], "first": bpy.context.window_manager.windows[0].scene.name}
 out["hidden"] = sorted(l.name for l in tops if l.hide_viewport)
-tops["Morty"].hide_viewport = False  # switched on, for what follows reads it moving
+out["reference_under"] = sorted(l.name for l in walk(a.view_layers[0].layer_collection) if "Morty" in l.children)
+out["reference_seen"] = any(o.visible_get(view_layer=a.view_layers[0]) for o in bpy.data.collections["Morty"].all_objects)
+tops["helpers"].hide_viewport = False  # shown here alone, for what follows reads the reference moving
 a.frame_set(a.frame_start)
 out["layers"] = {c.name: {k.name: sorted({round(o.color[3], 2) for o in k.objects}) for k in c.children}
                  for c in bpy.data.collections if c.name in LAYERS}
@@ -234,7 +236,6 @@ out["bust"] = [min(v.z for v in bust), caps] if bust and base else None
 out["material_alpha"] = {s.name: sorted({round(slot.material.diffuse_color[3], 2)
     for o in s.objects if o.type == "MESH" and not o.name.startswith("Plate")
     for slot in o.material_slots if slot.material}) for s in bpy.data.scenes if s.name in ("Exploded", "Print bed")}
-out["helpers"] = next(l.hide_viewport for l in walk(a.view_layers[0].layer_collection) if l.name == "helpers")
 horns = [o for o in bpy.data.objects if o.name.startswith("horn ")]
 out["actions"] = sorted({o.animation_data.action.name for o in a.objects if o.animation_data})
 deg = {o.name[5:]: [] for o in horns}
@@ -298,12 +299,6 @@ for f in range(a.frame_start, a.frame_end + 2):
         witness = next(w for w in out["reference_witnesses"][name] if w["region"] == o["reference_region"])
         witness["travel"] = max(witness["travel"], travel)
 out["horns"] = {h: [min(v), max(v), v[0], v[-1]] for h, v in deg.items()}
-mech_layer = a.view_layers[0].layer_collection.children["Mech"]
-hidden = mech_layer.hide_viewport
-mech_layer.hide_viewport = True
-a.frame_set(156)
-out["reference_visible_without_mech"] = all(o.visible_get(view_layer=a.view_layers[0]) for o, _, _ in reference.values())
-mech_layer.hide_viewport = hidden
 bed, out["plates"] = bpy.data.scenes["Print bed"], {}
 for c in bed.collection.children:
     plate = next(o for o in c.objects if o.name.startswith("Plate"))
@@ -343,16 +338,17 @@ def test_the_file_opens_on_assembled_beside_exploded_and_print_bed(blend):
 
 def test_each_layer_has_its_regions_at_its_alpha_and_helpers_are_hidden(blend):
     """Mech, Skeleton, Skin and Morty, each in Skull, Mechanism and Pedestal, every object at the layer's alpha;
-    Morty's objects only with the local reference (a fresh clone builds without them), and his layer a toggle, off
-    when the file opens: the Skin's Shells show his surface (#850)."""
+    Morty's objects only with the local reference (a fresh clone builds without them), and his layer out of view,
+    among the hidden helpers (Cansin, 2026-11-27): the Skin's Shells show his surface (#850), and the motion checks
+    read the reference where it lies."""
     for layer, alpha in review.ALPHA.items():
         regions = blend["layers"][layer]
         assert sorted(regions) == sorted(f"{layer} {r}" for r in ("Skull", "Mechanism", "Pedestal"))
         assert all(a in ([], [alpha]) for a in regions.values()), (layer, regions)
         assert blend["layer_material_alpha"][layer] in ([], [alpha])
     assert bool(blend["morty"]) == os.path.isfile(review.MORTY)
-    assert blend["helpers"] and blend["hidden"] == ["Morty", "helpers"]
-    assert blend["reference_visible_without_mech"]
+    assert blend["hidden"] == ["helpers"]
+    assert blend["reference_under"] == ["helpers"] and not blend["reference_seen"]
 
 
 def test_the_skin_layer_is_mortys_shells_and_the_caps_in_the_skins_colours_each_with_what_carries_it(blend):
