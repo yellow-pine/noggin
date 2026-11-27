@@ -10,8 +10,9 @@ from model import gimbal as gm
 from model import stages
 
 SCULPT = "model/morty/sculpt.ply"
-# the Sculpt's eye centres, its own mm (#872's measure on its front depth map, inferred)
-EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
+# the Sculpt's eyeballs' centres, its own mm: each a sphere fitted to its dome, which model/test_skin.py refits (#967;
+# #872's measure on a front depth map before). His pupils sit 9 deg outward of them
+EYES = {"L": (84.467, 245.677, 107.54), "R": (74.186, 245.682, 107.54)}
 DOC = next(iter(g.MECH))  # the document his Skin is on
 
 

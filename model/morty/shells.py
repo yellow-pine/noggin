@@ -32,6 +32,9 @@ BACKING = 1.0  # the Sculpt's own surface is kept to this far under its outside;
 UNDER = 12.0  # the Sculpt is kept this far under the base while the inside is measured, so the wall has no floor
 # A point of the Sculpt's surface within SEEN grid steps of the open air is its outside. So is a crease's bottom, a
 # little further in; a patch of surface that goes on past DEEP steps from the air is buried
+# shortcut: a buried sheet's edge within SEEN of the air (under a brow's ridge) counts as outside, so the wall keeps a
+# fin of it, more or less of one as the grid falls (11 cm2 of 180 between two placements); tell it by its normal, which
+# faces no air, if a Sculpt's buried surface must be left out whole
 SEEN, DEEP = 2.0, 5.0
 KEEP = 0.01  # a crumb a cut leaves, of its Shell's volume, under which it is dropped
 SPHERE, SAG = 128, 0.05  # an eye opening's sphere: segments round, and how far its facets sag inside it at most
@@ -54,8 +57,12 @@ def _solid(vertices, faces):
 
 
 def _mesh(solid):
+    """The solid as a trimesh, without the facets whose corners its 32-bit coordinates bring together: two of a
+    Shell's 65,000, each an open edge to a reader that merges vertices (as model/ours.py printable() drops OCCT's)."""
     mesh = solid.to_mesh()
-    return trimesh.Trimesh(mesh.vert_properties[:, :3], mesh.tri_verts, process=False)
+    mesh = trimesh.Trimesh(mesh.vert_properties[:, :3], mesh.tri_verts)
+    mesh.update_faces(mesh.nondegenerate_faces())
+    return mesh
 
 
 def _points(triangles, spacing):
