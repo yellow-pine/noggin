@@ -16,8 +16,8 @@ import trimesh
 from scipy import ndimage
 from scipy.spatial import cKDTree
 
-from model import gimbal, skin, stages
 from model import morty as morty_
+from model import skin, stages
 
 ROOM = skin.WALL + 0.5  # under Morty's surface: the Skin's wall and its clearance (Cansin, 2026-11-27)
 GRID, BAND = 1.0, 16.0  # the grid's pitch; how deep the exact distances reach, mm
@@ -87,10 +87,12 @@ def sculpt():
 
 @functools.cache
 def morty():
-    """Morty's Skin: the sculpt's, above FLOOR. Built once a sculpt (about 30 s) and kept in model/build."""
+    """Morty's Skin: the sculpt's, above FLOOR. Built once a sculpt and a placement (about 30 s) and kept in
+    model/build: where he stands is in the key, so his eye centres moving never reads an older grid."""
     mesh, path = sculpt()
     with open(path, "rb") as f:
-        key = hashlib.sha256(f.read() + f"{GRID}{BAND}{DENSITY}{FLOOR}{gimbal.SPACING}".encode()).hexdigest()[:16]
+        numbers = f"{GRID}{BAND}{DENSITY}{FLOOR}".encode() + morty_.placed().tobytes()
+        key = hashlib.sha256(f.read() + numbers).hexdigest()[:16]
     cache = os.path.join(stages.REPO, "model", "build", f"envelope-{key}.npz")
     out = Skin.__new__(Skin)
     out.floor = FLOOR

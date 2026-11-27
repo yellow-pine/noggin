@@ -152,11 +152,11 @@ def _there_and_back(group, grid, name, sign):
 
 def rounded(group):
     """The skull's Finish (the one cutting the Openings), once, sealed and rounded. Sealed: its bones' SDF grown by
-    Seal, then eroded by it, before the shell and the cuts, so BodyParts3D's 21 bones, which only abut (the R maxilla
-    stood 1.3 mm off the sphenoid's pterygoid process, and the palate hung on that, #874), are one bone across every
-    gap under twice Seal. Rounded: opened by Round before its Mean, eroded, then grown back, so every piece thinner
-    than twice Round goes (#838's floor) and every convex edge, the orbits' and the nose's rims among them, comes out
-    rounded to it (#993). Older scenes' Finishes get both here, at export; build.py's are born with them."""
+    Seal, then eroded by it, before the shell and the cuts, so BodyParts3D's 21 bones, which only abut (the palate
+    hung on one such gap, model/skeleton SEAL, #874), are one bone across every gap under twice Seal. Rounded: opened
+    by Round before its Mean, eroded, then grown back, so every piece thinner than twice Round goes (#838's floor) and
+    every convex edge, the orbits' and the nose's rims among them, comes out rounded to it (#993). Older scenes'
+    Finishes get both here, at export; build.py's are born with them."""
     N, L = group.nodes, group.links
     cuts = {n.inputs["Collection"].default_value for n in N if n.bl_idname == "GeometryNodeCollectionInfo"}
     if bpy.data.collections.get(OPENINGS) not in cuts:

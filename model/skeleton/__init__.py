@@ -26,7 +26,7 @@ DOC = "mech-back"  # the realistic document the bones are carved for
 PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round every moving part; the cranium's shell
 FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of it (export.rounded)
 # the skull's 21 bones are one bone across every gap under twice this (export.rounded): BodyParts3D's only abut, and
-# the palate hangs on the R maxilla's back, 1.3 to 1.8 mm off the sphenoid's pterygoid process (#874)
+# the palate hangs on the R maxilla's back, 1.4 mm off the sphenoid's pterygoid process where the two can meet (#874)
 SEAL = 1.5
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach

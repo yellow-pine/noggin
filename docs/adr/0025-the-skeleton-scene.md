@@ -115,16 +115,20 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
 - The neck's vertebrae take a field of their own: each canal and each body's front pinned, the spines bent in under
   his neck's skin.
 - BodyParts3D's decimated meshes hold slivers a smooth field folds; `slivers.py` turned their long edges once, moving
-  no vertex. The Warp refuses a fold, a shear past 2.2 or a Jacobian under 0.5 at the eyes and nose (#991).
+  no vertex. The Warp refuses a fold, a shear past 2.4 or a Jacobian under 0.5 at the eyes and nose (#991), read
+  outside the lids' shell alone. The shear limit was 1.8 on the box fit: this fit measures 2.05 (2.27 before the
+  eyes moved onto the Sculpt's), so the limit is looser here, Cansin's to confirm.
 - The orbits sit on the Sculpt's own eyeballs' centres (#967's fit, 73.3 mm apart), which are the Mech's eyes
   (`gimbal.EYE`) since #1035. #967's re-laid lids stow in a shell of radius 38 mm round each and their drives leave it
   through a belt behind each eye: both are openings of the skull's Finish before those parts exist.
 - The skull's Finish seals its 21 bones into one before it shells and carves: their SDF grown 1.5 mm, then eroded by
   as much (`skeleton.SEAL`), which closes every gap under 3 mm. BodyParts3D's bones only abut, and with the lids'
   shell and the belts open the palate hangs on one junction: the R maxilla's back against the sphenoid's pterygoid
-  process, 1.3 to 1.8 mm apart, in the 3.4 mm between the gimbal frame's plate and the tie-bar's sweep. Unsealed, the
-  palate came off as a second piece (5.3 cm3). Sealed, that bridge is about 10 mm wide and 3.4 tall. The L side has
-  none while today's lower lids sweep the L maxilla away under the plate. The seal also keeps the strip of skull base
-  under the plate, dropped as a crumb before.
+  process, 1.4 mm apart, in the 3.4 mm between the gimbal frame's plate and the tie-bar's sweep. Whether the Finish
+  joins them unsealed turns on where the two land on its grid: on the fit before the eyes moved onto the Sculpt's
+  (#1035) the palate came off as a second piece (5.3 cm3); on this one it holds unsealed too, on a neck of 17 mm2.
+  Sealed, it held on both: a neck of 22 mm2 then, 29.5 now (about 10 mm wide and 3.4 tall). So the seal is what keeps
+  the palate from hanging on that chance, and `test_skeleton.py`'s one-piece check holds it only on a fit where the
+  two bones miss. The L side has no bridge while today's lower lids sweep the L maxilla away under the plate.
 - The gates read the Sculpt (`model/morty`, ADR 0027): `test_skeleton.py` holds each finished bone 2.1 mm under it
   and to no box. `base.DOME` stays the mechanism's box until its gates read the Sculpt too.

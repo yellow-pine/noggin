@@ -48,7 +48,7 @@ def _bones():
 @pytest.mark.model
 @pytest.mark.bones
 def test_the_skulls_eyes_sit_in_its_orbits():
-    """Each eye's centre (the Mech's, on the Sculpt's own) inside the cranium's box, and the forehead over the lids' shell
+    """Each eye's centre, on the Sculpt's own, inside the cranium's box, and the forehead over the lids' shell
     ahead of them. No brow stands in front of the eyes any more (ADR 0025's amendment of 2026-11-26): the lids stow in
     a shell 38 mm round each eye centre (#967), which takes the orbits' rims, and Morty's own forehead lies behind
     where an anatomical brow would. The skull's height is Morty's to give
@@ -112,7 +112,8 @@ def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
     """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid. The skull's
     palate holds on behind the R maxilla, between the gimbal frame's plate and the tie-bar's sweep, where the Finish
-    seals the maxilla to the sphenoid (skeleton.SEAL): unsealed, it came off as a second piece of 5.3 cm3 (#874)."""
+    seals the maxilla to the sphenoid (skeleton.SEAL). On the fit before #1035 it came off unsealed, a second piece of
+    5.3 cm3; on this one it holds unsealed too (a thinner neck), so this check alone does not hold the seal (#874)."""
     mesh = trimesh.load(stages.stl(stem), force="mesh")
     pieces = [p for p in mesh.split(only_watertight=False) if abs(p.volume) > skeleton.PITCH**3 * 8]
     assert len(pieces) == 1
