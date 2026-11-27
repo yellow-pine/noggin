@@ -157,7 +157,7 @@ def test_a_candidate_lands_in_its_head_frame_and_a_missing_one_leaves_its_reason
     # the candidate's own cut Shell, in the head's frame as cut, shown though its assemble failed
     hair = tmp_path / "morty hair.stl"
     trimesh.creation.box((2, 2, 2)).apply_translation((0, 0, 50)).export(hair)
-    layers["Skin Shells"] |= {"shells": [["morty hair", str(hair), "#FFFFFF"]], "reason": None}
+    layers["Skin Shells"] |= {"shells": [["morty hair", str(hair), "#F7CED7"]]}
     (tmp_path / "latest.json").write_text(json.dumps({"layers": layers, "alpha": review.ALPHA["Skin"]}))
     out = str(tmp_path / "latest.blend")
     review._blender(["-P", latest.SCRIPT, "--", str(tmp_path / "latest.json"), out])
@@ -167,7 +167,11 @@ def test_a_candidate_lands_in_its_head_frame_and_a_missing_one_leaves_its_reason
     assert got["Skin reference"]["meshes"] == 0 and "no Morty reference" in got["Skin reference"]["label"]
     assert got["Skeleton"]["reason"] == "export.py failed: boom"
     assert got["Skin Shells"]["at"] == {"morty hair": pytest.approx([0, 0, 0])} and got["Skin Shells"]["meshes"] == 1
-    assert got["Skin Shells"]["colour"] == {"morty hair": [1.0, 1.0, 1.0, review.ALPHA["Skin"]]}
+    # #F7CED7 as scene-linear, not as typed: (247, 206, 215) / 255 through sRGB's curve
+    assert got["Skin Shells"]["colour"] == {
+        "morty hair": pytest.approx([0.930, 0.617, 0.680, review.ALPHA["Skin"]], abs=2e-3)
+    }
+    assert got["Skin Shells"]["reason"] == "export.py failed: boom"  # the caps are missing, and the label says why
     # the private reference shares the Shells' surface: a toggle, off when the file opens
     assert [k for k, c in got.items() if c["hidden"]] == ["Skin reference"]
 
