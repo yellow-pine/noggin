@@ -27,6 +27,13 @@ JAW_LAP = 2.0  # each Bone runs this far past its joints: flat ends meeting on a
 # at the chin the R chain ends this far past it, short of the L one's: ending together, their flat ends crossed on the
 # chains' own crossing and left a 0.015 mm edge, an invalid jaw in a document's STEP on Linux's OCCT (#850)
 JAW_CHIN_LAP_R = 1.0
+# #1039: the tilt lever's arm, from the shaft: its slab along x, 0.9 mm off the case's face, and where it steps in from
+# the disc's slab, 0.6 mm outside the horn's rim (inferred)
+TILT_ARM_X, TILT_STEP = (1.0, 5.0), 15.6
+# #1039: the strut from the R rail back to the reaction anchor, (head, waist), each its half-height then its half-width
+# across: the straight rail stands 15 mm in front of the anchor (model/printed/test_neck.py holds it at the tilt
+# servo's stall)
+ANCHOR_STRUT = ((6.0, 5.0), (5.5, 4.5))
 
 
 def tie(x, y, z):
@@ -59,9 +66,11 @@ def cervical_carrier():
     _, ay, az = nk.TILT_ANCHOR
     (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
     t = (az - z0) / (z1 - z0)
-    rail = (-(nk.CERVICAL_X[3] + t * (nk.CERVICAL_X[2] - nk.CERVICAL_X[3])), y0 + t * (y1 - y0), az)
     boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
-    out = out.union(strut(rail, (boss[0] + 3.0, ay, az), (3.5, 3), (3, 2.5)))
+    # straight back from the rail, which it swallows, its inner side 0.2 mm short of the boss's face, where the bar's
+    # slab starts (touching that face's plane, it left a solid of no volume there)
+    mid, low = boss[1] - ANCHOR_STRUT[0][1] - 0.2, az + 3.5 - ANCHOR_STRUT[0][0]  # its top level with the boss's
+    out = out.union(strut((mid, y0 + t * (y1 - y0), low), (mid, ay, low), *ANCHOR_STRUT))
     out = out.union(cyl("x", (0, ay, az), 3.5, boss)).cut(cyl("x", (0, ay, az), TAP_R, boss))
     out = out.union(tie(20.0, 78.5, -65.7))
     for x, fy in nk.CARRIER_FEET:
@@ -128,13 +137,19 @@ def nod_plate():
 
 
 def tilt_lever():
-    """Adapter on the supplied round horn, with an outboard standoff clear of the actual case and tabs."""
+    """Adapter on the supplied round horn: a disc outboard of it, and the crank's arm stepped inboard round the horn's
+    rim, beside the case (#1039): the pan swings the arm's tip across the nape, where Morty's skin is nearest the pan
+    axis, so the tip rides as near that axis as the case lets it (model/review/test_nape.py)."""
     x, y, z = nk.TILT_SHAFT
     outer = x + envelopes.STANDARD_HORN["face"]
     span = (outer - 5, outer)  # counterbore leaves a full 2 mm printed floor over the stock retaining screw
+    arm = (x + TILT_ARM_X[0], x + TILT_ARM_X[1])
+    step = tuple(np.add((y, z), np.multiply(TILT_STEP, nk.TILT_CRANK) / np.linalg.norm(nk.TILT_CRANK)))
     out = cyl("x", (0, y, z), 11.5, span)
-    out = out.union(hull("YZ", [(y, z, 7), (*nk.TILT_PIN[1:], 5.5)], span[1] - span[0], (span[0], 0, 0)))
-    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (span[0], nk.REACTION_TAP_X[1])))
+    out = out.union(hull("YZ", [(y, z, 7), (*step, 5)], span[1] - span[0], (span[0], 0, 0)))
+    out = out.union(cyl("x", (0, *step), 5, (span[1], arm[0])))
+    out = out.union(hull("YZ", [(*step, 5), (*nk.TILT_PIN[1:], 4.0)], arm[1] - arm[0], (arm[0], 0, 0)))
+    out = out.union(cyl("x", (0, *nk.TILT_PIN[1:]), 4.5, (arm[1], nk.REACTION_TAP_X[1])))
     out = out.cut(cyl("x", (0, y, z), 1.6, span))
     out = out.cut(cyl("x", (0, y, z), 2.8, (outer - 3, outer)))
     for dy, dz in envelopes.STANDARD_HORN["mounts"]:

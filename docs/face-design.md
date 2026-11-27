@@ -46,8 +46,8 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 His Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surface the outside from the crown to the
 base, the wall grown inward, open underneath (docs/adr/0027, 0028). Four Shells, split along his cuts: the hair, above
 and behind his hairline; the face, with his nose and ears; the chin, under the mouth line, which opens with the jaw;
-and the shirt, under the collar, the whole fixed body. The face is open round each eye, where the eyeball cap is the
-eye white and the lids stow behind the rim. *Upcoming (#850): their Seats, the gaps at the collar and the mouth
+and the shirt, under the collar, the whole fixed body. The face is open inside each eye's own outline, where the
+eyeball is the eye white; an open lid's edge shows at the rim. *Upcoming (#850): their Seats, the gaps at the collar and the mouth
 line that let the head and the jaw move, and room for them round the mechanism and the bones.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
 the hair and the shirt, for a plug.*
 
