@@ -98,7 +98,6 @@ def swap(job, ratio=None):
         x = bpy.data.objects.new(name, meshes[path])
         x.matrix_world = Matrix(job["rest"][name])
         mech.objects.link(x)
-        x.hide_set(" morty " in name)  # a Skin's Shells hidden: the Skeleton bare
     openings = collection(OPENINGS, collection("helpers"))
     for i, ((x, y, z), r) in enumerate(job["orbits"]):  # each orbit opened round its lids, back to REACH
         bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=48, ring_count=24, location=(x, y, z))

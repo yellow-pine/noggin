@@ -1,15 +1,17 @@
 # Themes: the Skeleton and its Skins (grilled 2026-11-02 and 2026-11-03, #51, #805, #819)
 
 > [!NOTE]
-> **Upcoming (#51):** being designed, not built yet; #51 holds the whole spec. Morty's Shells, the cansin Skin's and
-> Bart's are in the model, fitted to the head; Bart's refit to the life-size head is #913.
+> **Upcoming (#51):** being designed, not built yet; #51 holds the whole spec. No Shell is drawn by hand: a Skin is
+> cut from its Character's sculpt (docs/adr/0027), and the eyeball caps are the only Shells in the model until
+> Morty's are cut (#850).
 
 The Mech is one shared Skeleton that wears a Skin: a set of cosmetic Shells held on by magnets, swapped by pulling one
 set off and pressing the other on. Both are parts in the model (model/printed), our own design, but for the
 realistic Skeleton's skull and first two vertebrae, adapted from others' meshes under their licences (docs/adr/0023,
 [Credits](credits.md)). A Theme is a Shape and a Palette for the Skeleton and for the Skin, any
 Palette painting any Shape of its category (docs/adr/0022). A Preset names one: the Default build (mechanical in black, no
-Skin, the Default Skin palette), Morty and Bart (each realistic in anatomical, its own Skin). The default is the first Preset (model/geometry.py `PRESETS`): the model, the
+Skin, the Default Skin palette) and Morty (realistic in anatomical, his own Skin). *Upcoming (#913): Bart returns when
+he has a sculpt to be cut from.* The default is the first Preset (model/geometry.py `PRESETS`): the model, the
 [viewer](https://yellowpine.com/noggin/viewer/), every picture and the shopping list's filaments follow it unless you
 pick another in the header; the viewer mixes any Shape with any Palette.
 
@@ -20,13 +22,13 @@ pick another in the header; the viewer mixes any Shape with any Palette.
   realistic, every part drawn as Bones, and mechanical, every part in boxes and cylinders (docs/adr/0020); its
   Palettes: anatomical, robot and black (PETG Basic Black throughout). *Upcoming (#893): the realistic Skeleton
   becomes a life-size bust from one anatomical source, warped into Morty.*
-- Skin, PLA: the head shell with hair, the ears, the nose, the eyeball caps, separate pupils, the lid covers, the mouth
-  covers, the collar or shirt. A Character's eyeball caps may grow up to touching. Its Shapes: morty, his face with
-  ears, nose and lids, his hair and jagged pupils, his shirt and collar, his eye whites; bart, his face with the spikes
-  and lids, his shirt and collar, his eye whites, his pupils as dots; cansin, Cansin in Rick and Morty style with
-  sunglasses on the collar (#813). Its Palettes: morty, bart and cansin, each of the same six Colour groups (face,
-  hair, pupils, clothes, eye whites, accessories), the accessories in one of the Palette's other filaments where its
-  Character has none.
+- Skin, PLA: a Character's Shells, cut from its sculpt (docs/adr/0027). The eyeball caps, every Character's, are the
+  only Shells in the model; a Character's caps may grow up to touching. Its Shapes: none, the Skeleton bare, and
+  morty, which has no Shells yet, so it draws the Skeleton as the document has it. *Upcoming (#850): Morty's Shells
+  are cut from his sculpt.* *Upcoming (#913): Bart returns when he has a sculpt to be cut from.* *Upcoming (#917):
+  Cansin returns when he has a sculpt to be cut from.* Its Palettes: morty and default (the four PLA Pure colours),
+  each of the same six Colour groups (face, hair, pupils, clothes, eye whites, accessories), the accessories in one
+  of the Palette's other filaments where its Character has none.
 
 ## Colour groups and filaments
 
@@ -41,66 +43,34 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 <!-- #}-->
 
 ## Morty's Shells
-In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
-size inferred). *Upcoming (#850): these hand-drawn Shells go, and his Skin is cut from his sculpt
-(`model/morty`, [Credits](credits.md)): its surface the outside from the crown to the base, the wall 1.6 mm inward,
-split along his hairline, eye domes, mouth line and collar (docs/adr/0027).* *Upcoming (#864): each Core's USB-C
-opening, and the Torso's, is cut through the Shells over it, the hair and the shirt, for a plug.*
-- the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
-  the head mount, square from above where the mouth servo's corners need it; 210 x 210 x 225 mm (x1.5 with the eyes, #901)
-  but for the ears (model/printed/test_skin.py);
-- the face (face): the head's front under the hairline, the eyes' openings round everything the lids and their covers
-  reach, his round nose, a C-shaped ear each side, the mouth's opening; it comes off forward;
-- the hair (hair): the head's top and back over his hairline, from over the forehead down behind the ears to the
-  nape, standing 1.5 mm proud of the face; it comes off upward, so it goes on last;
-- the eyeball caps (eye whites, each Character's largest) with a jagged pupil (pupils) glued in each, keyed by its
-  shape in its seat with 0.15 mm of play a side and turned toward the other eye;
-- a cover on each lid (face), each over its whole lid and a lip past its free edge, so no lid shows from the front: the
-  upper one its magnet's thickness in its top band alone and a 0.75 mm skin forward of it, since the lower lid passes
-  outside the upper one when a shut eye looks down;
-- the mouth cover (face), his chin under the jaw, in the face's mouth opening;
-- the shirt (clothes), his T-shirt: a front and a back half round the Torso, its sides and shoulders rounded, each
-  with its half of the round crew neck's collar, the back's open 15 mm wide in its middle, where the realistic
-  Skeleton's C7 reaches back over the Torso's wall.
+*Upcoming (#850): his Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surface the outside from
+the crown to the base, the wall 1.6 mm inward, split along his hairline, eye domes, mouth line and collar
+(docs/adr/0027).* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
+the hair and the shirt, for a plug.*
 
-## Cansin's Shells
-*Upcoming (#917): refitted to the life-size head once Morty's are.* Cansin in Rick and Morty style, in four PLA Pure
-colours, on Morty's head and his Seats: the same
-Shells, but for these (model/printed/skin.py; every size inferred; his reference photo stays local, never in git):
-- the hair (hair, Absolute Black): short, the temples higher, so the face (Milky Pink) takes the sides of the
-  forehead, and tufted on top, a short quiff standing out of the head's forward slope within its 150 mm height;
-- the brows (hair): straight bars over the eyes, each glued in a pocket in the face and standing 1.5 mm proud, the
-  hair stopping 2 mm short of each;
-- the pupils (pupils): small round dots, each glued in a plug (eye whites, Pure White) that fills the cap's jagged
-  seat, so every Skin shares the caps;
-- the teeth (eye whites): his toothy smile, a band glued in the chin's top front on the mouth cover, which the jaw
-  swings down;
-- the shirt (clothes, Pure White): his open-collared jacket over a tee as one look, the front half with the jacket's
-  lapels in a V down from the shoulders;
-- the sunglasses (accessories, Apricot): aviators hooked on the tee's neckline, a small part on its own Seat on the
-  shirt front.
-No stubble. Physics runs on Morty's Skin alone: Cansin's Shells sit on his Seats, so each, with what is glued in it, is
-held at the peak acceleration the sim reads for Morty's there (model/test_report.py).
+What the model has of them today (model/skin.py, model/printed/skin.py):
+- the eyeball caps (eye whites, each Character's largest), each on its core's Seat, with a jagged seat in its front
+  for a pupil, keyed by its shape with 0.15 mm of play a side and turned toward the other eye;
+- his contours (model/contours.json) and the cuts they make on his sculpt (`cuts()`): the hair above and behind his
+  hairline, each eye white its whole eye dome, the pupils, the jaw under the mouth line and the shirt under the
+  collar, which colour the review's reference (model/review);
+- the Motion regions (`MOTION`): the part each Shell moves with.
 
 ## Seats and magnets
 - Every Shell sits on Seats (model/skin.py `SEATS`), the same for every Skin: on what carries it a 4x2 mm N52 disc
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
-  carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852):
-  the face's in the front of the gimbal frame's beam (its bar to the lids' uprights, deepened its whole width; Stage
-  1's stand stands behind it), the mouth cover's in the jaw's chin, thickened inside its U, the shirt's in the Torso's
-  front and back walls, thickened 1 mm inside (the shirt on bosses out to its sleeve); the face carries the hair's
-  front Seats. The cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in
-  their own faces.
-- One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (caps, lid
-  covers), so a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
+  carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852).
+  The eyeball caps' Seats, in the cores' faces, are the only ones in the model. *Upcoming (#850): the Seats of
+  Morty's Shells, on the gimbal frame, the lids, the jaw and the Torso.*
+- One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (the caps), so
+  a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap
   (about 4.6 N a pair) at least twice its weight times the peak acceleration the sim reads at its centroid along
   every motion.
-- The sim weighs every Shell (#830), but collides the Skeleton and the eyeball caps alone: the other Shells are drawn
-  whole, so the servos carry the Skin; the tilt's reduction four-bar holds Morty's head and the bare head alike. Their
-  clearance is checked on their own shapes, 0.5 mm from every part but what carries them, at rest and with each servo
-  at either end (model/printed/test_skin.py).
+- The sim weighs every Shell (#830), and collides the Skeleton and the eyeball caps alone: a Skin's other Shells are
+  drawn whole, so the servos carry the Skin. The caps' clearance is checked on their own shapes, 0.5 mm from every
+  part but what carries them, at rest and with each servo at either end (model/printed/test_skin.py).
 
 ## Hardware
 Inventory and the buy list: [Parts](build/parts.md#parts-to-buy). The one new purchase is the magnets, and the

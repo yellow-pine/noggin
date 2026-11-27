@@ -60,7 +60,8 @@ Also needed, which the model doesn't count as parts:
   the head. No balance spring: the tilt's reduction four-bar lets its servo hold the head (#978).
 - A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current
   sources ([Stage 2](stage-2.md#wiring)).*
-- For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)).
+- For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)): four for the
+  eyeball caps, the only Shells in the model. *Upcoming (#850): the discs for Morty's Shells.*
 - For the modeled head interface (#978): two MG996R standard metal-gear servos (tilt and pan) with their supplied
   round horns and 150 mm 22 AWG lead extensions, a Pololu D36V28F5 5 V 3.2 A synchronous step-down regulator (5267) on
   the head-local Y lead for the pan servo's power rail, and an SKF 61804-2RS1 thin-section deep-groove ball bearing

@@ -233,8 +233,6 @@ def pan_wire_candidate():
 @bone.grown
 def jaw(mechanical=False):
     """Hidden spatial carrier following the measured mandibular ramus/body, hinged at the actual condyles."""
-    from model import skin
-
     points = {}
     for side, border in nk.MANDIBLE_BORDER.items():
         sign = 1 if side == "L" else -1
@@ -257,10 +255,6 @@ def jaw(mechanical=False):
     out = out.union(strut(points["L"][2], pin, (3, 2.2), (2.5, 1.8)))
     pin_r = 4.0 if mechanical else 3.5
     out = out.union(cyl("x", (0, *nk.JAW_PIN), pin_r, nk.JAW_X)).cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, nk.JAW_X))
-    # Keep the existing resting mouth Shell on its actual Seat while the hidden anatomical load path changes.
-    seat = next(s for s in skin.SEATS if s.shell == "morty mouth cover")
-    at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad * 0.75))  # the strut's slanted end stays in the pad
-    out = out.union(strut(points["L"][-1], at, (3.2, 2.4), (2.8, 2)))
     return out
 
 

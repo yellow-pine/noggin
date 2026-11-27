@@ -82,9 +82,9 @@ THEMES = {
         },
         "black": dict.fromkeys(("Bones", "Joints", "Linkages", "Mounts"), _BLACK),
     },
-    "Skin shape": (SKINLESS := "none", "morty", "bart", "cansin"),  # none: the Skeleton bare, the stills' look (#876)
-    # face: face, ears, nose, lids (Bart's spikes); hair: hair, brows; eye whites: and teeth; accessories: Cansin's
-    # sunglasses, in a colour of its own Palette's in the others
+    # none: the Skeleton bare, the stills' look (#876); morty: his Sculpt's Skin (docs/adr/0027), its Shells still to
+    # be cut (#850). Bart (#913) and Cansin (#917) return when each has a Sculpt
+    "Skin shape": (SKINLESS := "none", "morty"),
     "Skin palette": {
         "morty": {
             "face": ("PLA Basic", "Beige", "10201", "#F7E6DE"),
@@ -94,32 +94,23 @@ THEMES = {
             "eye whites": ("PLA Basic", "Jade White", "10100", "#FFFFFF"),
             "accessories": brown,
         },
-        "bart": {
-            "face": (yellow := ("PLA Basic", "Sunflower Yellow", "10402", "#FEC600")),
-            "hair": yellow,  # the spikes
-            "pupils": (charcoal := ("PLA Matte", "Charcoal", "11101", "#000000")),  # dots
-            "clothes": ("PLA Matte", "Scarlet Red", "11200", "#DE4343"),  # shirt and collar
-            "eye whites": ("PLA Matte", "Ivory White", "11100", "#FFFFFF"),
-            "accessories": charcoal,
-        },
         "default": {  # #813: PLA Pure, all four owned
             "face": ("PLA Pure", "Milky Pink", "17200", "#F7CED7"),
             "hair": (black := ("PLA Pure", "Absolute Black", "17101", "#000000")),
             "pupils": black,
-            "clothes": (white := ("PLA Pure", "Pure White", "17100", "#FFFFFF")),  # jacket and tee, one Shell
+            "clothes": (white := ("PLA Pure", "Pure White", "17100", "#FFFFFF")),
             "eye whites": white,
-            "accessories": ("PLA Pure", "Apricot", "17300", "#FFB673"),  # the sunglasses
+            "accessories": ("PLA Pure", "Apricot", "17300", "#FFB673"),
         },
     },
 }
 # Presets (#819): a named Theme, its value on each axis in THEMES' order; the first the default, which the README, the
-# site's first visit and the default pictures show. A Skin shape without its own Shells yet (SKINS) wears Morty's.
+# site's first visit and the default pictures show. A Skin shape without Shells (SKINS) draws the document as it is.
 PRESETS = {
     name: dict(zip(THEMES, axes, strict=True))
     for name, axes in {
         "Default build": ("mechanical", "black", SKINLESS, "default"),  # no Skin, the default Skin palette (#889)
         "Morty": ("realistic", "anatomical", "morty", "morty"),
-        "Bart": ("realistic", "anatomical", "bart", "bart"),
     }.items()
 }
 THEME = next(iter(PRESETS.values()))
@@ -184,40 +175,9 @@ PRINTED = {
     "L eyeball cap": ("eye whites", "PLA Pure"),
     "R eyeball cap": ("eye whites", "PLA Pure"),
 }
-# The Skin shapes drawn so far (model/skin.py, model/printed/skin.py), each its sub-assembly: Morty's (#665) the
-# documents' own, the eyeball caps above his too; Cansin's (#813) and Bart's (#807) on the same Seats. Each one's Shells
-# by Colour group
-SKINS = {"morty": "morty", "cansin": "cansin", "bart": "bart"}
-_LIDS = tuple(f"{s} {lid} lid cover" for s in "LR" for lid in ("upper", "lower"))
-_SHELLS = {
-    "morty": {
-        "face": ("face", "mouth cover", *_LIDS),  # the face with his nose and ears
-        "hair": ("hair",),
-        "pupils": ("L pupil", "R pupil"),  # jagged
-        "clothes": ("shirt front", "shirt back"),
-    },
-    "cansin": {
-        "face": ("face", "mouth cover", *_LIDS),  # with the nose and ears
-        "hair": ("hair", "L brow", "R brow"),  # the hair tufted on top
-        "pupils": ("L pupil", "R pupil"),  # dots, each in a plug that fills the cap's jagged seat
-        "eye whites": ("L pupil plug", "R pupil plug", "teeth"),
-        "clothes": ("shirt front", "shirt back"),  # the jacket over the tee, its lapels on the front
-        "accessories": ("sunglasses",),  # aviators hooked on the tee's neckline
-    },
-    "bart": {
-        "face": ("face", "mouth cover", *_LIDS),  # with the nose and ears
-        "hair": ("hair",),  # his crown, the spikes on it
-        "pupils": ("L pupil", "R pupil"),  # dots, each in a plug that fills the cap's jagged seat, as Cansin's
-        "eye whites": ("L pupil plug", "R pupil plug"),
-        "clothes": ("shirt front", "shirt back"),
-    },
-}
-PRINTED |= {
-    f"{skin} {name}": (group, "PLA Pure")
-    for skin, groups in _SHELLS.items()
-    for group, names in groups.items()
-    for name in names
-}
+# The Skin shapes that have Shells, each its sub-assembly: none until Morty's are cut from his Sculpt (#850,
+# docs/adr/0027); the eyeball caps above are every Character's
+SKINS = {}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"
@@ -240,8 +200,8 @@ SKULL_SUB = "skull"
 _HEAD = ((0, -150, 177), X, Z)
 MECH = {
     f"mech-{v}": {sub: _HEAD for sub in ("neck", "jaw", "eyes", "cranium", "base", *carriers)}
-    for v, carriers in (("back", [SKINS["morty"], SKULL_SUB]),)  # Back alone since Cansin picked it (#712); Morty's
-    # Skin on it (#665), the other Skins on DRESSED's
+    for v, carriers in (("back", [SKULL_SUB]),)  # Back alone since Cansin picked it (#712); a Skin's Shells join
+    # with its sub-assembly (SKINS)
 }
 # The Mech's Stages (#720), cumulative, for ease of build: 1 the eye block on its test stand with the eyes Core, the
 # stand's foot on z 0 (base.STAND_Z, model/test_base.py); 2 adds the Torso with both Cores (#838), the neck and the head
@@ -266,9 +226,8 @@ STAGES |= {
     for s in SKELETON_SUFFIX.values()
     if s
 }
-# Stage 3 in each other Skin shape drawn (#813): each document of MECH under -<shape> after its Skeleton's suffix (the
-# viewer's GLB names, site/src/viewer/state.mjs), that Skin's Shells for Morty's; not simulated: Cansin's sit on
-# Morty's Seats, which his document's sim holds
+# Stage 3 in each other Skin shape that has Shells (#813): each document of MECH under -<shape> after its Skeleton's
+# suffix (the viewer's GLB names, site/src/viewer/state.mjs), that Skin's Shells for Morty's; not simulated
 DRESSED = {
     f"{doc}-{skin}": {(sub if sub != SKINS["morty"] else SKINS[skin]): f for sub, f in subs.items()}
     for doc, subs in MECH.items()

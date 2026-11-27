@@ -357,13 +357,9 @@ def posed(request):
 @pytest.mark.model
 def test_the_head_clears_the_neck_and_the_jaw_the_head_at_each_end_of_their_ranges(posed):
     """#708: the shorter neck and the jaw under the eyes, at each end of the drive's range, in the mechanical Back (its
-    Bones lie inside it): no two parts the drive moves apart overlap, as MuJoCo's sweep checks between them on main, but
-    the hair's KNOWN_HAIR meetings #850 clears."""
-    from model.printed.test_skin import _known
-
+    Bones lie inside it): no two parts the drive moves apart overlap, as MuJoCo's sweep checks between them on main."""
     solids, pairs = posed
-    overlaps = _overlaps(solids, [(a, b) for a, b in pairs if not (_known(a, b) or _known(b, a))])
-    assert overlaps == [], "\n".join(overlaps)
+    assert (overlaps := _overlaps(solids, pairs)) == [], "\n".join(overlaps)
 
 
 @pytest.fixture(
@@ -372,7 +368,7 @@ def test_the_head_clears_the_neck_and_the_jaw_the_head_at_each_end_of_their_rang
     ids=lambda p: f"pan{p[0]:g}-tilt{p[1]:g}-jaw{p[2]:g}",
 )
 def mechanism_pose(request):
-    """Actual new mechanism against every mechanical part over combined commands; the Shell gate above remains."""
+    """Actual new mechanism against every mechanical part over combined commands."""
     from model import skin
 
     stage = stages.STAGES[DOC]

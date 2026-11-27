@@ -3,7 +3,7 @@
 import functools
 
 from model import skin as sk
-from model.geometry import BONES, MECHANICAL, SKINS
+from model.geometry import BONES, MECHANICAL
 from model.printed import base, coupon, gimbal, neck, skin
 
 PARTS = {
@@ -74,27 +74,7 @@ UNSTYLED = {
     "the realistic Skeleton's skull, a mesh (the Skeleton scene, model/skeleton): the mechanical Skeleton has none (#838)",
 )
 PARTS |= {stem + MECHANICAL: functools.partial(build, mechanical=True) for stem, build in STYLED.items()}
-# The Skins (#665, #813): each one's Shells, each Seat cut into what carries it in every style (model/skin.py)
-for _skin in SKINS:
-    PARTS |= {
-        f"{_skin} face": functools.partial(skin.face, _skin),
-        f"{_skin} hair": functools.partial(skin.hair, _skin),
-        **{
-            f"{_skin} {s} {lid} lid cover": functools.partial(skin.lid_cover, _skin, s, lid)
-            for s in "LR"
-            for lid in ("upper", "lower")
-        },
-        f"{_skin} mouth cover": functools.partial(skin.mouth_cover, _skin),
-        **{f"{_skin} shirt {half}": functools.partial(skin.shirt, _skin, half) for half in ("front", "back")},
-    }
-PARTS |= {
-    **{f"morty {s} pupil": functools.partial(skin.pupil, s) for s in "LR"},
-    **{f"{k} {s} pupil plug": functools.partial(skin.pupil_plug, s) for k in sk.DOTTED for s in "LR"},
-    **{f"{k} {s} pupil": functools.partial(skin.dot, s) for k in sk.DOTTED for s in "LR"},
-    **{f"cansin {s} brow": functools.partial(skin.brow, s) for s in "LR"},
-    "cansin teeth": skin.teeth,
-    "cansin sunglasses": skin.sunglasses,
-}
+# Each Seat cut into what carries it, in every style (model/skin.py)
 PARTS |= {
     stem: skin.seated(stem, build)
     for stem, build in PARTS.items()

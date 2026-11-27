@@ -262,7 +262,7 @@ def _lid(radii, span, spokes, boss, pin, mechanical):
         reach = (min(spoke - 10, span[1] - 1), spoke + 10) if spoke > 0 else (spoke - 10, max(spoke + 10, span[0] + 1))
         r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
         end = (-r * math.cos(math.radians(spoke)), r * math.sin(math.radians(spoke)))
-        # The upper's narrowed body still joins its own ear through this tab, behind its matching cover.
+        # The upper's narrowed body still joins its own ear through this tab.
         tab_x = (x[0], main_x[0]) if x == inner else x
         out = out.union(shell.intersect(wedge(*reach, tab_x))).union(
             lid_arms([pin if x == inner else (0, 0), end], x, mechanical)
@@ -293,8 +293,7 @@ def lower_lid(side, mechanical=False):
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
     (#838, model/gimbal.py PLATE_Z), with the yaw bearings reaching forward under the yokes' stems, the bail's and the
-    lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, the face's
-    Seats flush in its front, #852), the
+    lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
     servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), and the
     holes the head mount
