@@ -137,7 +137,8 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
     along its cut's sweep: x, or y as a front view turns it), the base's, or the inside, which lies within 0.15 mm of
     WALL under the outer skin for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone
     may begin (WALL and 0.5 mm of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the
-    wall."""
+    wall. A brow is 8 mm across, all of it within 3 mm of its own seam, and a slab with a step each side: its whole
+    inside is held to the bounds, and 90% of it to WALL."""
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     gave = cKDTree(shells._points(sculpt.triangles[gone[sculpt.faces].any(axis=1)], 0.5))
     sweeps = [
@@ -148,12 +149,14 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
         seam = (np.abs(mesh.face_normals @ np.transpose(sweeps)) < 1e-3).any(axis=1)
         seam |= mesh.face_normals[:, 2] < -0.9999
         points = mesh.triangles_center[~seam & (mesh.area_faces > 0.02)]  # a sliver's normal is noise
-        points = points[gave.query(points)[0] > 3.0]
+        brow = "brow" in name
+        if not brow:
+            points = points[gave.query(points)[0] > 3.0]
         under = surface.query(points, workers=-1)[0]
         inside = under[under > 0.25]  # the rest are the Sculpt's own
-        assert len(inside) > (10 if "brow" in name else 1000), name  # a brow is 8 mm across: its middle strip alone
+        assert len(inside) > 1000, name
         assert inside.min() > 1.4 and inside.max() < 1.9, (name, inside.min(), inside.max())
-        assert (np.abs(inside - skin.WALL) < 0.15).mean() > 0.98, name
+        assert (np.abs(inside - skin.WALL) < 0.15).mean() > (0.9 if brow else 0.98), name
 
 
 def test_the_skin_is_open_round_each_eye(built):
