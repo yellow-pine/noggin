@@ -52,8 +52,9 @@ _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 **Shell**:
 One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
 Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). None is drawn by
-hand: the eyeball caps, the mechanism's own, are the only Shells in the Model. *Upcoming (#850): Morty's Shells are cut
-from his Sculpt.*
+hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair, his face, his chin (under the
+mouth line, on the jaw) and his shirt (under the collar, the whole fixed body). *Upcoming (#850): the Seats of Morty's
+Shells.*
 _Avoid_: cover, cosmetic
 
 **Seat**:
@@ -368,7 +369,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their
   licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
   post on the pan yoke; the mechanical Skeleton has none. Worn skull, worn mandible: the skull and mandible carved
-  round a Skin's Shells too (the eyeball caps alone, while they are the only Shells), printed to wear a Skin; bare,
+  round a Skin's Shells too (the eyeball caps alone, while they are the only Shells a document wears), printed to wear a Skin; bare,
   the Skeleton shows the full ones.
 _Avoid_: the designer's file names, version suffixes, earlier part names (git history)
 
