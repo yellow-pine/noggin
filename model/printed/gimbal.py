@@ -364,7 +364,7 @@ def frame(mechanical=False):
         # and its outer front edge cut back: his temple's Skin is nearest there since his eyes sit on ours (#967)
         xo, y, cut = s * edge, -gm.UPRIGHT_FLAT, gm.UPRIGHT_EDGE
         corner = [(xo - s * cut, y), (xo, y), (xo, y + cut)]
-        out = out.cut(cq.Workplane("XY", origin=(0, 0, -12.5)).polyline(corner).close().extrude(17.5))
+        out = out.cut(cq.Workplane("XY", origin=(0, 0, -12)).polyline(corner).close().extrude(17))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))

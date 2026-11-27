@@ -155,9 +155,10 @@ def _inside(points, poly):
 def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
     """#992, docs/adr/0027: every cut is where the Sculpt itself has the form (mm in the head's frame, as measured). The
     hairline is its hair's boundary, from the top of the forehead on the midline back and down behind the ears to the
-    collar; each eye white its whole dome, 34 mm round a centre 3 mm outward of its eyeball's (gm.EYE, the Sculpt's eyes on
-    ours: the dome faces outward), and its pupil the Sculpt's ring on it, 14 mm across; the mouth line the middle of the lips' ridge, corner to
-    corner; the collar where the head meets the shirt, highest under the ears. No lid has a cut."""
+    collar; each eye white its whole dome, 34 mm round a centre 3 mm outward of its eyeball's (gm.EYE, the Sculpt's
+    eyes on ours: the dome faces outward), and its pupil the Sculpt's ring on it, 14 mm across; the mouth line the
+    middle of the lips' ridge, corner to corner; the collar where the head meets the shirt, highest under the ears.
+    No lid has a cut."""
     cuts = skin.cuts()
     whites, pupils = [f"{s} eye white" for s in "LR"], [f"{s} pupil" for s in "LR"]
     assert set(cuts) == {"hairline", *whites, *pupils, "mouth", "collar"}
@@ -198,10 +199,8 @@ def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
     assert _inside(np.array([(60.0, -120.0), (60.0, -60.0), (120.0, -100.0)]), cuts["collar"][1]).tolist() == [1, 0, 0]
 
 
-DOME, NEAR = (
-    50.0,
-    1.5,
-)  # an eye's dome: his surface this many deg off straight ahead of its centre, this near its ball, mm
+# an eye's dome: his surface this many deg off straight ahead of its centre, and this near its ball, mm
+DOME, NEAR = 50.0, 1.5
 
 
 def test_the_mechs_eyes_sit_on_the_sculpts_own_each_ball_fitted_to_its_dome():
