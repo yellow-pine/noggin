@@ -116,16 +116,19 @@ HEAD_Y = (min(u - r for u, _, r in SIDE[1]), max(u + r for u, _, r in SIDE[0]))
 HEAD_Z = (-80.0, max(v + r for _, v, r in FRONT))
 MUZZLE_Y = HEAD_Y[0]  # the face's front under the eyes, over the jaw and the head mount
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
-# Morty's contours (#991, #992): our control points traced off his model sheet (contours.json, its research note), in his
-# eyes' spacing from their midpoint, each in the view it was traced in, front (x, z) or side (y, z), and swept through
-# the head along that view's axis. One source for the Shells' hair seam (model/printed/skin.py) and the private
-# reference's cut (model/review). The Shells' hair also takes all behind NAPE, where the head starts to narrow (TOP), so
-# the hair comes off upward and the face forward; it stands HAIR proud of the face
+# Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
+# midpoint, each in the view it was measured in, front (x, z) or side (y, z), and swept through the head along that
+# view's axis. Cut once, on his Sculpt's skin (docs/adr/0027, cuts()), each where the Sculpt itself has the form: its
+# hair's boundary ("sculpt hairline"), each eye dome's foot, each pupil's ring, the middle of its lips' ridge, and the
+# collar where its head meets its shirt. Only "hairline" is still off his model sheet: the hand-coded Shells' hair seam
+# (model/printed/skin.py) reads it until #850 deletes them, and it with them. Their hair also takes all behind NAPE,
+# where the head starts to narrow (TOP), so the hair comes off upward and the face forward; it stands HAIR proud of
+# the face
 with open(os.path.join(os.path.dirname(__file__), "contours.json")) as _f:
     _SHEET = json.load(_f)
 CONTOURS = _SHEET["contours"]
 # (y, z): the sheet's face front, on the side view's midline over the eyes. His drawn eyes stand out of his face where
-# ours sit behind it, so the eyes alone set no depth: a side view's contour moves along y to meet a head's own front there
+# ours sit behind it, so the eyes alone set no depth: the sheet's hairline moves along y to meet the Shells' front there
 FACE_FRONT = _SHEET["face front"]
 FACE_Y = min(u - r for u, _, r in SIDE[0])  # the Shells' face's front over the eyes
 FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
@@ -147,21 +150,34 @@ def contour(name, step=2.0):
 
 def outline(name, front=None, step=2.0):
     """The region contour `name` bounds, a closed polygon in its view's plane: an eye white's or a pupil's its own; the
-    hair above and behind the hairline (forehead first), the shirt under the collar, the jaw under the mouth line between
+    hair above and behind a hairline (forehead first), the shirt under the collar, the jaw under the mouth line between
     its corners, each closed FAR out. A side view's moves along y so the sheet's face front meets `front` (mm)."""
     p = contour(name, step)
     if front is not None and CONTOURS[name]["view"] == "side":
         p = p + (front - FACE_FRONT[0] * gm.SPACING, 0.0)
     (a0, b0), (a1, b1) = p[0], p[-1]  # (y, z) on a side view, (x, z) on a front one
-    if name == "hairline":  # on past the forehead along its end, out of the head
+    if name.endswith("hairline"):  # on past the forehead along its end, out of the head
         t = (p[0] - p[1]) / np.linalg.norm(p[0] - p[1])
         a0, b0 = p[0] + FAR * t
-        return np.vstack([(a0, b0), p, (FAR, b1), (FAR, FAR), (a0, FAR)])
+        # the sheet's ends at the nape, level back from there; the sculpt's at his collar behind an ear, all behind it hair
+        behind = [(FAR, b1)] if name == "hairline" else [(a1, -FAR), (FAR, -FAR)]
+        return np.vstack([(a0, b0), p, *behind, (FAR, FAR), (a0, FAR)])
     if name == "collar":
         return np.vstack([(-FAR, b0), p, (FAR, b1), (FAR, -FAR), (-FAR, -FAR)])
     if name == "mouth":
         return np.vstack([p, (a1, -FAR), (a0, -FAR)])
     return p
+
+
+def cuts():
+    """Morty's cuts on his Sculpt, {cut: (its view, the closed region it bounds, mm in the head's frame)}: the one source
+    that colours the review's Morty (model/review) and splits the printed Shells (#850), each cut where the Sculpt
+    itself has the form. The hair is above and behind the hairline, its hair's boundary; an eye white is its eye's whole
+    dome, inside its foot, and its pupil the ring on it (no lid has a cut: the lids are the mechanism's covers); the jaw
+    is under the mouth line, the middle of the lips' ridge, between its corners and in front of the eyes; the shirt is
+    under the collar, where the head meets it, on the fixed body, where it takes what the hair's region covers too."""
+    names = {"hairline": "sculpt hairline"} | {n: n for n in CONTOURS if "hairline" not in n}
+    return {cut: (CONTOURS[n]["view"], outline(n)) for cut, n in names.items()}
 
 
 NECK = (42.0, 4.0)  # the head's floor open round the neck and the jaw within this half-width, up to this over its foot

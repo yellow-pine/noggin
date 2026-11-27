@@ -1,12 +1,16 @@
 """Seam: the Skin's Seats and magnets (model/skin.py): the pull of one magnet pair at the Seat's gap, which way each
 Shell comes off, and the polarity that keys a Shell to its own Seat."""
 
+import os
+
 import numpy as np
 import pytest
+import trimesh
+from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import skin
+from model import morty, review, skin, stages
 
 
 def test_a_seated_pair_of_4x2_n52_discs_pulls_about_4_5_newtons():
@@ -147,16 +151,68 @@ def _inside(points, poly):
     return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
 
 
-def test_mortys_contours_sit_round_his_eyes_as_his_model_sheet_draws_them():
-    """#992: each eye white round its eye (gm.EYE, the sheet's eyes on ours), its pupil inside it; the hairline over the
-    forehead and down behind to the nape, the mouth line under the eyes, the collar under the mouth (the head's frame)."""
-    for s in "LR":
-        white, pupil = skin.outline(f"{s} eye white"), skin.outline(f"{s} pupil")
+def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
+    """#992, docs/adr/0027: every cut is where the Sculpt itself has the form (mm in the head's frame, as measured). The
+    hairline is its hair's boundary, from the top of the forehead on the midline back and down behind the ears to the
+    collar; each eye white its whole dome, 34 mm round a centre 4 mm outward of its eye (gm.EYE, the Sculpt's eyes on
+    ours), and its pupil the Sculpt's ring on it, 14 mm across; the mouth line the middle of the lips' ridge, corner to
+    corner; the collar where the head meets the shirt, highest under the ears. No lid has a cut."""
+    cuts = skin.cuts()
+    whites, pupils = [f"{s} eye white" for s in "LR"], [f"{s} pupil" for s in "LR"]
+    assert set(cuts) == {"hairline", *whites, *pupils, "mouth", "collar"}
+    assert {n for n, (view, _) in cuts.items() if view == "side"} == {"hairline", "collar"}
+    line = skin.contour("sculpt hairline")
+    assert line[0] == pytest.approx((0.2, 74.9), abs=0.2) and line[-1] == pytest.approx((84.4, -94.0), abs=0.2)
+    # (y, z): hair on the crown, at the nape and all the way down behind the ears; none on the forehead, an ear, the chin
+    crown, nape, behind, forehead, ear, chin = (
+        (0.0, 100.0),
+        (120.0, 0.0),
+        (100.0, -110.0),
+        (-10.0, 40.0),
+        (70.0, -30.0),
+        (20.0, -110.0),
+    )
+    assert _inside(np.array([crown, nape, behind, forehead, ear, chin]), cuts["hairline"][1]).tolist() == [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+    ]
+    for s, out in (("L", 1), ("R", -1)):
+        white, pupil = cuts[f"{s} eye white"][1], cuts[f"{s} pupil"][1]
         x, _, z = gm.EYE[s]
-        assert _inside(np.array([(x, z)]), white).all()
+        assert white.mean(axis=0) == pytest.approx((x + 4.0 * out, z + 2.0), abs=1.5)
+        assert np.linalg.norm(white - white.mean(axis=0), axis=1) == pytest.approx(34.0, abs=1.5)
         assert _inside(pupil, white).all()
-        assert np.linalg.norm(white - (x, z), axis=1) == pytest.approx(0.39 * gm.SPACING, rel=0.15)
-    hair, mouth, collar = (skin.contour(n) for n in ("hairline", "mouth", "collar"))
-    assert hair[0][1] > 0 > hair[-1][1] and hair[0][0] < hair[-1][0]  # forehead first, nape behind and under the eyes
-    assert collar[:, 1].max() < mouth[:, 1].min() < mouth[:, 1].max() < 0
-    assert _inside(np.array([(0.0, -skin.FAR / 2)]), skin.outline("mouth")).all()  # the jaw under the mouth line
+        assert np.linalg.norm(pupil - pupil.mean(axis=0), axis=1) == pytest.approx(7.0, abs=0.7)
+    mouth, collar = skin.contour("mouth"), skin.contour("collar")
+    assert mouth[0] == pytest.approx((-27.0, -76.6), abs=0.2) and mouth[-1] == pytest.approx((27.5, -77.8), abs=0.2)
+    assert mouth[:, 1].max() == pytest.approx(-71.5, abs=0.5)  # a frown: its middle over its corners
+    assert collar[0] == pytest.approx((27.6, -117.8), abs=0.2) and collar[-1] == pytest.approx((110.9, -109.8), abs=0.2)
+    assert collar[collar[:, 1].argmax()] == pytest.approx((79.0, -94.6), abs=2.0)  # under an ear, the hairline's end
+    # the jaw under the mouth line between its corners, the shirt under the collar
+    assert _inside(np.array([(0.0, -skin.FAR / 2), (0.0, 0.0), (40.0, -100.0)]), cuts["mouth"][1]).tolist() == [1, 0, 0]
+    assert _inside(np.array([(60.0, -120.0), (60.0, -60.0), (120.0, -100.0)]), cuts["collar"][1]).tolist() == [1, 0, 0]
+
+
+def test_each_cut_lies_on_its_form_on_the_sculpt_git_holds():
+    """docs/adr/0011, 0027: the cuts' points are measurements of the Sculpt, so each is held to it. A form's foot is a
+    concave crease (two faces meeting inward by over 10 deg): every point of the hairline, an eye white, a pupil or the
+    collar lies within 1 mm of one, in its view. The mouth line is the middle of the lips' ridge: its corners on the
+    ridge's ends, its middle 2.5 to 4.5 mm from either foot."""
+    mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False)
+    eyes = {s: np.array(e) for s, e in review.MORTY_EYES.items()}  # the Sculpt's, which sit on ours
+    scale = gm.SPACING / np.linalg.norm(eyes["L"] - eyes["R"])
+    mesh = trimesh.Trimesh((mesh.vertices - (eyes["L"] + eyes["R"]) / 2) * scale, mesh.faces, process=False)
+    sharp = ~mesh.face_adjacency_convex & (mesh.face_adjacency_angles > np.radians(10))
+    crease = mesh.vertices[mesh.face_adjacency_edges[sharp]].mean(axis=1)
+    views = {"side": cKDTree(crease[:, [1, 2]]), "front": cKDTree(crease[crease[:, 1] < 0][:, [0, 2]])}
+    for cut, (view, _) in skin.cuts().items():
+        name = "sculpt hairline" if cut == "hairline" else cut
+        off, _ = views[view].query(np.array(skin.CONTOURS[name]["points"]) * gm.SPACING)
+        if cut == "mouth":
+            assert off[[0, -1]].max() < 1.0 and 2.5 < off[2:-2].min() <= off[2:-2].max() < 4.5, off
+        else:
+            assert off.max() < 1.0, (cut, off)

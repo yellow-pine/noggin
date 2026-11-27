@@ -1,6 +1,8 @@
 # GX10 computes; the Mac authors and reviews
 
 > Decided with Cansin on 2026-11-05, ticket #979. Amends ADR 0025's local-only private-reference boundary.
+> Amended 2026-11-27 (#850, ADR 0027): Morty's sculpt itself is public and committed (`model/morty`); the review's
+> painted copy of it and any other private input still travel as below.
 
 The trusted GX10 runs heavy Python, CAD, fitting, Blender finishing, rendering and validation. Its isolated native ARM64
 container builds the project's pinned Blender from checksum-verified official source and matching dependencies. Python

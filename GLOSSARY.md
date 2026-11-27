@@ -50,8 +50,9 @@ through a link off it. The eyeball caps (Shells) sit on the cores.
 _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 
 **Shell**:
-One cosmetic part a Skin puts on the Skeleton (the head, an eyeball cap, a pupil, a lid cover, the collar), in PLA,
-held on by magnets.
+One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
+Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). *Upcoming (#850):
+today's Shells are still drawn by hand (the head, an eyeball cap, a pupil, a lid cover, the collar).*
 _Avoid_: cover, cosmetic
 
 **Seat**:
@@ -60,9 +61,16 @@ V-grooves that take the shear.
 _Avoid_: mount, socket, pad
 
 **Skin**:
-Every Shell of one Character, pulled off and pressed on together to swap Characters; a Theme category: its Shape and
-its Shape morty, bart or cansin, or none: the Skeleton bare, its full bones on; its Palette morty, bart or Default.
+Every Shell of one Character, pulled off and pressed on together to swap Characters: its outside is the Character's
+Sculpt, its silhouette exactly (docs/adr/0027). A Theme category: its Shape morty, bart or cansin, or none: the
+Skeleton bare, its full bones on; its Palette morty, bart or Default.
 _Avoid_: shell set, character shells, kit, costume
+
+**Sculpt**:
+A Character's whole figure as its author sculpted it, a mesh adopted under its own licence (Morty's: `model/morty`).
+Its surface is the outside of that Character's Skin, and every limit on bone and mechanism is measured from it. Not a
+bone's Sculpt key, the hand edits over its Warp.
+_Avoid_: reference (what Morty's was while it stayed local), donor mesh, hull
 
 **Motion region**:
 A part of a Skin that moves as one with the Skeleton part that carries it: the head, the jaw, each eye, each lid; the

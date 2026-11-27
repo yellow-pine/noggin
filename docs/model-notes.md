@@ -193,7 +193,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, x1.08
-  about that hinge since #901 (its drive its size), its servo hanging under the frame's plate behind it), each servo
+  about that hinge since #901 (its drive its size), its servo hanging under the frame's plate behind it; since #968
+  its carrier a chain of Bones inside the mandible, its bar, horn and servo inboard of the left ramus), each servo
   drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF

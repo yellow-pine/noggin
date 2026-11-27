@@ -5,6 +5,11 @@ and lid line, the pupils, the mouth line and the shirt collar. This note records
 `model/contours.json` were measured. Only those points are committed; the sheet is the studio's art, read for
 measurement, kept local (`docs/references/model-sheets/`, gitignored) and never committed or published.
 
+Amended on 2026-11-27 (below, "The sculpt's own boundaries"): Cansin reviewed the result and decided that where the
+Morty sculpt shows a form, the sculpt sets the boundary. The sculpt shows every one of these forms, so all the cuts
+are now measured on it. The sheet's hairline alone stays in the data file, for the hand-drawn Shells, until #850
+deletes them.
+
 ## Source
 
 - Starburns Industries' Morty model sheet, front view beside the turnaround, hosted on the Rick and Morty fandom wiki:
@@ -57,9 +62,9 @@ Every point was read by script off the pixels, not by eye. The sheet paints flat
 - Hairline (side view): from the forehead at (0.24, 0.89), back and down in front of the ear to the nape at
   (1.80, -0.83).
 - Eye whites (front view): each about 0.39 units round its eye's centre, nearly round; 0.22 units apart at their
-  inner edges.
-- Lid lines: the neutral sheet draws no lids, so each eye white's outline is its lid line too: its upper arc the upper
-  lid's free edge at rest, its lower arc the lower lid's (inferred).
+  inner edges. Replaced on 2026-11-27 by the sculpt's eye domes (below); these points are no longer in the data file.
+- Lid lines: the neutral sheet draws no lids, so each eye white's outline was taken as its lid line too (inferred).
+  Dropped on 2026-11-27: no lid has a cut, the lids are the mechanism's moving covers.
 - Pupils (front view): dots about 0.06 units across, at (±0.55, -0.01) for L/R, a little outward of each eye's centre.
 - Mouth line (front view): the mouth's top edge from (-0.19, -0.90) to (0.29, -0.89), its middle at z -0.84.
 - Collar (side view): from under the chin at (0.55, -1.42) back to (1.41, -1.29).
@@ -69,5 +74,78 @@ Every point was read by script off the pixels, not by eye. The sheet paints flat
 - Each point is good to about the outline's half-width, 9 px or 0.03 units.
 - The side view's collar starts under the chin: the chin hides the neck's front, so the collar runs on level forward
   of its first point (inferred).
-- The sheet is one drawing of a 2D character; the sculpt and the Shells have their own proportions, so the contours
-  land where the sheet puts them relative to the eyes and the face front, not on the sculpt's own sculpted hair edge.
+- The sheet is one drawing of a 2D character; the sculpt has its own proportions, so the sheet's contours land where
+  the sheet puts them relative to the eyes and the face front, not on the sculpt's own forms. That is what the review
+  of 2026-11-27 showed on the hairline and the eye whites, and why those two are now measured on the sculpt.
+
+## The sculpt's own boundaries (2026-11-27)
+
+Cansin's decision after reviewing the sheet's contours on the sculpt (#992, #893's directive of 2026-11-27): the
+hairline sits where the sculpt's own hair volume starts, each eye white is its whole eye dome, and no lid ring is
+painted. The cuts are made once, on the sculpt's skin, and the same cuts colour the review and split the printed
+Shells (`skin.cuts()` in `model/skin.py`).
+
+### Source and frame
+
+- The Morty sculpt as it was downloaded (909,718 triangles; its page and licence are in `model/morty/LICENSE.md`).
+  `model/morty/sculpt.ply` is a lighter copy of it, which strays from it by the distances that file records.
+- Frame: the head's, as above. The sculpt's eye centres (`MORTY_EYES` in `model/review`) sit on the Mech's, and the
+  sculpt is scaled so their spacing is one unit (72.7 mm, a factor of 7.126 from the file's millimetres).
+
+### Method
+
+Every point was read by script off the mesh. A form's foot on a sculpt is a concave crease, so:
+
+1. Creases: every mesh edge whose two faces meet concave by more than 10°, taken at its midpoint.
+2. Hairline (side view, both halves of the head on one (y, z) plane): the crease points on the outer surface (within
+   2.5 mm of the head's half-width at that y and z). Under the brows (z 27 to 56 mm) the sculpt has noisy inner faces,
+   so only points at least 66 mm from the midline count there. Along a rough guide through the crease, at stations
+   1 mm apart, the trace takes the median of the crease points within 1.5 mm across it, four passes.
+3. Eye whites (front view): the crease points in front of the eyes, 31.5 to 35.3 mm from each dome's centre (a brow's
+   own creases start past 35 mm). The trace takes their median radius in 120 stations of 3° round the centre.
+4. Pupils (front view): the crease points on the front of each dome, 4.5 to 9.5 mm from the ring's centre, their
+   median radius in 60 stations of 6°.
+5. Mouth line (front view): the sculpt's closed mouth is one ridge, the lips together. Its two feet are creases. In
+   slabs 1 mm wide across the mouth, the upper foot is the crease points' 95th percentile in z and the lower their 5th.
+   The mouth line is the middle between the two, from the ridge's one end to the other (inferred: the lips part along
+   the ridge's middle).
+6. Collar (side view): the crease where the head meets the shirt, traced like the hairline (stations 1 mm apart,
+   the median within 1.5 mm across). From above it is one closed loop round the neck. From the side its two halves
+   fall on one line, and its front and back fall on that line's two ends.
+7. Smoothing, as on the sheet: each trace is smoothed along itself (Gaussian: σ 4 mm on the hairline, 9° on a dome
+   and on a pupil, 2 mm on the mouth line and the collar) and resampled at evenly spaced points: 16 on the hairline,
+   24 on each dome, 12 on each pupil and on the collar, 8 on the mouth line.
+
+### Results
+
+- Hairline: 203 mm long. It starts on the midline at the top of the forehead, at (0.2, 74.9) mm, runs back and down
+  to the top of the ear, round the back of the ear, and straight down to (84.4, -94.0) mm, where it meets the collar's
+  crease. Behind that end the hair covers the whole back of the head, down to the collar.
+- The hair's crease lies on one side-view line right across the head: on the midline it is at (0.1, 74.7) mm and
+  50 mm out at (9.7, 64.9) mm, both on the trace. So one curve swept across the head cuts it.
+- Fit: the curve through the 16 points stays within 1.06 mm of the trace (0.20 mm on average). The 3,919 crease points
+  within 4 mm of it lie 0.27 mm off it at the median and 0.73 mm at the 90th percentile.
+- Against the sheet's hairline, as it lay on the sculpt: at the temple (y 36 mm) the sculpt's hair starts at z 42 mm,
+  where the sheet's line ran at 51 mm; on the midline the sculpt's starts at 75 mm, where the sheet's crossed the
+  forehead near 69 mm. The sheet's line ended at the nape, at (117.5, -60.0) mm, 33 mm behind and 34 mm above the
+  sculpt's end, which left the back of the head under it without hair.
+- Eye domes: nearly round, radius 33.9 mm (0.47 units; 33 to 35 mm round each), centred at (40.5, 2.2) and
+  (-39.7, 2.1) mm, so about 4 mm outward of the Mech's eyes and 2 mm above them. Each curve stays within 0.37 mm of
+  its trace. The sheet's eye whites were 0.39 units in radius, 5.5 mm smaller.
+- Pupils: rings of radius 7.0 mm (6.2 to 7.6 mm round each), centred at (43.1, 1.8) and (-42.1, 1.8) mm. Each curve
+  stays within 0.47 mm of its trace. The sheet's pupils were dots 4 mm across, 2 to 3 mm nearer the midline.
+- Mouth: the ridge is 54.5 mm wide, from x -27.0 to 27.5 mm, and 7.6 mm tall at its middle (feet at z -67.6 and
+  -75.9 mm). The mouth line runs from (-27.0, -76.6) through its top near (0, -71.5) to (27.5, -77.8) mm, a frown.
+  The curve stays within 1.58 mm of the traced middle (0.17 mm on average). The sheet's mouth line was 35 mm wide and
+  10 mm higher on the sculpt.
+- Collar: 94 mm long from the side. It starts under the chin at (27.6, -117.8) mm, rises to (80.7, -94.7) mm under
+  the ear, where the hairline ends, and drops to (110.9, -109.8) mm behind the neck. The curve stays within 0.86 mm of
+  the trace (0.10 mm on average). The sheet's collar ran level behind the neck at -94 mm, up to 16 mm higher.
+
+### Limits
+
+- Each sculpt-measured point is good to about 1 mm, the curve's worst distance from its trace.
+- Under the brows the hairline's crease is read at the temples alone, and a dome's foot under a brow is read from the
+  crease points nearest the dome's own radius (inferred from the dome being round everywhere else).
+- The collar is one curve swept across the body, exact on the loop itself. Beside the loop the shoulders' tops rise
+  to within 2 mm of it, so a few faces there can fall on its wrong side.
