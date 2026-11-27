@@ -39,11 +39,12 @@ RAW, AIM = envelope.ROOM + skeleton.PITCH / 2, 0.5
 # the eyes-and-nose gate (#991), from the fit measured in Morty's skin on 2026-11-27: within FACE_R of each orbit's
 # centre and the nasal aperture's middle, where the Finish leaves bone (outside the lids' shell round each eye, 2,791
 # triangles of 12,655), no triangle may fold; a sound one (its longest edge at most SOUND heights) shears at most
-# SHEAR_MAX (measured 2.26 on a nasal triangle 9.6 mm long and 0.9 tall; 99.9% of them stay under 1.84, and the
+# SHEAR_MAX (Cansin's limit, 2026-11-27, #893: 2.1, never raised to pass a fit; measured 2.05 on the fit on the
+# Sculpt's eyes, 2.26 before them on a nasal triangle 9.6 mm long and 0.9 tall; 99.9% of them stay under 1.84, and the
 # budget's own bound at a point is 1.25 / 0.75 = 1.67), a slenderer one shearing with the field's bend along it,
 # whatever the Warp; the Jacobian stays over JACOBIAN_MIN (measured 0.53). Inside the shell 3 slivers the turn could
 # not mend (0.1 to 0.7 mm tall) still fold
-FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 2.4, 0.5
+FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 2.1, 0.5
 # the cranium's outer side (the vault's bones' farthest vertices from MIDDLE on the Basis, outer()) drawn
 # out to RAW under Morty's skin, FILL its pull's weight (on the rows' mean square gap): the vault closes over the mechanism,
 # which lies 10 mm and more under his skin there, and (#991's skull-base guides) the growth zone's under side comes

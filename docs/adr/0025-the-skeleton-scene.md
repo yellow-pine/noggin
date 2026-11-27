@@ -115,9 +115,10 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
 - The neck's vertebrae take a field of their own: each canal and each body's front pinned, the spines bent in under
   his neck's skin.
 - BodyParts3D's decimated meshes hold slivers a smooth field folds; `slivers.py` turned their long edges once, moving
-  no vertex. The Warp refuses a fold, a shear past 2.4 or a Jacobian under 0.5 at the eyes and nose (#991), read
-  outside the lids' shell alone. The shear limit was 1.8 on the box fit: this fit measures 2.05 (2.27 before the
-  eyes moved onto the Sculpt's), so the limit is looser here, Cansin's to confirm.
+  no vertex. The Warp refuses a fold, a shear past 2.1 or a Jacobian under 0.5 at the eyes and nose (#991), read
+  outside the lids' shell alone. The shear limit is Cansin's (2026-11-27, #893): 2.1, where the box fit's was 1.8
+  and this fit measures 2.05 (2.27 before the eyes moved onto the Sculpt's). A fit that cannot hold 2.1 stops and
+  goes back to him; the limit is not raised to pass it.
 - The orbits sit on the Sculpt's own eyeballs' centres (#967's fit, 73.3 mm apart), which are the Mech's eyes
   (`gimbal.EYE`) since #1035. #967's re-laid lids stow in a shell of radius 38 mm round each and their drives leave it
   through a belt behind each eye: both are openings of the skull's Finish before those parts exist.
