@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from model import review, skeleton
+from model import review, skeleton, stages
 
 
 def watcher(tmp_path, monkeypatch, name="noggin-stage3.blend", env="NOGGIN_REVIEW"):
@@ -38,6 +38,8 @@ def watcher(tmp_path, monkeypatch, name="noggin-stage3.blend", env="NOGGIN_REVIE
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.register()
+    for handler in bpy.app.handlers.load_post:  # as Blender opens the file once its scripts are registered
+        handler(None)
     return path, callbacks, opened
 
 
@@ -126,7 +128,8 @@ def test_the_local_review_build_publishes_what_the_watcher_refreshes_on(tmp_path
     path, callbacks, opened = watcher(tmp_path, monkeypatch)
     monkeypatch.setattr(review, "SLOT", str(tmp_path / "slot"))
     monkeypatch.setattr(review, "job", lambda *_: {})
-    monkeypatch.setitem(review.stages.STAGES, review.DOC, types.SimpleNamespace(parts={}))
+    monkeypatch.setitem(stages.STAGES, review.DOC, types.SimpleNamespace(parts={}))
+    # each step's arguments end in the file it saves and the step's name
     monkeypatch.setattr(review, "_blender", lambda args: Path(args[-2]).write_bytes(b"a rebuilt review"))
     review.build(str(path))
     callbacks[0]()
@@ -153,4 +156,6 @@ def test_the_script_registers_when_blender_starts(tmp_path):
         timeout=50,
     )
     log = run.stdout + run.stderr
-    assert "Traceback" not in log and "reload: registered" in log, log
+    # a traceback of the script's names its file; one of a bundled add-on, on a Blender built without its library, is
+    # not this script's
+    assert "noggin_reload" not in log and "reload: registered" in log, log
