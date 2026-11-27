@@ -69,8 +69,8 @@ def cervical_carrier():
     boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
     # straight back from the rail, which it swallows, its inner side 0.2 mm short of the boss's face, where the bar's
     # slab starts (touching that face's plane, it left a solid of no volume there)
-    mid = boss[1] - ANCHOR_STRUT[0][1] - 0.2
-    out = out.union(strut((mid, y0 + t * (y1 - y0), az), (mid, ay, az), *ANCHOR_STRUT))
+    mid, low = boss[1] - ANCHOR_STRUT[0][1] - 0.2, az + 3.5 - ANCHOR_STRUT[0][0]  # its top level with the boss's
+    out = out.union(strut((mid, y0 + t * (y1 - y0), low), (mid, ay, low), *ANCHOR_STRUT))
     out = out.union(cyl("x", (0, ay, az), 3.5, boss)).cut(cyl("x", (0, ay, az), TAP_R, boss))
     out = out.union(tie(20.0, 78.5, -65.7))
     for x, fy in nk.CARRIER_FEET:
