@@ -202,19 +202,25 @@ def plates(stage):
     return out
 
 
-def _morty(stage):
-    """Morty's place and section colours: eyes on the Mech's, scaled to their spacing, with one flat cut at the
-    Pedestal's floor. Motion ownership belongs to the editable private reference, never to mechanical height bounds."""
+def placed():
+    """4x4 taking the Morty reference's raw frame to the documents' world: his eyes on the Mech's, scaled to their
+    spacing."""
     eyes = stages.align(*stages.DOCS[DOC]["eyes"])
     mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
     raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
     scale = np.linalg.norm(mech["L"] - mech["R"]) / np.linalg.norm(raw["L"] - raw["R"])
     mid, raw_mid = (mech["L"] + mech["R"]) / 2, (raw["L"] + raw["R"]) / 2
-    at = (
+    return (
         trimesh.transformations.translation_matrix(mid)
         @ np.diag([scale] * 3 + [1])
         @ (trimesh.transformations.translation_matrix(-raw_mid))
     )
+
+
+def _morty(stage):
+    """Morty's place (placed()) and section colours, with one flat cut at the Pedestal's floor. Motion ownership
+    belongs to the editable private reference, never to mechanical height bounds."""
+    eyes, at = stages.align(*stages.DOCS[DOC]["eyes"]), placed()
     region, box = regions(), pictures.boxes(DOC)
     bare = [n for n, p in stage.parts.items() if stages.stem(p.file) not in (*g.BONES, *skin.SHELLS)]
     return {
