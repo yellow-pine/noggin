@@ -91,7 +91,7 @@ def test_each_push_rod_turns_on_its_balls_clear_of_its_core_and_the_bail(rest, p
     """#967: the leaned rod passes over the core's top and its cups turn on a neck that leans too, so over the pitch
     and the yaw each rod shares no volume with its core or the bail, and past its lever cup its bar keeps the room
     the plate's back edge keeps (gm.BACK_ROOM_MM: more than a collision piece strays) from the core, whose top is cut
-    to a cone under it."""
+    to a cone under it; each cup's mouth keeps gm.LID_CLEAR_MM from its ball's neck."""
     moved = gm.moved(0.0, pitch, yaw)
     bail = _posed(rest, moved, "bail:1")
     for s, (x, _, _) in gm.EYE.items():
@@ -100,6 +100,13 @@ def test_each_push_rod_turns_on_its_balls_clear_of_its_core_and_the_bail(rest, p
         ball = (moved[f"{s} eyeball core:1"] @ (x, 0, gm.LEVER, 1))[:3]
         bar = rod.cut(gimbal.ball(8.0, tuple(ball)).val())  # past its cup, which turns on the lever's ball
         assert bar.distance(core) >= gm.BACK_ROOM_MM
+        # each cup's mouth turns round the neck its ball stands on, two printed parts moving against each other: the
+        # lids' room from it (before the mouths were opened, 0.36 mm at the lever's with the pitch up and the yaw at
+        # an end, 0.48 at the bail's with the pitch down), read without the ball in its socket, a hundredth over
+        arm = (moved["bail:1"] @ (x, *gm.BAIL_BALL, 1))[:3]
+        for part, at in ((core, ball), (bail, arm)):
+            socket = gimbal.ball(gm.BALL_R + 0.11, tuple(at)).val()
+            assert rod.distance(part.cut(socket)) >= gm.LID_CLEAR_MM
 
 
 @pytest.mark.model
