@@ -78,13 +78,17 @@ REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the R rail, under the ca
 REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
+# (y, z), up from the feet in front of the pack, then straight from C7's foot to the canal's top (#1039): the neck's
+# skin rides the head, so its rim at the collar swings through the neck as the head nods, the nape's forward to y 86 at
+# z -119 (tilt -20) and the throat's back to y 58 at z -131 (tilt 20), and what stands still passes between them
+# (model/review/test_nape.py). The foot's y is the one #874 measured best for the vertebrae that follow this path
 CERVICAL_PATH = (
     (64.0, -171.0),
-    (76.0, -154.0),
-    (91.6, -146.0),
+    (69.4, -154.0),
+    (72.0, -146.0),
     (78.5, -60.7),
     (76.6, -48.7),
-)  # (y,z), over the pack into the true canal
+)
 CERVICAL_X = (16.0, 8.0, 8.0, 22.0, 22.0)  # upper fixed rails outside the moving trunnions, leaving the canal open
 CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
 FRAME_OPEN_R = 7.8  # 12.4 mm hollow neck tube plus 1.6 mm radial clearance, below its bearing flare
