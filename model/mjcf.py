@@ -473,9 +473,7 @@ def head(doc, model, bare=False):
     rockers = horn.direct.driven if horn.direct else horn.loops[0].rockers
     rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
-    ids += [
-        i for i in range(1, model.nbody) if model.body(i).name.startswith(LOAD) and model.body_parentid[i] in ids
-    ]
+    ids += [i for i in range(1, model.nbody) if model.body(i).name.startswith(LOAD) and model.body_parentid[i] in ids]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
     return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["neck"][0]))
