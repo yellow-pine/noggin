@@ -34,15 +34,14 @@ calibrated ([Calibration](calibration.md)).
 
 ## Assembly, as the model places it
 
-1. **Jaw** on the gimbal frame's lugs, scaled for Morty's jawline about its pivot through the measured mandibular
-   condylar patches; it turns down to open the mouth. The hidden carrier follows the measured ramus and body rather
-   than scaling the old bracket, its ramus deep fore and aft to hold the mouth servo's stall. *Upcoming (#968, after
-   #874): the fitted mandible's removable attachment and its clearance in motion.*
+1. **Jaw** on the gimbal frame's lugs, turning at the mandible's condyles; it turns down to open the mouth. Its
+   carrier is a chain of Bones inside the mandible, down each ramus and along the body to the chin, sized to hold the
+   mouth servo's stall. The mandible lies on it and lifts off.
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 
-2. **Jaw servo** in the gimbal frame's collar, forward under its plate; the **jaw bar** joins its horn
-   to the jaw's lever.
+2. **Jaw servo** in the gimbal frame's collar, forward under its plate, between the mandible's two sides; the
+   **jaw bar** joins its horn to the jaw's pin, a post reaching in from the left ramus.
 
 The jaw rides the head mount, so it pans and tilts with the head. Each sub-assembly apart:
 

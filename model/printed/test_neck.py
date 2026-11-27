@@ -137,7 +137,8 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
     blocked anywhere along them: every section bends under at most the bar's worst moment about the hinge over the
     jaw's sweep, in the jaw's plane, and pulls with its worst force (the crank's tangent force over the sine of the
     crank-to-bar angle). On the Bone style, which the grown mechanical part takes in (bone.grown)."""
-    # shortcut: the 4.5 mm pin strut and its boss, short and stout, are not sectioned; section them if they thin
+    # shortcut: the pin's post (r 3.5, 12 mm: SF 8 by hand as a cantilever under this force) is not sectioned; section
+    # it if it thins or lengthens
     solid, mat = _built("jaw"), g.MATERIALS[g.PRINTED["jaw"][1]]
     tangent = sim.limits("jaw horn")["stall_kgf_cm"] * beams.G * 10 / nk.CRANK
     horn, hinge = nk.pins()["jaw"][2], nk.HEAD_AXES["jaw"][0]
@@ -160,7 +161,6 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
                 inertia = u @ np.array(cq.Shape.matrixOfInertia(cut)) @ u / 0.01
                 fibre = max(abs((np.array(v.toTuple()) - centre) @ np.cross(along, u)) for v in cut.Vertices())
                 sf = mat["tensile_mpa"]["z"] / (force / area + moment * fibre / inertia)
-                print(tuple(np.round(a, 1)), t, round(sf, 2))
                 if sf < beams.MIN_SF:
                     weak.append((tuple(np.round(a, 1)), t, round(sf, 2)))
     assert weak == []

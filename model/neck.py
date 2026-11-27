@@ -8,7 +8,7 @@ no balance spring.
 The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
 inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
 power conductors pass through the 8 mm C0 bearing bore with two flexing spans clamped across tilt and pan.
-The jaw follows measured mandibular borders and turns on the gimbal frame's lugs at the measured condylar patch line.
+The jaw follows the mandible's ramus and body (MANDIBLE_CHAIN) and turns on the gimbal frame's lugs at its condyles.
 
 Busy pivots use greased M3 shanks and separate turning/tapping bores. All sizes remain inferred until built. The
 power leads require a real continuous route and flexing spans across both head joints. The full #902
@@ -119,40 +119,43 @@ def jaw_y(y):
     return JAW[0] + (y - JAW[0]) * JAW_K
 
 
-# the jaw's lever down its L arm (the mandible's ramus) to its pin, the bar back from it to the mouth horn's pin, the
-# horn under that, its servo hanging under the frame's plate behind the jaw, inside the mandible's U and in front of the
-# neck's cheeks however the head tilts (#838)
-# the frame's lugs (model/printed/gimbal.py), the jaw's arms 2 mm outside
+# #968: the jaw's lever forward along its L ramus to its pin (its chain's third joint), the bar down from it to the mouth
+# horn's pin, the horn's arm back, its servo hanging under the frame's plate inside the mandible's U, in front of the
+# neck's cheeks however the head tilts (#838): the bar and the horn inboard of the ramus' inner face, so the mandible is
+# carved round them in one piece
+# the frame's lugs (model/printed/gimbal.py), the jaw's hinge bosses 0.5 mm outside
 JAW_LUG_X, JAW_X = (32.0, 36.0), (36.5, 40.5)
-JAW_PIN = (55.95, -66.99)  # measured ramus witness, head-local, not an L-shaped lever hung from the old hinge
-# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978, inferred)
-JAW_LEVER, MOUTH_HORN, JAW_BAR_X = JAW[1] - JAW_PIN[1], (29.0, -70.0), (JAW_X[1] + 0.3, JAW_X[1] + 3.3)
-# #874's actual public v7 posterior borders and low-body sections, shifted 2.5 mm medially for the hidden carrier.
-# Finish/carving and Skin-motion acceptance remain #874/#968; these are measured anatomy, not prototype empties.
-MANDIBLE_BORDER = {
+JAW_PIN = (34.5, -48.0)  # in the ramus' plate, under the notch (inferred)
+# the mouth horn's (y, z): its case 1 mm behind the yaw servo's (#1005 moved it back; #978, inferred); the bar's slab,
+# the horn's face on its inside, the pin's post from its outside out to the chain
+MOUTH_HORN, JAW_BAR_X = (29.0, -70.0), (24.4, 27.4)
+# #968: the carrier's chain of joints down each side of #976's mandible (the Skeleton scene's, warped: docs/adr/0025),
+# measured on it: the hinge, the condyle's neck, the pin, then down the ramus' plate and the body toward the chin, each
+# mid-wall or 4.9 mm in from the bone's outer face where it is thinner (model/skeleton/test_skeleton.py holds the chain
+# to the finished bone, ADR 0011); their (y, z) path is inferred
+MANDIBLE_CHAIN = {
     "L": (
-        (42.17778, *JAW),
-        (39.66932, 62.19767, -52.96658),
-        (36.54052, 55.94899, -66.98728),
-        (29.96298, 52.41924, -79.70661),
-        (29.74866, 40.96716, -94.45120),
-        (22.17178, 24.88939, -99.41578),
-        (15.00794, 10.05259, -100.09533),
+        (40.5, *JAW),
+        (43.3, 50.5, -47.5),
+        (39.6, *JAW_PIN),
+        (36.8, 26.0, -54.2),
+        (29.8, 16.5, -61.1),
+        (25.0, 6.5, -68.3),
+        (18.5, -3.5, -75.6),
     ),
     "R": (
-        (-42.43407, *JAW),
-        (-40.85832, 63.96941, -49.35478),
-        (-36.71729, 55.38586, -66.82533),
-        (-30.42063, 51.63572, -79.25589),
-        (-26.50951, 36.86854, -94.26046),
-        (-20.49186, 24.76519, -99.17967),
-        (-10.29882, 10.31181, -99.83649),
+        (-40.5, *JAW),
+        (-42.8, 50.5, -47.5),
+        (-39.6, *JAW_PIN),
+        (-37.5, 26.0, -54.2),
+        (-30.2, 16.5, -61.1),
+        (-25.2, 6.5, -68.3),
+        (-18.8, -3.5, -75.6),
     ),
 }
-MENTON = (0.0, -1.4201, -97.7819)
+JAW_CHIN = (0.0, -13.0, -82.5)  # where the two chains meet, in the mandible's symphysis
 CHIN_Y = -33.4  # existing Skin rest contour; moving the anatomical carrier must not reshape a resting Skin
 JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
-JAW_CHAIN_UP = 8.0  # #978: the carrier's lower chain over the measured border, in the mandible's body (inferred)
 JAW_ARM_Z = (-74.5, -70.5)  # the jaw's body forward from its arms to the chin, as the mandible's, within the head gate
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
@@ -186,7 +189,7 @@ def pins():
     }
 
 
-TURN = {"jaw": -1}  # the mouth horn's arm up, its jaw's lever down
+TURN = {"jaw": -1}  # the mouth horn's arm back, its jaw's lever forward
 LINKAGES = {d: _four_bar(o4, b, o2, axis, TURN.get(d, 1)) for d, (o4, b, o2, axis) in pins().items() if d == "jaw"}
 LINKAGES["pan"] = linkage.four_bar(PAN_SHAFT, PAN_PIN, HEAD_AXES["pan"][0], PAN_ANCHOR, g.Z)
 # seen from the moving case, the fixed carrier is the rocker: the head turns the other way (model/stages.py Reaction)

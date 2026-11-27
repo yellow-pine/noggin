@@ -83,16 +83,19 @@ def swap(job, ratio=None):
         lo = Vector([min(p[i] for p in box) for i in range(3)]) - Vector((2,) * 3)
         hi = Vector([max(p[i] for p in box) for i in range(3)]) + Vector((2,) * 3)
         for kind, places in kinds.items():
-            c = carve(bone, kind)
+            near = []
             for name, at in places:
-                me = meshes[job["files"][name]]
                 m = Matrix(at)
-                pts = [m @ Vector(c) for c in corners[job["files"][name]]]
+                pts = [m @ Vector(p) for p in corners[job["files"][name]]]
                 if all(max(p[i] for p in pts) > lo[i] and min(p[i] for p in pts) < hi[i] for i in range(3)):
-                    x = bpy.data.objects.new(name, me)
-                    x.matrix_world = m
-                    x.display_type, x.hide_render = "WIRE", True
-                    c.objects.link(x)
+                    near.append((name, m))
+            # never an empty set: its SDF is empty, and the Finish cut by it leaves no bone (#968: C7, once the jaw's
+            # box no longer swept near it); one place far from the bone cuts nothing
+            for name, m in near or [(name, Matrix(at)) for name, at in places[:1]]:
+                x = bpy.data.objects.new(name, meshes[job["files"][name]])
+                x.matrix_world = m
+                x.display_type, x.hide_render = "WIRE", True
+                carve(bone, kind).objects.link(x)
     mech = collection(MECH)
     for name, path in job["files"].items():
         x = bpy.data.objects.new(name, meshes[path])

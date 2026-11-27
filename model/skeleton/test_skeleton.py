@@ -21,7 +21,6 @@ HEAD = ("skull", "mandible")
 # the bare bones the mechanism cuts in two, strict so the fixing PR drops its mark: what rides with each cuts it exactly
 SEVERED = {
     "skull": "the lower lids, the gimbal frame's plate and the yaw servo cut the palate (7.7 cm3) off the cranium (#967)",
-    "mandible": "the jaw bar, the mouth horn and servo cut the L ramus (3.3 cm3) off the mandible's body (#968)",
 }  # the bones the head carries; the neck's (g.NECK) stand on the cervical carrier
 
 
@@ -107,3 +106,42 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
         return
     lo, hi = np.array(base.DOME).T
     assert (mesh.bounds[0] >= lo - 1.6).all() and (mesh.bounds[1] <= hi + 1.6).all()
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
+def test_the_jaw_carrier_lies_inside_the_mandible(side):
+    """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), straight
+    outboard of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
+    bone) and stands the print floor thick beyond it, to a voxel. nk.MANDIBLE_CHAIN is a copy of the scene's mandible:
+    this holds it to the bone (ADR 0011)."""
+    from model.printed import neck
+
+    rng = np.random.default_rng(0)
+    bone, jaw = (
+        np.asarray(trimesh.sample.sample_surface(trimesh.load(stages.stl(stem), force="mesh"), 400_000, seed=rng)[0])
+        for stem in ("mandible", "jaw")
+    )
+    out = 1.0 if side == "L" else -1.0
+    bare = []
+    for a, b in zip(chain := np.array(neck.jaw_chains()[side]), chain[1:]):
+        for t in (0.1, 0.3, 0.5, 0.7, 0.9):
+            p = a + (b - a) * t
+            # each surface's points straight outboard of the chain here, mm from it
+            b_x, j_x = (out * (s[np.linalg.norm(s[:, 1:] - p[1:], axis=1) < 1.0, 0] - p[0]) for s in (bone, jaw))
+            face = j_x[(j_x > 0) & (j_x < 6.0)].max()  # the carrier's own outboard face (not the other chain's)
+            beyond = b_x[b_x > face - skeleton.PITCH]
+            if not (
+                len(beyond)
+                and beyond.min() < face + skeleton.PITCH
+                and beyond.max() - face >= skeleton.FLOOR - skeleton.PITCH
+            ):
+                bare.append(
+                    (
+                        tuple(np.round(p, 1)),
+                        round(float(face), 2),
+                        np.round(np.sort(beyond)[[0, -1]], 2).tolist() if len(beyond) else None,
+                    )
+                )
+    assert bare == []
