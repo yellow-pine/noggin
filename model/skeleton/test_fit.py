@@ -60,3 +60,47 @@ def test_a_triangles_shear_is_its_greatest_over_its_least_length_factor():
     assert fit.shear(tri, tri * (2, 1, 1), faces) == pytest.approx([2.0])
     turned = trimesh.transform_points(tri * 3, trimesh.transformations.rotation_matrix(0.7, (1, 2, 3), (4, 5, 6)))
     assert fit.shear(tri, turned, faces) == pytest.approx([1.0])
+
+
+def _sheet():
+    """A flat 20 mm sheet of 2.5 mm triangles round the origin, and one far off it."""
+    g = np.mgrid[-10:10.1:2.5, -10:10.1:2.5].reshape(2, -1).T
+    v = np.vstack([np.c_[g, np.zeros(len(g))], [(200, 0, 0), (202, 0, 0), (200, 2, 0)]])
+    n = 9
+    quads = [
+        (i * n + j, i * n + j + 1, (i + 1) * n + j + 1, (i + 1) * n + j) for i in range(n - 1) for j in range(n - 1)
+    ]
+    faces = [t for a, b, c, d in quads for t in ((a, b, c), (a, c, d))] + [(81, 82, 83)]
+    return v, np.array(faces)
+
+
+def test_the_eyes_and_nose_gate_passes_a_sound_warp_and_reads_only_its_region():
+    v, faces = _sheet()
+    w = v * 1.1
+    w[81:] = v[81:] * (1, 9, 1)  # the far triangle sheared out of shape: not the gate's
+    report = fit.gate(v, w, faces, np.full(len(v), 1.2), [np.zeros(3)])
+    assert report == {"triangles": 128, "folded": 0, "shear": 1.0, "least_jacobian": 1.2}
+
+
+def test_the_eyes_and_nose_gate_refuses_a_fold_a_shear_and_a_collapse():
+    v, faces = _sheet()
+    one = np.ones(len(v))
+    folded = v.copy()
+    folded[40] += (4, 0, 0)  # the middle vertex past its neighbour: the triangles between them turn over
+    with pytest.raises(ValueError, match="folded"):
+        fit.gate(v, folded, faces, one, [np.zeros(3)])
+    with pytest.raises(ValueError, match="sheared"):
+        fit.gate(v, v * (2, 1, 1), faces, one, [np.zeros(3)])
+    with pytest.raises(ValueError, match="Jacobian"):
+        fit.gate(v, v, faces, one * (fit.JACOBIAN_MIN - 0.01), [np.zeros(3)])
+
+
+def test_the_gate_reads_no_shear_off_a_sliver():
+    """A triangle slenderer than SOUND shears with the field's bend along it, whatever the Warp: only its fold counts."""
+    v = np.array(((0, 0, 0), (30, 0, 0), (15, 0.5, 0)), float)
+    w = v.copy()
+    w[2, 1] = 2.0
+    assert fit.gate(v, w, np.array(((0, 1, 2),)), np.ones(3), [np.array((15.0, 0, 0))])["shear"] == 1.0
+    w[2, 1] = -0.5
+    with pytest.raises(ValueError, match="folded"):
+        fit.gate(v, w, np.array(((0, 1, 2),)), np.ones(3), [np.array((15.0, 0, 0))])

@@ -31,6 +31,11 @@ C0_BELOW = (
 # the box the skull fills (the head's frame): the compact head's (gimbal.HEAD_MM) round #975's mechanism, its eyes 0.54
 # up it; the finished bones' own box is base.DOME
 LO, HI = np.array(((-80.0, -41.0, -93.5), (80.0, 134.9, 80.0)))
+# the eyes-and-nose gate (#991), from the fit measured on 2026-11-27: within FACE_R of each orbit's centre and the
+# nasal aperture's middle no triangle may fold; a sound one (its longest edge at most SOUND heights, 98% of them)
+# shears at most SHEAR_MAX (measured 1.72; the budget's own 1.25 / 0.75 at a point is 1.67), a slenderer one shearing
+# with the field's bend along it, whatever the Warp (measured up to 5.1); the Jacobian stays over JACOBIAN_MIN
+FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 1.8, 0.5
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
 SCALES = {"skull": 1.05, "mandible": 0.95}  # the regions' uniform resize (the neck's: neck_scale())
 # the Skin's neck back, the head's frame: its y (BACK_Y) at |x| (BACK_X) and z (BACK_Z), our own coarse measure of the
@@ -129,6 +134,34 @@ def shear(basis, warped, faces):
     with np.errstate(divide="ignore", invalid="ignore"):
         lam = np.sort(np.linalg.eigvals(np.linalg.solve(*gram)).real, axis=1)
         return np.sqrt(lam[:, 1] / lam[:, 0])
+
+
+def gate(x, y, faces, det, centres):
+    """The eyes-and-nose gate (#991) on the Warp `y` of the Basis `x`, over the triangles and vertices within FACE_R of
+    `centres` (the orbits' and the nasal aperture's, on the Basis). Raises on a folded triangle (its normal turned past a
+    right angle), a sound one (no slenderer than SOUND) sheared past SHEAR_MAX, or a Jacobian (`det`, a vertex each)
+    under JACOBIAN_MIN; returns its report."""
+
+    def near(p):
+        return np.min([np.linalg.norm(p - c, axis=1) for c in centres], axis=0) < FACE_R
+
+    f = faces[near(x[faces].mean(1))]
+    e0, e1 = (v[f[:, [1, 2, 0]]] - v[f] for v in (x, y))
+    n0, n1 = (np.cross(e[:, 0], e[:, 1]) for e in (e0, e1))
+    folded = int(((n0 * n1).sum(1) <= 0).sum())
+    sound = np.linalg.norm(e0, axis=2).max(1) ** 2 <= SOUND * np.linalg.norm(n0, axis=1)  # its longest edge by height
+    report = {
+        "triangles": len(f),
+        "folded": folded,
+        "shear": round(float(shear(x, y, f[sound]).max(initial=1.0)), 3),
+        "least_jacobian": round(float(det[near(x)].min()), 3),
+    }
+    if folded or report["shear"] > SHEAR_MAX or report["least_jacobian"] < JACOBIAN_MIN:
+        raise ValueError(
+            f"the Warp at the eyes and nose: {folded} folded triangles, a sound one sheared {report['shear']} (at most "
+            f"{SHEAR_MAX}), the least Jacobian {report['least_jacobian']} (at least {JACOBIAN_MIN})"
+        )
+    return report
 
 
 def canal(mesh, b=0.5):
