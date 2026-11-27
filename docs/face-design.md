@@ -62,7 +62,7 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
   carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852).
   The eyeball caps' Seats, in the cores' faces, are the only ones in the model. *Upcoming (#850): the Seats of
-  Morty's Shells, on the gimbal frame, the lids, the jaw and the Torso.*
+  Morty's Shells, on what carries each: the head, the jaw, the eyes and the Torso.*
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (the caps), so
   a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap
