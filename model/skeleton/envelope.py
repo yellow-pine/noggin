@@ -18,6 +18,7 @@ from scipy import ndimage
 from scipy.spatial import cKDTree
 
 from model import gimbal, skin, stages
+from model import morty as morty_
 
 ROOM = skin.WALL + 0.5  # under Morty's surface: the Skin's wall and its clearance (Cansin, 2026-11-27)
 GRID, BAND = 1.0, 16.0  # the grid's pitch; how deep the exact distances reach, mm
@@ -26,12 +27,6 @@ FLOOR = -200.0  # the sculpt is read down to here in the head's frame: under C7 
 # the sculpt's eye centres that place it on the Mech's eyes, raw mm, z up, -y forward (#872's measure on its front depth
 # map, inferred; model/review places it by the same)
 SCULPT_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
-# the sculpt's own eyeballs' centres in today's head frame: a ball fitted to each eye dome in 3D (#967's measure, its
-# comment 7209215753: radius 37.0, rms 0.48 mm), 73.33 mm apart. The Mech's eyes (gimbal.EYE, 72.7 mm apart from
-# #872's rougher measure) move onto them in #967 (Cansin, 2026-11-27); the orbits, the lids' shell and the belt are
-# fitted to them already, and read gimbal.EYE again once it is these
-EYES = {"L": (37.14, -1.39, 1.72), "R": (-36.20, -1.39, 1.72)}
-COMMITTED = os.path.join(stages.REPO, "model", "morty", "sculpt.ply")  # in the sculpt's own frame, mm (docs/adr/0027)
 
 
 class Skin:
@@ -97,18 +92,13 @@ def _main_checkout():
     return os.path.dirname(common) if common else stages.REPO
 
 
-REFERENCES = os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith")  # the local sculpt's folder
-
-
-def sculpt_file():
-    """The sculpt's file: the copy #850 commits (COMMITTED) or, until it lands, the local original (REFERENCES)."""
-    return COMMITTED if os.path.exists(COMMITTED) else os.path.join(REFERENCES, "morty-fixed.stl")
+REFERENCES = os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith")  # the review's local file's
 
 
 def sculpt():
-    """(The Morty sculpt in the head's frame, its file): ChelsCCT's, CC BY 4.0, its eyes' middle on the Mech's, scaled
-    to their spacing, as model/review places it."""
-    path = sculpt_file()
+    """(The Sculpt in the head's frame, its file): model/morty's adopted copy (docs/adr/0027), its eyes' middle on the
+    Mech's, scaled to their spacing, as model/review places it."""
+    path = os.path.join(stages.REPO, morty_.SCULPT)
     mesh = trimesh.load(path, force="mesh")
     eyes = np.array([SCULPT_EYES[s] for s in "LR"])
     mesh.vertices = (mesh.vertices - eyes.mean(0)) * (gimbal.SPACING / np.linalg.norm(eyes[0] - eyes[1]))

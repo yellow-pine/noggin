@@ -19,7 +19,6 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skin as sk
 from model import stages
-from model.skeleton import envelope
 
 SCENE, EXPORT = "model/skeleton/skeleton.blend", "model/skeleton/export.py"
 BLENDER = os.environ.get("BLENDER", "/Applications/Blender.app/Contents/MacOS/Blender")
@@ -28,8 +27,13 @@ PITCH, CLEAR_MM, WALL = 0.8, 1.6, 4.0  # the finish's voxel; the room round ever
 FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of it (export.rounded)
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
+# The Sculpt's own eyeballs' centres in today's head frame: a ball fitted to each eye dome in 3D (#967's measure, its
+# comment 7209215753: radius 37.0, rms 0.48 mm), 73.33 mm apart. The Mech's eyes (gimbal.EYE, 72.7 mm apart from
+# #872's rougher measure) move onto them in #967 (Cansin, 2026-11-27); the orbits, the lids' shell and the belt are
+# fitted to them already, and read gimbal.EYE again once it is these
+EYES = {"L": (37.14, -1.39, 1.72), "R": (-36.20, -1.39, 1.72)}
 # #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each of Morty's eye centres
-# (envelope.EYES, where the Mech's eyes move to) in a shell of radius up to LID_SHELL (their band 36.3 to 37.5 mm and
+# (EYES, where the Mech's eyes move to) in a shell of radius up to LID_SHELL (their band 36.3 to 37.5 mm and
 # 0.5 over it, #967's comment 7209215753), and the yaw rails, the tie-bar's fingers and the pitch rods leave it through the belt behind
 # the eye, between the stowed lids (their turn 174 to 214 deg). The skull keeps out of both before those parts exist
 # (then the Finish carves round them as round every part). BELT, about an eye centre: its half-width along the lids'
@@ -87,11 +91,11 @@ def job():
         "worn": g.WORN,
         "orbits": [
             *([list(e), gm.LOWER_R[1] + CLEAR_MM, REACH] for e in gm.EYE.values()),
-            *([list(e), LID_SHELL + CLEAR_MM, None] for e in envelope.EYES.values()),
+            *([list(e), LID_SHELL + CLEAR_MM, None] for e in EYES.values()),
         ],
         "belts": [
             [[x - BELT[0], y, z + BELT_Z[0] - CLEAR_MM], [x + BELT[0], y + BELT[1], z + BELT_Z[1] + CLEAR_MM]]
-            for x, y, z in envelope.EYES.values()
+            for x, y, z in EYES.values()
         ],
         "numbers": {"Voxel": PITCH, "Clearance": CLEAR_MM, "Wall": WALL, "Keep": KEEP, "Round": FLOOR / 2},
     }

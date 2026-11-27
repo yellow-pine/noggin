@@ -52,7 +52,7 @@ def test_the_skulls_eyes_sit_in_its_orbits():
     where an anatomical brow would. The skull's height is Morty's to give
     (test_each_bone_lies_under_mortys_skin), no box's."""
     lo, hi = _bones()["skull"].bounds
-    for e in map(np.array, (*gm.EYE.values(), *envelope.EYES.values())):
+    for e in map(np.array, (*gm.EYE.values(), *skeleton.EYES.values())):
         assert (lo <= e).all() and (e <= hi).all() and lo[1] < e[1]
 
 
@@ -60,10 +60,10 @@ def test_the_skulls_eyes_sit_in_its_orbits():
 @pytest.mark.bones
 def test_the_skull_keeps_out_of_the_lids_shell_and_the_belt_behind_each_eye():
     """#967's re-laid lids stow in a shell of radius skeleton.LID_SHELL all round each of Morty's eye centres
-    (envelope.EYES) and their drives leave it through the belt behind the eye (skeleton.BELT): no bone of the finished
+    (skeleton.EYES) and their drives leave it through the belt behind the eye (skeleton.BELT): no bone of the finished
     skull within the shell or in the belt, to the Finish's voxel."""
     v = _bones()["skull"].vertices
-    for x, y, z in envelope.EYES.values():
+    for x, y, z in skeleton.EYES.values():
         assert np.linalg.norm(v - (x, y, z), axis=1).min() >= skeleton.LID_SHELL + skeleton.CLEAR_MM - skeleton.PITCH
         lo = np.array((x - skeleton.BELT[0], y, z + skeleton.BELT_Z[0])) + skeleton.PITCH
         hi = np.array((x + skeleton.BELT[0], y + skeleton.BELT[1], z + skeleton.BELT_Z[1])) - skeleton.PITCH
@@ -77,8 +77,6 @@ def test_each_bone_lies_under_mortys_skin(stem):
     """Every finished bone at least envelope.ROOM (the Skin's wall and its clearance) under Morty's skin, the sculpt's
     surface, to SKIN_TOL: the skull's limit since 2026-11-27, where the compact head's box was (#893, #874). On main
     before the refit the forehead stood 10.9 mm out of him, the chin 4.6 and C7's spine 8.6."""
-    if not os.path.isfile(envelope.sculpt_file()):
-        pytest.skip("Morty's sculpt is local until #850 commits it (model/morty, docs/adr/0027)")
     depth = envelope.morty().depth(trimesh.load(stages.stl(stem), force="mesh").vertices)
     assert depth.min() >= envelope.ROOM - SKIN_TOL
 
