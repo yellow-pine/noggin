@@ -86,6 +86,17 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
 
 @pytest.mark.model
 @pytest.mark.bones
+def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
+    """#967: the skull's one piece (the test below) reaches under the gimbal frame's plate in front of it, between its
+    windows: the palate, which the plate cut off before the maxillae rose through them (a piece that small is still
+    kept, skeleton.KEEP, so losing it again shows there as a second piece)."""
+    v = trimesh.load(stages.stl("skull"), force="mesh").vertices
+    under = (v[:, 2] < gm.PLATE_Z[0]) & (v[:, 1] < gm.PLATE_Y[0]) & (np.abs(v[:, 0]) < gm.WINDOW_X)
+    assert under.sum() > 1000
+
+
+@pytest.mark.model
+@pytest.mark.bones
 @pytest.mark.parametrize(
     "stem",
     [pytest.param(s, marks=pytest.mark.xfail(strict=True, reason=SEVERED[s])) if s in SEVERED else s for s in g.BONES],

@@ -318,14 +318,15 @@ def frame(mechanical=False):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         lx = sorted(s * u for u in neck.JAW_LUG_X)
+        # the cheek curves in under the beam's end: its lower outer corner cut back BEAM_CUT, the arm and the foot that
+        # far up
+        z0, z1 = gm.BEAM_Z[0] + gm.BEAM_CUT, gm.BEAM_Z[1]
         # the lid upright's foot behind the cheek, an arm from it to the beam's end, and its rail on the plate's level
         # from under the upright back to the plate's front (#967)
-        out = out.union(box(ux, gm.FOOT_Y, (gm.BEAM_Z[0], top))).union(box(ux, (0, y0 + 4), gm.PLATE_Z))
+        out = out.union(box(ux, gm.FOOT_Y, (z0, top))).union(box(ux, (0, y0 + 4), gm.PLATE_Z))
         end = [(s * x, y) for x in (gm.BEAM_X - 6.0, gm.BEAM_X) for y in gm.CHEEK_Y]
         arm = np.array(end + [(x, y) for x in ux for y in (gm.FOOT_Y[0], gm.FOOT_Y[0] + 4.0)])
         arm = [tuple(map(float, arm[i])) for i in ConvexHull(arm).vertices]
-        # the cheek curves in under the beam's end: its lower outer corner cut back BEAM_CUT, the arm that far up
-        z0, z1 = gm.BEAM_Z[0] + gm.BEAM_CUT, gm.BEAM_Z[1]
         corner = [(s * (gm.BEAM_X - gm.BEAM_CUT), gm.BEAM_Z[0]), (s * gm.BEAM_X, gm.BEAM_Z[0]), (s * gm.BEAM_X, z0)]
         depth = gm.CHEEK_Y[1] - gm.CHEEK_Y[0]  # the XZ workplane extrudes toward -y
         out = out.cut(cq.Workplane("XZ", origin=(0, gm.CHEEK_Y[1], 0)).polyline(corner).close().extrude(depth))
@@ -340,7 +341,7 @@ def frame(mechanical=False):
             out = out.union(box(ux, (-gm.UPRIGHT_R, gm.UPRIGHT_R), (-12, 0))).union(
                 cyl("x", (0, 0, 0), gm.UPRIGHT_R, ux)
             )
-            out = out.union(box(ux, (0, 8), (top, -12)))
+            out = out.union(box(ux, (0, 8), (top, -6)))  # up behind the head: the two meet over 6 mm
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
             )

@@ -68,7 +68,9 @@ def depth(mesh):
     FAR). His sculpt crosses itself (hair, lids, collar), so the room outside is flooded from a corner of his box
     through the PITCH voxels his surface does not cross: a point in a voxel the flood reached, or one his surface
     crosses, is outside, and his outer surface is the part of it beside the flood. The distance is to that surface's
-    points, exact to their spacing; the voxels only sort inside from outside and skip the deep points."""
+    points, exact to their spacing; the voxels only sort inside from outside and skip the deep points.
+    shortcut: a groove narrower than about two voxels reads as filled, so a point just under its floor reads deeper
+    than it is; halve PITCH (eight times the voxels) if a part ever lies under one (his cheeks and temples have none)."""
     v = _points(mesh, 0.4 * PITCH)  # within a quarter voxel of every point of the surface: no face-to-face leak
     lo = v.min(axis=0) - 2 * PITCH
     shape = np.floor((v.max(axis=0) + 2 * PITCH - lo) / PITCH).astype(int) + 1
