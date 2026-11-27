@@ -5,7 +5,7 @@
 assemble: on the Skeleton scene, the Scene Mech swapped for the document (model/skeleton/export.py swap), the finish's
 numbers set, the layers made (Mech, Skeleton, Skin and Morty, each in Skull, Mechanism and Pedestal; raw bones to
 helpers), coloured at their alpha: the Skin the Shells cut from the Sculpt and the eyeball caps, Morty the private
-reference, which the scenes step hides until it is switched on (it shares the Skin's surface). <bone stem>: that
+reference, which the scenes step puts out of view among the helpers (the Skin shows his surface). <bone stem>: that
 bone's finish baked into its mesh. scenes: the motion, then the
 Exploded, Print bed and (before) Before and after scenes, linked copies of the same meshes."""
 
@@ -450,8 +450,10 @@ def scenes():
         bpy.data.collections.remove(before)
     for s in bpy.data.scenes:  # each scene's matrix_world, else stale until it is shown
         s.view_layers[0].update()
-    # the private reference: a toggle, off while the Skin's Shells show the same surface
-    main.view_layers[0].layer_collection.children["Morty"].hide_viewport = True
+    # the private reference: out of view among the helpers (Cansin, 2026-11-27: the Skin's Shells show his surface),
+    # where the motion checks still read its regions and witnesses
+    main.collection.children.unlink(bpy.data.collections["Morty"])
+    bpy.data.collections["helpers"].children.link(bpy.data.collections["Morty"])
     for w in bpy.context.window_manager.windows:
         w.scene = main
     bounds = [
