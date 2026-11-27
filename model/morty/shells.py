@@ -48,7 +48,9 @@ def base():
 
 
 def _solid(vertices, faces):
-    return m3.Manifold(m3.Mesh(np.asarray(vertices, np.float32), np.asarray(faces, np.uint32)))
+    out = m3.Manifold(m3.Mesh(np.asarray(vertices, np.float32), np.asarray(faces, np.uint32)))
+    assert out.status() == m3.Error.NoError, out.status()  # a mesh that is no closed surface would cut to nothing
+    return out
 
 
 def _mesh(solid):

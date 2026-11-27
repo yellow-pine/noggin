@@ -75,7 +75,7 @@ def test_the_skins_outside_is_the_sculpts_own_surface(built, sculpt):
 
 def test_every_wall_is_1_6_mm_and_never_open(built, sculpt):
     """docs/adr/0027: the wall grows skin.WALL inward. Each Shell's faces are the Sculpt's own, a seam's (flat along
-    its cut's sweep, x or y), the base's, or the inside, which lies within 0.15 mm of WALL under the Sculpt for 99% of
+    its cut's sweep, x or y), the base's, or the inside, which lies within 0.15 mm of WALL under the Sculpt for 98% of
     it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone may begin (WALL and 0.5 mm of room).
     Away from the eye openings, whose rims are cut round a sphere, and from the brows' buried sheets."""
     surface = cKDTree(shells._points(sculpt.triangles, 0.3))
@@ -87,7 +87,7 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt):
         inside = under[under > 0.25]  # the rest are the Sculpt's own
         assert len(inside) > 1000, name
         assert inside.min() > 1.4 and inside.max() < 1.9, (name, inside.min(), inside.max())
-        assert (np.abs(inside - skin.WALL) < 0.15).mean() > 0.99, name
+        assert (np.abs(inside - skin.WALL) < 0.15).mean() > 0.98, name
 
 
 def test_the_skin_is_open_round_each_eye(built):

@@ -66,7 +66,7 @@ if __name__ == "__main__":
     if what == "ours":
         write(stages.OURS, list(SHAPES), ".stl")
         shells.write()  # Morty's Skin, cut from his Sculpt
-        print(f"{len(geometry.SHELLS['morty'])} Shells in {os.path.relpath(stages.OURS, stages.REPO)}")
+        print(f"{sum(map(len, geometry.SHELLS.values()))} Shells in {os.path.relpath(stages.OURS, stages.REPO)}")
         if skeleton.blender():
             skeleton.finish()  # round the parts just written
             print(f"{len(geometry.BONES)} bones in {os.path.relpath(stages.OURS, stages.REPO)}")
