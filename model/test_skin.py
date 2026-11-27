@@ -147,16 +147,29 @@ def _inside(points, poly):
     return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
 
 
-def test_mortys_contours_sit_round_his_eyes_as_his_model_sheet_draws_them():
-    """#992: each eye white round its eye (gm.EYE, the sheet's eyes on ours), its pupil inside it; the hairline over the
-    forehead and down behind to the nape, the mouth line under the eyes, the collar under the mouth (the head's frame)."""
-    for s in "LR":
-        white, pupil = skin.outline(f"{s} eye white"), skin.outline(f"{s} pupil")
+def test_mortys_cuts_sit_on_his_sculpt_round_his_eyes():
+    """#992, #893's directive of 2026-11-27: the hairline is the sculpt's own hair boundary, from the top of his
+    forehead on the midline back and down behind his ears to his collar; each eye white is its whole dome, 34 mm round a
+    centre 4 mm outward of its eye (gm.EYE, the sculpt's eyes on ours), its pupil a dot inside it; no lid has a cut; the
+    jaw is under the mouth line and the shirt under the collar, on the sculpt's face front (mm in the head's frame, as
+    measured)."""
+    cuts = skin.cuts()
+    whites, pupils = [f"{s} eye white" for s in "LR"], [f"{s} pupil" for s in "LR"]
+    assert set(cuts) == {"hairline", *whites, *pupils, "mouth", "collar"}
+    assert {n for n, (view, _) in cuts.items() if view == "side"} == {"hairline", "collar"}
+    line = skin.contour("sculpt hairline")
+    assert line[0] == pytest.approx((0.2, 74.9), abs=0.2) and line[-1] == pytest.approx((84.4, -94.0), abs=0.2)
+    crown, nape, forehead, ear, shirt = (0.0, 100.0), (120.0, 0.0), (-10.0, 40.0), (70.0, -30.0), (100.0, -110.0)
+    assert _inside(np.array([crown, nape, forehead, ear, shirt]), cuts["hairline"][1]).tolist() == [1, 1, 0, 0, 0]
+    for s, out in (("L", 1), ("R", -1)):
+        white, pupil = cuts[f"{s} eye white"][1], cuts[f"{s} pupil"][1]
         x, _, z = gm.EYE[s]
-        assert _inside(np.array([(x, z)]), white).all()
-        assert _inside(pupil, white).all()
-        assert np.linalg.norm(white - (x, z), axis=1) == pytest.approx(0.39 * gm.SPACING, rel=0.15)
-    hair, mouth, collar = (skin.contour(n) for n in ("hairline", "mouth", "collar"))
-    assert hair[0][1] > 0 > hair[-1][1] and hair[0][0] < hair[-1][0]  # forehead first, nape behind and under the eyes
-    assert collar[:, 1].max() < mouth[:, 1].min() < mouth[:, 1].max() < 0
-    assert _inside(np.array([(0.0, -skin.FAR / 2)]), skin.outline("mouth")).all()  # the jaw under the mouth line
+        assert white.mean(axis=0) == pytest.approx((x + 4.0 * out, z + 2.0), abs=1.5)
+        assert np.linalg.norm(white - white.mean(axis=0), axis=1) == pytest.approx(34.0, abs=1.5)
+        assert _inside(pupil, white).all() and np.ptp(pupil, axis=0).max() < 0.1 * gm.SPACING
+    mouth, collar = cuts["mouth"][1], cuts["collar"][1]
+    # the jaw under the mouth line, the shirt under the collar
+    assert _inside(np.array([(0.0, -skin.FAR / 2), (0.0, 0.0)]), mouth).tolist() == [1, 0]
+    assert _inside(np.array([(60.0, -120.0), (60.0, -60.0)]), collar).tolist() == [1, 0]
+    # the sheet's collar, moved from its face front to the sculpt's: 13.6 mm forward, as #1017's review measured it
+    np.testing.assert_allclose(collar[1:-3] - skin.contour("collar"), [(-13.6, 0.0)] * (len(collar) - 4), atol=0.05)
