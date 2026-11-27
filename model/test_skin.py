@@ -159,8 +159,23 @@ def test_mortys_cuts_sit_on_his_sculpt_round_his_eyes():
     assert {n for n, (view, _) in cuts.items() if view == "side"} == {"hairline", "collar"}
     line = skin.contour("sculpt hairline")
     assert line[0] == pytest.approx((0.2, 74.9), abs=0.2) and line[-1] == pytest.approx((84.4, -94.0), abs=0.2)
-    crown, nape, forehead, ear, shirt = (0.0, 100.0), (120.0, 0.0), (-10.0, 40.0), (70.0, -30.0), (100.0, -110.0)
-    assert _inside(np.array([crown, nape, forehead, ear, shirt]), cuts["hairline"][1]).tolist() == [1, 1, 0, 0, 0]
+    # (y, z): hair on the crown, at the nape and all the way down behind the ears; none on the forehead, an ear, the chin
+    crown, nape, behind, forehead, ear, chin = (
+        (0.0, 100.0),
+        (120.0, 0.0),
+        (100.0, -110.0),
+        (-10.0, 40.0),
+        (70.0, -30.0),
+        (20.0, -110.0),
+    )
+    assert _inside(np.array([crown, nape, behind, forehead, ear, chin]), cuts["hairline"][1]).tolist() == [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+    ]
     for s, out in (("L", 1), ("R", -1)):
         white, pupil = cuts[f"{s} eye white"][1], cuts[f"{s} pupil"][1]
         x, _, z = gm.EYE[s]

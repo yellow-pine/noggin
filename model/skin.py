@@ -160,7 +160,9 @@ def outline(name, front=None, step=2.0):
     if name.endswith("hairline"):  # on past the forehead along its end, out of the head
         t = (p[0] - p[1]) / np.linalg.norm(p[0] - p[1])
         a0, b0 = p[0] + FAR * t
-        return np.vstack([(a0, b0), p, (FAR, b1), (FAR, FAR), (a0, FAR)])
+        # the sheet's ends at the nape, level back from there; the sculpt's at his collar behind an ear, all behind it hair
+        behind = [(FAR, b1)] if name == "hairline" else [(a1, -FAR), (FAR, -FAR)]
+        return np.vstack([(a0, b0), p, *behind, (FAR, FAR), (a0, FAR)])
     if name == "collar":
         return np.vstack([(-FAR, b0), p, (FAR, b1), (FAR, -FAR), (-FAR, -FAR)])
     if name == "mouth":
@@ -173,8 +175,9 @@ def cuts():
     that colours the review's reference (model/review) and splits the printed Shells (#850). The hair is above and behind
     the hairline, the sculpt's own hair boundary; an eye white is its eye's whole dome, inside its foot, and its pupil
     the sheet's dot on it (no lid has a cut: the lids are the mechanism's covers); the jaw is under the mouth line
-    between its corners, in front of the eyes; the shirt is under the collar, on the fixed body. What was measured off
-    the sheet from the side (the collar) is moved along y, its face front onto the sculpt's."""
+    between its corners, in front of the eyes; the shirt is under the collar, on the fixed body, where it takes what the
+    hair's region covers too. What was measured off the sheet from the side (the collar) is moved along y, its face
+    front onto the sculpt's."""
     front = SCULPT_FRONT[0] * gm.SPACING
     names = {"hairline": "sculpt hairline"} | {n: n for n in CONTOURS if "hairline" not in n}
     return {

@@ -14,7 +14,8 @@ it): a collection `Morty reference` of editable semantic meshes in morty-fixed.s
 slots named by Skin Colour group. Each mesh names its `reference_region`, a Motion region (skin.MOTION: head, jaw, an
 eye, a lid, or the fixed neck, shoulders and torso), which names the live part carrying it (CARRIERS), and its
 `display_region`; a `carrier` it still names must agree. The recipe reads it without changing it, applies the Default Skin
-palette and cuts it at the model's floor. Without this reference, Morty's layer stays empty, including in a fresh clone.
+palette, cuts it at the model's floor and along Morty's cuts (skin.cuts(), #992), which share its faces out among its
+regions and Colour groups anew. Without this reference, Morty's layer stays empty, including in a fresh clone.
 Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the fixed
 anatomical surfaces for the output's motion checks; their positions stay private with the reference.
 """
@@ -222,17 +223,14 @@ def _morty(stage):
         "carriers": CARRIERS,
         "floor": float(min(box[n][0][2] for n in bare if region[n] == "Pedestal")),
         "colours": {k: g.filament(k, PRESET)[3] for k in g.THEMES["Skin palette"][PRESET["Skin palette"]]},
-        "head": np.linalg.inv(eyes).tolist(),  # world to the head's frame, the contours'
+        "head": np.linalg.inv(eyes).tolist(),  # world to the head's frame, the cuts'
         "contours": contours(),
-        "eyes": gm.EYE,  # in the head's frame: each eye's lids part at its height
-        "face": [c * gm.SPACING for c in skin.FACE_FRONT],  # the sheet's face front, to meet the sculpt's
     }
 
 
 def contours():
-    """{contour: (its view, the region it bounds)}, skin.outline's: what the reference is cut along (#992), as the
-    Shells' hair is."""
-    return {n: (c["view"], skin.outline(n).tolist()) for n, c in skin.CONTOURS.items()}
+    """{cut: (its view, the region it bounds)}, skin.cuts(): what the reference is cut along (#992), JSON-ready."""
+    return {n: (view, region.tolist()) for n, (view, region) in skin.cuts().items()}
 
 
 def job(quality="production", before=None):
