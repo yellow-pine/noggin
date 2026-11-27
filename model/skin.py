@@ -40,16 +40,12 @@ Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: th
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
 # midpoint, each in the view it was measured in, front (x, z) or side (y, z), and swept through the head along that
-# view's axis. Cut once, on his sculpt's skin (#893's directive of 2026-11-27, cuts()): the sculpt's hairline and eye
-# whites where the sculpt itself has them ("of": "sculpt": its hair's boundary, each eye dome's foot), the pupils, the
-# mouth line and the collar off his model sheet.
+# view's axis. Cut once, on his Sculpt's skin (docs/adr/0027, cuts()), each where the Sculpt itself has the form: its
+# hair's boundary ("sculpt hairline"), each eye dome's foot, each pupil's ring, the middle of its lips' ridge, and the
+# collar where its head meets its shirt
 with open(os.path.join(os.path.dirname(__file__), "contours.json")) as _f:
     _SHEET = json.load(_f)
 CONTOURS = _SHEET["contours"]
-# (y, z): the sheet's face front, on the side view's midline over the eyes. His drawn eyes stand out of his face where
-# ours sit behind it, so the eyes alone set no depth: a side view's contour moves along y to meet a head's own front
-# there, the sculpt's SCULPT_FRONT (measured on it)
-FACE_FRONT, SCULPT_FRONT = _SHEET["face front"], _SHEET["sculpt face front"]
 FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
 
 
@@ -65,13 +61,11 @@ def contour(name, step=2.0):
     return np.array(interpolate.splev(np.linspace(0, 1, n, endpoint=not closed), tck)).T
 
 
-def outline(name, front=None, step=2.0):
+def outline(name, step=2.0):
     """The region contour `name` bounds, a closed polygon in its view's plane: an eye white's or a pupil's its own; the
     hair above and behind a hairline (forehead first), the shirt under the collar, the jaw under the mouth line between
-    its corners, each closed FAR out. A side view's moves along y so the sheet's face front meets `front` (mm)."""
+    its corners, each closed FAR out."""
     p = contour(name, step)
-    if front is not None and CONTOURS[name]["view"] == "side":
-        p = p + (front - FACE_FRONT[0] * gm.SPACING, 0.0)
     (a0, b0), (a1, b1) = p[0], p[-1]  # (y, z) on a side view, (x, z) on a front one
     if name.endswith("hairline"):  # on past the forehead along its end, out of the head
         t = (p[0] - p[1]) / np.linalg.norm(p[0] - p[1])
@@ -86,19 +80,14 @@ def outline(name, front=None, step=2.0):
 
 
 def cuts():
-    """Morty's cuts on his sculpt, {cut: (its view, the closed region it bounds, mm in the head's frame)}: the one source
-    that colours the review's reference (model/review) and splits the printed Shells (#850). The hair is above and behind
-    the hairline, the sculpt's own hair boundary; an eye white is its eye's whole dome, inside its foot, and its pupil
-    the sheet's dot on it (no lid has a cut: the lids are the mechanism's covers); the jaw is under the mouth line
-    between its corners, in front of the eyes; the shirt is under the collar, on the fixed body, where it takes what the
-    hair's region covers too. What was measured off the sheet from the side (the collar) is moved along y, its face
-    front onto the sculpt's."""
-    front = SCULPT_FRONT[0] * gm.SPACING
+    """Morty's cuts on his Sculpt, {cut: (its view, the closed region it bounds, mm in the head's frame)}: the one source
+    that colours the review's Morty (model/review) and splits the printed Shells (#850), each cut where the Sculpt
+    itself has the form. The hair is above and behind the hairline, its hair's boundary; an eye white is its eye's whole
+    dome, inside its foot, and its pupil the ring on it (no lid has a cut: the lids are the mechanism's covers); the jaw
+    is under the mouth line, the middle of the lips' ridge, between its corners and in front of the eyes; the shirt is
+    under the collar, where the head meets it, on the fixed body, where it takes what the hair's region covers too."""
     names = {"hairline": "sculpt hairline"} | {n: n for n in CONTOURS if "hairline" not in n}
-    return {
-        cut: (CONTOURS[n]["view"], outline(n, None if CONTOURS[n].get("of") == "sculpt" else front))
-        for cut, n in names.items()
-    }
+    return {cut: (CONTOURS[n]["view"], outline(n)) for cut, n in names.items()}
 
 
 # The eyeball caps on the cores' seat faces, along the gaze: every Character's (#665)
