@@ -139,7 +139,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   behind its eye (#838: out of the realistic mandible's ramus; under the eye before), its horn between the eyes (#698).
   Since #967's re-layout each lid servo stands behind the belt its eye's drives will leave the eye's sphere through
   once the lids stow under Morty's skin (its horn's axis 56.5 mm behind the eye, 37 before, where its case stood
-  across that belt), and the pitch drive rises over it: each push-rod leans 31 deg down to the back, from the lever's
+  across that belt; its collar stands on a shelf under its case, out to a post outboard of the hub, which lies on
+  the cranium tray's riser under the R one), and the pitch drive rises over it: each push-rod leans 31 deg down to the back, from the lever's
   ball to a ball on a bail arm that hangs forward of the bail's axis, which stands 51 mm behind and 24 mm over the
   eyes, over the lid servos and under the cranium tray; the pitch servo and its horn stay, their bar leans. The
   core's top is cut to a cone round the lever where the rod passes, and the lever's neck leans forward, square to the

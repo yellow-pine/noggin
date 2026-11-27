@@ -66,7 +66,8 @@ def test_each_lid_servo_stands_behind_the_belt_its_eyes_drives_leave_through(sid
 
 def test_the_bail_turns_over_the_lid_servos_and_under_the_cranium_tray():
     """#967: the bail's rod crosses the head over both lid servos' cases and tabs, which stand where its axis was, and
-    under the cranium tray's plate (model/base.py TRAY_Z); a rod 3 mm about its axis, with 2 mm either way."""
+    under the cranium tray's plate (model/base.py TRAY_Z): its round, 3 mm about its axis, with 2 mm either way
+    (model/printed/test_gimbal.py reads the drawn bail, its Bones' flat-bottomed rod too, on the exact solids)."""
     from model import base
 
     y, z = gimbal.BAIL

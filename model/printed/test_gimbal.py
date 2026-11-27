@@ -196,8 +196,8 @@ TIE_PINS = [(-gm.EYE["L"][0], gm.CRANK), (gm.EYE["L"][0], gm.CRANK), (0.0, gm.YA
 ROD_BALLS = [(0.0, 0.0, gm.LEVER), (0.0, *gm.BAIL_BALL)]
 ROD_BED = np.linalg.inv(gimbal.rod_bed())  # onto the push-rod's bed, as it prints
 # each cup's mouth's way from its ball: the lever's down its bed's normal, the bail's up its neck
-ROD_MOUTHS = [-gimbal.rod_bed()[:3, 2], np.array([0.0, *np.subtract(gimbal.bail_foot(), gm.BAIL_BALL)]) / gimbal.NECK]
-ROD_MOUTHS[1] = ROD_MOUTHS[1] / np.linalg.norm(ROD_MOUTHS[1])
+_NECK = np.array([0.0, *np.subtract(gimbal.bail_foot(), gm.BAIL_BALL)])
+ROD_MOUTHS = [-gimbal.rod_bed()[:3, 2], _NECK / np.linalg.norm(_NECK)]
 
 
 def _pitch_loads():
@@ -329,9 +329,7 @@ def test_the_bail_keeps_its_bores_and_balls():
         for x, y, z in [(s * (end - 4), by, bz) for s in (-1, 1)] + [TIP]:
             assert not bail.isInside(cq.Vector(x, y + dy * (r - 0.05), z + dz * (r - 0.05)))
             assert bail.isInside(cq.Vector(x, y + dy * (r + 0.5), z + dz * (r + 0.5)))
-    off = np.array([0.0, *np.subtract(gm.BAIL_BALL, gimbal.bail_foot())]) / np.linalg.norm(
-        np.subtract(gm.BAIL_BALL, gimbal.bail_foot())
-    )  # past its neck
+    off = -ROD_MOUTHS[1]  # past its neck
     for at in BALLS:
         assert bail.isInside(cq.Vector(*np.add(at, (gm.BALL_R - 0.05) * off)))
         assert not bail.isInside(cq.Vector(*np.add(at, 3.1 * off)))

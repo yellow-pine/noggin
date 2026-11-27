@@ -113,9 +113,9 @@ def core():
     up = rod_bed()[:3, 2]  # the push-rod's bed's normal: its lever cup's mouth faces down it
     at = np.array([0.0, 0.0, gm.LEVER])
     foot = at - NECK * up
-    d, (out_, up_) = CORE_RELIEF
+    d, (ny, nz) = CORE_RELIEF
     far = gm.CORE_R + 1  # the cone's section (out, z), past the ball
-    section = [(0.0, d / up_), (far, (d - out_ * far) / up_), (far, far), (0.0, far)]
+    section = [(0.0, d / nz), (far, (d - ny * far) / nz), (far, far), (0.0, far)]
     relief = cq.Workplane("YZ").polyline(section).close().revolve(360, (0, 0, 0), (0, 1, 0))
     out = ball(gm.CORE_R).cut(relief)
     out = out.union(cyl("y", (0, 0, 0), gm.SEAT_R, (-CAP_BACK, -gm.CORE_R + 3)))
@@ -449,8 +449,9 @@ def frame(mechanical=False):
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
     for sign in (-1, 1):
         out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in neck.JAW_X)))
-    servos = [gm.servo_matrix(face, shaft, tab) for face, shaft, tab, _ in gm.drives().values()]
-    servos.append(gm.servo_matrix(*neck.drives()["mouth"][:3]))  # the mouth's, hanging behind the jaw (#838)
+    drives = {label: gm.servo_matrix(face, shaft, tab) for label, (face, shaft, tab, _) in gm.drives().items()}
+    lids = [m for label, m in drives.items() if label.endswith(" lid")]
+    servos = [*drives.values(), gm.servo_matrix(*neck.drives()["mouth"][:3])]  # the mouth's, behind the jaw (#838)
     tz0 = envelopes.SERVO["tabs"][2][0]
     lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
     out = out.union(box((lo[0], hi[0]), tuple(sorted((lo[1], y0 + 1))), gm.PLATE_Z))
@@ -464,8 +465,11 @@ def frame(mechanical=False):
         out = out.union(box(bar, (y0 - gm.WINDOW_BAR, y0 + 1), gm.PLATE_Z))
     for m in servos:
         out = out.cut(passes(m))
-    for m in servos:  # on the plate's top, or hanging from its underside
-        out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
+    for m in servos:  # on the plate's top, or hanging from its underside; a lid servo's on its stand (#967)
+        lid = any(m is other for other in lids)
+        out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom, posts=not lid))
+        if lid:
+            out = out.union(lid_stand(m, top))
     for s, x in zip((-1, 1), inner, strict=True):
         out = out.cut(box(sorted((x, s * gm.WINDOW_X)), (y0, gm.WINDOW_Y), gm.PLATE_Z))
     for (x0, x1), depth, flare in gm.BACK_POCKETS:  # room for the neck past the pan's ends (#967)
@@ -490,10 +494,26 @@ def passes(m):
     return _moved(local.union(top), m)
 
 
-def collar(m, floor):
+def lid_stand(m, floor):
+    """What a lid servo's collar stands on (#967): behind the belt the R one hangs over the hub on the cranium tray's
+    riser, so no post can go down under its tab holes. A shelf under the servo's case, from the collar's lower edge
+    out past the case's outer end, on a post down to `floor` (the plate) there, outboard of the hub. Both sides alike."""
+    case, tabs = (
+        (m @ np.c_[list(itertools.product(*envelopes.SERVO[k])), np.ones(8)].T)[:3].T for k in ("case", "tabs")
+    )
+    side = np.sign(case[:, 0].sum())  # the case's side of the head
+    outer = side * np.abs(case[:, 0]).max()
+    inner = side * np.abs(tabs[:, 0]).max()  # the tab plate's face on the case's side: the collar is on it
+    foot = tabs[:, 2].min() - 2.0  # the collar's lower edge
+    y = (case[:, 1].min() + 2.0, case[:, 1].max() - 2.0)
+    shelf = box(sorted((inner, outer + side * 4.0)), y, (foot, foot + 3.0))
+    return shelf.union(box(sorted((outer + side * 1.0, outer + side * 4.0)), y, (floor, foot + 3.0)))
+
+
+def collar(m, floor, posts=True):
     """A plate round the servo's case at its tab plate, with its two screw holes, on a post under each hole down (or up)
     to `floor`, but where the servo's case stands between the hole and the floor: under the tabs, or over them when
-    the floor is on their side (a servo hanging under the plate)."""
+    the floor is on their side (a servo hanging under the plate). `posts` False: the plate alone (lid_stand)."""
     s = envelopes.SERVO
     (x0, x1), (y0, y1), _ = s["case"]
     (tx0, tx1), (ty0, ty1), (tz0, _) = s["tabs"]
@@ -505,7 +525,7 @@ def collar(m, floor):
     out = _moved(local, m)
     case = (m @ np.c_[list(itertools.product(*s["case"])), np.ones(8)].T)[:3].T
     clo, chi = case.min(axis=0), case.max(axis=0)
-    for hole in s["tab_holes"]:
+    for hole in s["tab_holes"] if posts else ():
         lo, hi = post(m, hole, z)
         span = (floor, hi[2]) if floor < lo[2] else (lo[2], floor)
         if (lo[:2] < chi[:2]).all() and (hi[:2] > clo[:2]).all() and span[0] < chi[2] and span[1] > clo[2]:

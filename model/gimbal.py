@@ -8,8 +8,9 @@ cranks, equal, pinned to one tie-bar. One servo pitches both cores: its horn dri
 up behind the eyes, over the lid servos, #967) through a bar, and each bail arm, hanging forward of that axis, pushes a
 rod that leans up to its ball end on the core's lever, up the yaw axis, so a yaw moves it only at second order: the
 Hooke form, sin(pitch) cos(yaw) (docs/research/2026-11-02-literature-mechanical.md 2). Each lid is a shell wedge about
-the up/down axis through its eye centre, on its own servo through a parallelogram. Angles are degrees: yaw positive toward +x, pitch and lid positive up. Every size is ours and inferred
-(no build settles one yet), each chosen against the gates in report()."""
+the up/down axis through its eye centre, on its own servo through a parallelogram. Angles are degrees: yaw positive
+toward +x, pitch and lid positive up. Every size is ours and inferred (no build settles one yet), each chosen against
+the gates in report()."""
 
 import math
 
