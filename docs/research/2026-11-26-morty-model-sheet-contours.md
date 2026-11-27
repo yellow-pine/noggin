@@ -6,8 +6,9 @@ and lid line, the pupils, the mouth line and the shirt collar. This note records
 measurement, kept local (`docs/references/model-sheets/`, gitignored) and never committed or published.
 
 Amended on 2026-11-27 (below, "The sculpt's own boundaries"): Cansin reviewed the result and decided that where the
-Morty sculpt shows a form, the sculpt sets the boundary. The hairline and the eye whites are now measured on the sculpt;
-the pupils, the mouth line and the collar stay the sheet's.
+Morty sculpt shows a form, the sculpt sets the boundary. The sculpt shows every one of these forms, so all the cuts
+are now measured on it. The sheet's hairline alone stays in the data file, for the hand-drawn Shells, until #850
+deletes them.
 
 ## Source
 
@@ -86,8 +87,8 @@ Shells (`skin.cuts()` in `model/skin.py`).
 
 ### Source and frame
 
-- The Morty sculpt the review's reference is made from (909,718 triangles; local under `docs/references/morty/`, its
-  source and licence in the `SOURCE.md` beside it, until #850 adopts it into the repo), read as it was downloaded.
+- The Morty sculpt as it was downloaded (909,718 triangles; its page and licence are in `model/morty/LICENSE.md`).
+  `model/morty/sculpt.ply` is a lighter copy of it, which strays from it by the distances that file records.
 - Frame: the head's, as above. The sculpt's eye centres (`MORTY_EYES` in `model/review`) sit on the Mech's, and the
   sculpt is scaled so their spacing is one unit (72.7 mm, a factor of 7.126 from the file's millimetres).
 
@@ -102,8 +103,18 @@ Every point was read by script off the mesh. A form's foot on a sculpt is a conc
    1 mm apart, the trace takes the median of the crease points within 1.5 mm across it, four passes.
 3. Eye whites (front view): the crease points in front of the eyes, 31.5 to 35.3 mm from each dome's centre (a brow's
    own creases start past 35 mm). The trace takes their median radius in 120 stations of 3° round the centre.
-4. Smoothing, as on the sheet: each trace is smoothed along itself (Gaussian, σ 4 mm on the hairline, 9° on a dome)
-   and resampled at evenly spaced points, 16 on the hairline and 24 on each dome, the sheet's counts.
+4. Pupils (front view): the crease points on the front of each dome, 4.5 to 9.5 mm from the ring's centre, their
+   median radius in 60 stations of 6°.
+5. Mouth line (front view): the sculpt's closed mouth is one ridge, the lips together. Its two feet are creases. In
+   slabs 1 mm wide across the mouth, the upper foot is the crease points' 95th percentile in z and the lower their 5th.
+   The mouth line is the middle between the two, from the ridge's one end to the other (inferred: the lips part along
+   the ridge's middle).
+6. Collar (side view): the crease where the head meets the shirt, traced like the hairline (stations 1 mm apart,
+   the median within 1.5 mm across). From above it is one closed loop round the neck. From the side its two halves
+   fall on one line, and its front and back fall on that line's two ends.
+7. Smoothing, as on the sheet: each trace is smoothed along itself (Gaussian: σ 4 mm on the hairline, 9° on a dome
+   and on a pupil, 2 mm on the mouth line and the collar) and resampled at evenly spaced points: 16 on the hairline,
+   24 on each dome, 12 on each pupil and on the collar, 8 on the mouth line.
 
 ### Results
 
@@ -121,17 +132,20 @@ Every point was read by script off the mesh. A form's foot on a sculpt is a conc
 - Eye domes: nearly round, radius 33.9 mm (0.47 units; 33 to 35 mm round each), centred at (40.5, 2.2) and
   (-39.7, 2.1) mm, so about 4 mm outward of the Mech's eyes and 2 mm above them. Each curve stays within 0.37 mm of
   its trace. The sheet's eye whites were 0.39 units in radius, 5.5 mm smaller.
-- The sculpt also sculpts a pupil ring (radius 7.0 mm, centred at (43.1, 1.5) and (-41.9, 1.7) mm), a mouth and a
-  collar. Cansin's decision keeps the sheet's for these three, so they are recorded here and not used.
-- The sculpt's face front: on the midline 0.5 units over the eyes its surface is at y -18.4 to -18.6 mm. The review
-  of 2026-11-26 measured -18.7 mm on its lighter copy of the mesh and moved the sheet's side view 13.6 mm forward to
-  meet it. `sculpt face front` in `contours.json` is -0.257 units (-18.7 mm), so the collar stays where that review
-  put it.
+- Pupils: rings of radius 7.0 mm (6.2 to 7.6 mm round each), centred at (43.1, 1.8) and (-42.1, 1.8) mm. Each curve
+  stays within 0.47 mm of its trace. The sheet's pupils were dots 4 mm across, 2 to 3 mm nearer the midline.
+- Mouth: the ridge is 54.5 mm wide, from x -27.0 to 27.5 mm, and 7.6 mm tall at its middle (feet at z -67.6 and
+  -75.9 mm). The mouth line runs from (-27.0, -76.6) through its top near (0, -71.5) to (27.5, -77.8) mm, a frown.
+  The curve stays within 1.58 mm of the traced middle (0.17 mm on average). The sheet's mouth line was 35 mm wide and
+  10 mm higher on the sculpt.
+- Collar: 94 mm long from the side. It starts under the chin at (27.6, -117.8) mm, rises to (80.7, -94.7) mm under
+  the ear, where the hairline ends, and drops to (110.9, -109.8) mm behind the neck. The curve stays within 0.86 mm of
+  the trace (0.10 mm on average). The sheet's collar ran level behind the neck at -94 mm, up to 16 mm higher.
 
 ### Limits
 
 - Each sculpt-measured point is good to about 1 mm, the curve's worst distance from its trace.
 - Under the brows the hairline's crease is read at the temples alone, and a dome's foot under a brow is read from the
   crease points nearest the dome's own radius (inferred from the dome being round everywhere else).
-- The sheet's collar is level behind the neck, while the sculpt's own collar drops there. Between the two, at the back
-  of the neck, the fixed body is painted as shirt where the sculpt has hair.
+- The collar is one curve swept across the body, exact on the loop itself. Beside the loop the shoulders' tops rise
+  to within 2 mm of it, so a few faces there can fall on its wrong side.
