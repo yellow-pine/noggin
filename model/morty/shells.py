@@ -1,13 +1,12 @@
 """Morty's Skin, cut from his Sculpt (GLOSSARY Skin, Shell; docs/adr/0027, #850). shells() is every Shell in the head's
 frame at rest, mm, which `just ours` writes beside our parts (write()). No document wears them yet (g.SKINS, #850).
 
-The Sculpt is placed on the Mech's eyes (morty.placed()) and cut at the base plane, the documents' z 0. Its own
-triangles stay the Skin's outside. The inside is the surface skin.WALL under it, measured on a grid of PITCH: each
-point's distance to the Sculpt's outside, meshed where that is WALL (scikit-image's marching cubes), then made lighter
-within FLAT. "Outside" is what
-the open air reaches: this Sculpt's brows are sheets buried deep in its head, joined to its surface by pinholes, and a
-wall would follow them in. A groove deeper than BACKING still has wall behind it, so no wall is open. The wall has no
-floor at the base. It is open round each eye (skin.EYE_OPENING_R, and inside the eye white's cut): the eyeball caps,
+The Sculpt is placed on the Mech's eyes (morty.placed()) and cut at the base plane, the documents' z 0. Its outer
+skin's own triangles stay the Skin's outside. The outer skin is what the open air reaches (outer()): behind each brow
+this Sculpt has a pocket, a slab of empty space deep in its head joined to its surface by cracks, and none of a
+pocket's walls is the Skin's. The inside is the surface skin.WALL under the outer skin, measured on a grid of PITCH:
+each point's distance to it, meshed where that is WALL (scikit-image's marching cubes), then made lighter within FLAT.
+The wall has no floor at the base. It is open round each eye (skin.EYE_OPENING_R, and inside the eye white's cut): the eyeball caps,
 the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
 and behind the hairline, the chin under the mouth line, and the face. Solids are cut with manifold3d.
 
@@ -20,7 +19,8 @@ import os
 import manifold3d as m3
 import numpy as np
 import trimesh
-from scipy import ndimage
+from scipy import ndimage, sparse
+from scipy.sparse import csgraph
 from scipy.spatial import cKDTree
 from skimage import measure
 
@@ -32,14 +32,10 @@ PITCH = 0.8  # the grid the inside is measured on and meshed at, mm: twice it, a
 # the inside's mesh is then made lighter, within this of itself (manifold3d's simplify): 0.9 M triangles to 0.1 M, so
 # each Shell is under the 200,000 faces MuJoCo reads from an STL
 FLAT = 0.05
-BACKING = 1.0  # the Sculpt's own surface is kept to this far under its outside; deeper, the wall is filled
 UNDER = 12.0  # the Sculpt is kept this far under the base while the inside is measured, so the wall has no floor
-# A point of the Sculpt's surface within SEEN grid steps of the open air is its outside. So is a crease's bottom, a
-# little further in; a patch of surface that goes on past DEEP steps from the air is buried
-# shortcut: a buried sheet's edge within SEEN of the air (under a brow's ridge) counts as outside, so the wall keeps a
-# fin of it, more or less of one as the grid falls (11 cm2 of 180 between two placements); tell it by its normal, which
-# faces no air, if a Sculpt's buried surface must be left out whole
-SEEN, DEEP = 2.0, 5.0
+# A pocket (outer()) is empty space the open air does not reach on the grid, more than DEEP grid steps from it at its
+# deepest: a crease's bottom is nearer. A face fronts what lies FRONT grid steps off its middle, along its normal
+DEEP, FRONT = 5.0, (1.0, 1.5, 2.0, 2.5)
 KEEP = 0.01  # a crumb a cut leaves, of its Shell's volume, under which it is dropped
 SPHERE, SAG = 128, 0.05  # an eye opening's sphere: segments round, and how far its facets sag inside it at most
 # The gap at a seam, mm (inferred): two Shells never nearer than the room a worn Shell keeps from any part it does not
@@ -92,33 +88,95 @@ def _points(triangles, spacing):
     return np.vstack(out)
 
 
-def under(sculpt, levels):
-    """The solid each of `levels` mm under the outside of `sculpt` (a manifold3d solid), each closed. The open air is
-    the grid's empty space joined to its corner; a buried sheet or a pinhole's far side is not it."""
-    surface = _points(_mesh(sculpt).triangles, 0.7 * PITCH)
+def _spaces(surface):
+    """(the low corner of a grid of PITCH round a surface's points, the grid): 0 where a point falls, and elsewhere
+    each empty space's number, one space where a step along the grid joins two cells. The corner's is the open air."""
     low, high = surface.min(axis=0) - 3 * PITCH, surface.max(axis=0) + 3 * PITCH
-    cell = tuple(np.round((surface - low) / PITCH).astype(int).T)
-    air = np.ones(np.ceil((high - low) / PITCH).astype(int) + 1, bool)
-    air[cell] = False
-    labels, _ = ndimage.label(air)
-    air = labels == labels[0, 0, 0]
+    empty = np.ones(np.ceil((high - low) / PITCH).astype(int) + 1, bool)
+    empty[tuple(np.round((surface - low) / PITCH).astype(int).T)] = False
+    return low, ndimage.label(empty)[0]
+
+
+def outer(solid):
+    """`solid` (manifold3d) less its pockets: its outer skin, its own triangles. A pocket is empty space outside the
+    solid that the open air does not reach, a hole narrower than the grid being closed to it: a chamber behind a
+    pinhole. The faces that front a pocket are its walls and those that front the open air are outside. The rest (a
+    crease's sides, the pinhole's) fall to whichever they join by more: the walls end at the shortest loops of edges
+    that part the two (a minimum cut, each edge its length), taken as near the outside as they come. The walls go,
+    and each loop is capped by a fan about its middle."""
+    mesh = _mesh(solid)
+    low, space = _spaces(_points(mesh.triangles, 0.7 * PITCH))
+    air = space == space[0, 0, 0]
     depth = ndimage.distance_transform_edt(~air)  # grid steps to the open air
-    far = np.zeros(air.shape, bool)
-    far[cell] = depth[cell] > SEEN
-    patches, n = ndimage.label(far, structure=np.ones((3, 3, 3)))
-    buried = np.flatnonzero(ndimage.maximum(depth, patches, np.arange(1, n + 1)) > DEEP) + 1
-    outside = cKDTree(surface[~np.isin(patches[cell], buried)])
-    cap = max(levels) + 3 * PITCH
-    near = np.argwhere(~air & (depth <= DEEP + cap / PITCH))  # a crease's bottom, DEEP in, is outside too
+    deepest = ndimage.maximum_position(depth, space, np.arange(1, space.max() + 1))
+    cell = m3.Manifold.cube((PITCH / 2,) * 3, True)  # an empty cell's middle: none of it is the solid's, or all
+    pocket = np.isin(
+        space,
+        [
+            n
+            for n, at in enumerate(deepest, 1)
+            if depth[at] > DEEP and (solid ^ cell.translate(low + np.array(at) * PITCH)).is_empty()
+        ],
+    )
+
+    def fronts(what):
+        ahead = [mesh.triangles_center + k * PITCH * mesh.face_normals for k in FRONT]
+        return np.any([what[tuple(np.round((p - low) / PITCH).astype(int).T)] for p in ahead], axis=0)
+
+    wall, out = fronts(pocket), fronts(air)
+    wall, out = np.flatnonzero(wall & ~out), np.flatnonzero(out & ~wall)
+    if not len(wall):
+        return solid
+    # the faces, each joined to its neighbours by their edge's length (um), then one end the walls, the other outside
+    pairs, n = mesh.face_adjacency, len(mesh.faces)
+    edges = mesh.vertices[mesh.face_adjacency_edges]
+    width = np.maximum(np.rint(1000 * np.linalg.norm(edges[:, 0] - edges[:, 1], axis=1)), 1)
+    held = np.full(len(wall) + len(out), 2**30)
+    graph = sparse.csr_array(
+        (
+            np.concatenate([width, width, held]).astype(np.int32),
+            (
+                np.concatenate([pairs[:, 0], pairs[:, 1], np.full(len(wall), n), out]),
+                np.concatenate([pairs[:, 1], pairs[:, 0], wall, np.full(len(out), n + 1)]),
+            ),
+        ),
+        (n + 2, n + 2),
+    )
+    spare = (graph - csgraph.maximum_flow(graph, n, n + 1).flow).tocsr()  # what more each join could carry
+    spare.data[spare.data < 0] = 0
+    spare.eliminate_zeros()
+    walls = np.ones(n + 2, bool)  # a face is a wall when nothing more can pass from it to the outside
+    walls[csgraph.breadth_first_order(spare.T.tocsr(), n + 1, return_predecessors=False)] = False
+    walls = walls[:n]
+    rim = walls[pairs[:, 0]] != walls[pairs[:, 1]]
+    ends = mesh.face_adjacency_edges[rim]
+    kept = mesh.faces[np.where(walls[pairs[rim, 0]], pairs[rim, 1], pairs[rim, 0])]  # the outside's face at each
+    runs = kept[np.arange(len(kept)), ((kept == ends[:, :1]).argmax(axis=1) + 1) % 3] == ends[:, 1]
+    cap = np.where(runs[:, None], ends[:, ::-1], ends)  # against the way its face runs the edge
+    joined = sparse.coo_array((np.ones(len(ends)), tuple(ends.T)), (len(mesh.vertices),) * 2)
+    _, loop = np.unique(csgraph.connected_components(joined, directed=False)[1][ends[:, 0]], return_inverse=True)
+    middle = np.stack([np.bincount(loop, edges[rim].mean(axis=1)[:, k]) for k in range(3)], axis=1)
+    middle /= np.bincount(loop)[:, None]
+    capped = _solid(
+        np.vstack([mesh.vertices, middle]),
+        np.vstack([mesh.faces[~walls], np.column_stack([cap, len(mesh.vertices) + loop])]),
+    )
+    return max(capped.decompose(), key=lambda piece: piece.volume())  # less a crumb the cut parted from it
+
+
+def under(solid, level):
+    """The solid `level` mm under the surface of `solid` (manifold3d, with no pocket: outer()), closed."""
+    surface = _points(_mesh(solid).triangles, 0.7 * PITCH)
+    low, space = _spaces(surface)
+    air = space == space[0, 0, 0]
+    cap = level + 3 * PITCH
+    near = np.argwhere(~air & (ndimage.distance_transform_edt(space > 0) <= cap / PITCH + 1))
     field = np.where(air, 0.0, -cap).astype(np.float32)
-    field[tuple(near.T)] = -np.minimum(outside.query(near * PITCH + low, workers=-1)[0], cap)
-    out = []
-    for level in levels:
-        v, f, _, _ = measure.marching_cubes(field, level=-level, spacing=(PITCH,) * 3)
-        solid = _solid(v + low, f)
-        assert solid.volume() > 0, level  # the field falls inward, so marching cubes winds its faces outward
-        out.append(solid.simplify(FLAT))
-    return out
+    field[tuple(near.T)] = -np.minimum(cKDTree(surface).query(near * PITCH + low, workers=-1)[0], cap)
+    v, f, _, _ = measure.marching_cubes(field, level=-level, spacing=(PITCH,) * 3)
+    out = _solid(v + low, f)
+    assert out.volume() > 0  # the field falls inward, so marching cubes winds its faces outward
+    return out.simplify(FLAT)
 
 
 def _swept(view, region, grow=0.0):
@@ -266,13 +324,21 @@ def _whole(name, solid):
     return pieces[0]
 
 
+def sculpt():
+    """The Sculpt (a manifold3d solid) in the head's frame at rest, from UNDER below the base plane up."""
+    mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False).apply_transform(head())
+    return _solid(mesh.vertices, mesh.faces).trim_by_plane((0, 0, 1), base() - UNDER)
+
+
+def outside():
+    """The Sculpt's outer skin (outer()), as sculpt() has it: what the Skin's outside is cut from."""
+    return outer(sculpt())
+
+
 def shells():
     """{Shell: its mesh (trimesh), one closed solid in the head's frame at rest}: g.SHELLS["morty"]."""
-    sculpt = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False).apply_transform(head())
-    sculpt = _solid(sculpt.vertices, sculpt.faces)
-    z = base()
-    inside, backed = under(sculpt.trim_by_plane((0, 0, 1), z - UNDER), (skin.WALL, BACKING))
-    wall = (sculpt + backed - inside).trim_by_plane((0, 0, 1), z)
+    whole = outside()
+    wall = (whole - under(whole, skin.WALL)).trim_by_plane((0, 0, 1), base())
     cuts = {name: _swept(*cut) for name, cut in skin.cuts().items() if "pupil" not in name}  # the caps carry those
     for side, eye in gm.EYE.items():
         ball = m3.Manifold.sphere(skin.EYE_OPENING_R + SAG, SPHERE).translate(eye)
