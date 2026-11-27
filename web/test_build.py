@@ -17,9 +17,6 @@ from web import build
 STAGES = {f"{d}{s}": f"{d}{s}.glb" for s in ("", "-mechanical") for d in ("stage1", "stage2", "mech-back")}
 # and Stage 3 bare in each (#876): the viewer's Skin shape none, its Shells off and the realistic one's full skull on
 STAGES |= {f"mech-back{s}-bare": f"mech-back{s}-bare.glb" for s in ("", "-mechanical")}
-# and Stage 3 in Cansin's Skin in each (#813): the viewer's Skin shape cansin, after the Skeleton's suffix
-STAGES |= {f"mech-back{s}-cansin": f"mech-back{s}-cansin.glb" for s in ("", "-mechanical")}
-STAGES |= {f"mech-back{s}-bart": f"mech-back{s}-bart.glb" for s in ("", "-mechanical")}  # and Bart's (#807)
 MODULE = open(os.path.join(build.HERE, "..", "site", "src", "viewer", "viewer.mjs")).read()
 
 
@@ -30,7 +27,7 @@ def test_one_glb_per_document():
 def test_a_bare_glb_is_its_stage_without_the_skin_its_full_bones_on():
     """#876: the stills' bare rule (model/render/pictures.py bare); any other GLB shows its document's parts."""
     worn, bare = parts("mech-back"), parts("mech-back-bare")
-    assert {"morty face:1", "worn skull:1", "worn mandible:1"} <= worn - bare
+    assert {"L eyeball cap:1", "worn skull:1", "worn mandible:1"} <= worn - bare
     assert {"skull:1", "mandible:1"} <= bare - worn and "torso:1" in bare
     assert parts("mech-back-mechanical-bare") < parts("mech-back-mechanical")
     assert parts("stage2") == set(stages.STAGES["stage2"].parts)

@@ -121,17 +121,12 @@ def test_a_gesture_trajectory_has_a_frame_per_trace_frame_and_every_part(tmp_pat
     assert tj.stale(DOC)  # its other motions are not baked here
 
 
-@pytest.mark.parametrize("skin_shape", ["morty", "cansin"])
-def test_a_bone_or_shell_mujoco_plays_none_of_rides_its_carrier_in_the_baked_poses(skin_shape, tmp_path, monkeypatch):
-    """MuJoCo plays no bone of the realistic skull (mjcf.spec), nor the Shells of a Skin Stage 3 is not simulated in
-    (#813: geometry.DRESSED, which plays Morty's document); poses() puts each on its carrier (stages.RIDES), so the
+def test_a_bone_mujoco_plays_none_of_rides_its_carrier_in_the_baked_poses(tmp_path, monkeypatch):
+    """MuJoCo plays no bone of the realistic skull (mjcf.spec); poses() puts each on its carrier (stages.RIDES), so the
     pictures and the viewer draw it there: with its carrier at rest, where model/stages.py places it."""
-    bare = next(d for d in geometry.MECH if geometry.SKULL_SUB in geometry.MECH[d])
-    doc = geometry.dressed(bare, skin_shape)
+    doc = next(d for d in geometry.MECH if geometry.SKULL_SUB in geometry.MECH[d])
     stage = stages.STAGES[doc]
     bones = [n for n, p in stage.parts.items() if stages.stem(p.file) in geometry.BONES]
-    if skin_shape != "morty":
-        bones += [n for n in stage.parts if n.startswith(f"{skin_shape} ")]
     rest = {}
     for c in {c for n, c in stages.RIDES.items() if n in stage.parts and c in stage.parts}:
         m = stage.parts[c].matrix
@@ -140,8 +135,8 @@ def test_a_bone_or_shell_mujoco_plays_none_of_rides_its_carrier_in_the_baked_pos
             "quat": [trimesh.transformations.quaternion_from_matrix(m).tolist()],
         }
     monkeypatch.setattr(tj, "OUT", str(tmp_path))
-    (tmp_path / bare).mkdir()
-    (tmp_path / bare / "rest.json").write_text(json.dumps({"parts": rest}))
+    (tmp_path / doc).mkdir()
+    (tmp_path / doc / "rest.json").write_text(json.dumps({"parts": rest}))
     (frame,) = tj.poses(doc, "rest")
     for b in bones:
         got = frame[b].copy()

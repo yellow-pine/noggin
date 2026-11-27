@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import { AXES, PRESETS, css, picked } from "./theme.mjs";
 
 test("the bar's Presets are the model's, Default build first, the default, each a value on every axis", () => {
-  expect(Object.keys(PRESETS)).toEqual(["default-build", "morty", "bart"]);
+  expect(Object.keys(PRESETS)).toEqual(["default-build", "morty"]);
   expect(PRESETS["default-build"]).toEqual({
     label: "Default build", "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "none", "skin-palette": "default",
   });
@@ -12,7 +12,7 @@ test("the bar's Presets are the model's, Default build first, the default, each 
 });
 
 test("the address picks the Preset first, then what the reader picked last, never the default alone (#883)", () => {
-  expect(picked("?preset=bart", "morty")).toBe("bart");
+  expect(picked("?preset=default-build", "morty")).toBe("default-build");
   expect(picked("?stage=2", "default-build")).toBe("default-build");
   expect(picked("", null)).toBeUndefined();
   expect(picked("?preset=lisa", "homer")).toBeUndefined();  // a Preset the model lacks neither

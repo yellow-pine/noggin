@@ -8,9 +8,8 @@ import os
 import subprocess
 
 import pytest
-import trimesh
 
-from model import base, fits, gimbal, mjcf, mujoco_report, neck, report, sim, skin, stages
+from model import base, fits, gimbal, mujoco_report, neck, report, sim, skin, stages
 from model import geometry as g
 
 HERE = os.path.dirname(__file__)
@@ -240,32 +239,6 @@ def test_built_report_is_clean(doc):
     assert problems(r) == []
 
 
-@pytest.mark.parametrize("doc", [d for d in g.DRESSED if g.undressed(d) in g.SIMULATED])
-def test_another_skins_shells_hold_at_the_peaks_mortys_feel_on_the_same_seats(doc):
-    """#813: physics runs on Morty's Skin alone (geometry.DRESSED); every other Skin sits on his Seats (model/skin.py),
-    so each of its Shells, what is glued in it too, is held at the peak acceleration the sim measured his there (or
-    what carries it, where he has none: Cansin's sunglasses on the shirt)."""
-    peaks = built(g.undressed(doc))["mujoco"]["motions"]["shells"]
-    stage, theirs = stages.STAGES[doc], f"{doc.rsplit('-', 1)[1]} "
-
-    def grams(stem):
-        p = stage.parts[f"{stem}:1"]
-        glued = [s for s, (carrier, _) in skin.GLUED.items() if carrier == stem]
-        return mjcf.mass(trimesh.load(p.file, force="mesh"), p.material) + sum(map(grams, glued))
-
-    weak = []
-    for seat in {s.shell: s for s in skin.SEATS if s.shell.startswith(theirs)}.values():
-        his = next(
-            f"{n.replace(theirs, 'morty ')}:1"
-            for n in (seat.shell, seat.carrier)
-            if f"{n.replace(theirs, 'morty ')}:1" in peaks
-        )
-        holds = skin.hold_n() * sum(s.shell == seat.shell for s in skin.SEATS)
-        if holds < skin.SF * grams(seat.shell) / 1000 * peaks[his]["peak_m_s2"]:
-            weak.append((seat.shell, round(holds), round(grams(seat.shell), 1), peaks[his]))
-    assert weak == []
-
-
 @pytest.mark.parametrize("doc", sorted(report.RANKED))
 def test_the_mechs_footprint_is_reported_and_is_its_torsos(doc):
     """#685: the shirt is the base, so the footprint the tip-over gate reads is the Torso's foot, x by y mm."""
@@ -289,7 +262,7 @@ FIXTURE_PROBLEMS = {
         "mujoco pan horn at full speed (428.6 deg/s) to -40: its joints settle 29.1 deg off the slow pose",
         "mujoco tilt horn: holds 0.42 kgf.cm at {'motion': 'hero', 'ms': 400} > its rated 0.4",
         "mujoco tilt horn: peaks at 0.55 kgf.cm at {'motion': 'hero', 'ms': 410} > half its stall 1.0",
-        "mujoco morty hair:1: its magnets hold 18 N < 2.0 x its 300.0 g at 40.0 m/s2 ({'motion': 'hero', 'ms': 410})",
+        "mujoco L eyeball cap:1: its magnets hold 5 N < 2.0 x its 30.0 g at 100.0 m/s2 ({'motion': 'hero', 'ms': 410})",
         "mujoco tip-over: centre of mass 2.0 mm outside the base footprint at {'pan horn': 70, 'tilt horn': 60}",
         "mujoco tip-over: the moving centre of mass bears 1.5 mm outside the base footprint at"
         " {'motion': 'hero', 'ms': 410}",

@@ -85,12 +85,10 @@ test("Skin shape none draws Stage 3 bare, the Skeleton alone; a Stage without a 
   expect(glb("stage2", "mechanical", "none")).toBe("stage2-mechanical");
 });
 
-test("a Skin shape drawn on Stage 3 draws its own GLB, after the Skeleton shape's suffix (#813)", () => {
-  expect(glb("mech-back", "mechanical", "cansin")).toBe("mech-back-mechanical-cansin");
-  expect(glb("mech-back", "realistic", "cansin")).toBe("mech-back-cansin");
-  expect(glb("mech-back", "realistic", "bart")).toBe("mech-back-bart");  // #807
+test("a Skin shape without Shells of its own draws the Stage as it is, in its Skeleton shape (#850)", () => {
+  expect(glb("mech-back", "mechanical", "morty")).toBe("mech-back-mechanical");
   expect(glb("mech-back", "realistic", "morty")).toBe("mech-back");
-  expect(glb("stage1", "realistic", "cansin")).toBe("stage1");
+  expect(glb("stage1", "realistic", "morty")).toBe("stage1");
 });
 
 test("the viewer's mix is the Preset's Shapes and Palettes, each axis the address names another of instead (#819)", () => {
@@ -105,7 +103,7 @@ test("with no Preset picked, the viewer opens on the Default build: mechanical, 
   const { "skin-palette": palette, ...build } = mixed("", undefined);
   expect(build).toEqual({ "skeleton-shape": "mechanical", "skeleton-palette": "black", "skin-shape": "none" });
   expect(palette).toBe(Object.values(PRESETS)[0]["skin-palette"]);  // the default Skin palette
-  expect(mixed("?skin-shape=bart", undefined)["skin-shape"]).toBe("bart");  // the address still names any
+  expect(mixed("?skin-shape=morty", undefined)["skin-shape"]).toBe("morty");  // the address still names any
 });
 
 test("a mix paints each Colour group in its Palette's hex, black as the GLB's look draws it (#819, #914)", () => {
@@ -133,12 +131,12 @@ test("with no link, or a Stage the page has no button for, the viewer opens its 
 
 test("the switches keep the address the deep link to what plays, so it can be shared, the Theme's kept", () => {
   expect(address(stages, "stage1", "eureka", 0)).toBe("?stage=1&gesture=eureka");
-  const themed = "?preset=morty&skin-palette=bart&stage=1&gesture=wink";  // the bar's Preset, the viewer's mix (#819)
-  expect(address(stages, "stage2", undefined, 0, themed)).toBe("?preset=morty&skin-palette=bart&stage=2");
+  const themed = "?preset=morty&skin-palette=default&stage=1&gesture=wink";  // the bar's Preset, the viewer's mix (#819)
+  expect(address(stages, "stage2", undefined, 0, themed)).toBe("?preset=morty&skin-palette=default&stage=2");
   expect(address(stages, "mech-back", undefined, 1)).toBe("?stage=3&explode=1");  // the hero loop is the default
   expect(address(stages, "mech-back", "wink", 2)).toBe("?stage=3&gesture=wink&explode=2");
   expect(address(stages, "stage3", undefined, 0)).toBe("");  // a Stage the page has no button for
-  expect(address([], "mech-back", undefined, 0, "?preset=bart")).toBe("?preset=bart");  // a page with no buttons
+  expect(address([], "mech-back", undefined, 0, "?preset=morty")).toBe("?preset=morty");  // a page with no buttons
 });
 
 test("each Explode step moves from one level to the next, still at both ends, half way at its middle (#811)", () => {
