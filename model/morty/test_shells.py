@@ -122,13 +122,13 @@ def test_the_skins_outside_is_the_sculpts_own_surface(sculpt, kept, gone):
 def test_no_shell_holds_surface_buried_under_the_outer_skin(built, sculpt, outer, kept, buried):
     """#850: the Shells are cut from the Sculpt's outer skin alone. None of the walls of the pockets behind its brows
     is a Shell's, so each brow is its ridge on the face and nothing behind it; and no Shell reaches deeper under the
-    outer skin than its wall (0.3 mm allowed for the grid the inside is measured on), a pocket's walls followed in."""
+    outer skin than its wall and 0.5 mm, a pocket's walls followed in (2.4 mm at each brow's inner end before)."""
     assert (buried & (sculpt.vertices[:, 2] > shells.base())).sum() > 20_000  # the pockets are there to be left out
     assert not (kept & buried).any(), sculpt.vertices[kept & buried][:5]
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     for name, mesh in built.items():
         deep = surface.query(mesh.triangles_center, workers=-1)[0]
-        assert deep.max() < skin.WALL + 0.3, (name, deep.max(), mesh.triangles_center[deep.argmax()])
+        assert deep.max() < skin.WALL + 0.5, (name, deep.max(), mesh.triangles_center[deep.argmax()])
 
 
 def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):

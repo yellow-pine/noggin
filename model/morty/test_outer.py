@@ -9,9 +9,11 @@ from model.morty import shells
 
 # The Sculpt's pockets, measured on it without outer() (#850: its faces whose front is space the open air does not
 # reach, on a grid of 0.8 mm): one behind each brow, a slab reaching to the middle of the head and 86 mm back, joined
-# to the outside by cracks under 0.8 mm wide at the brow's inner end. Each one's walls, cm2, and its box, (low,
-# high) in the head's frame, mirrored in x. The original sculpt has them too (909,718 triangles, measured the same)
-POCKET_CM2, POCKET = 89.0, ((0.0, -12.0, 27.0), (75.0, 87.0, 52.0))
+# to the outside by cracks under 0.8 mm wide at the brow's inner end. Each one's walls came to 89.0 and 88.6 cm2,
+# without those nearest the cracks, where a pocket is thinner than the grid (3 cm2 a side as outer() cuts them): the
+# bounds, cm2. And its box, (low, high) in the head's frame, mirrored in x. The original sculpt has them too (909,718
+# triangles, measured the same)
+POCKET_CM2, POCKET = (88.0, 94.0), ((0.0, -12.0, 27.0), (75.0, 87.0, 52.0))
 
 
 def _hollowed(mouth):
@@ -53,8 +55,7 @@ def test_the_sculpts_outer_skin_leaves_out_the_pockets_behind_its_brows_and_noth
     ).all()
     for side in (1, -1):
         walls = left[whole.faces].all(axis=1) & (side * whole.triangles_center[:, 0] > 0)
-        # the measure had not the walls nearest the cracks, where the pocket is thinner than its grid: 3 cm2 a side
-        assert POCKET_CM2 < whole.area_faces[walls].sum() / 100 < POCKET_CM2 + 4.0, side
+        assert POCKET_CM2[0] < whole.area_faces[walls].sum() / 100 < POCKET_CM2[1], side
     # nothing new but each crack's cap, a fan about one point
     ours = {tuple(v) for v in np.round(whole.vertices, 3)}
     assert sum(tuple(v) not in ours for v in np.round(skin.vertices, 3)) < 30

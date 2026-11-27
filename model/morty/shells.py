@@ -127,7 +127,8 @@ def outer(solid):
     wall, out = np.flatnonzero(wall & ~out), np.flatnonzero(out & ~wall)
     if not len(wall):
         return solid
-    # the faces, each joined to its neighbours by their edge's length (um), then one end the walls, the other outside
+    # the faces, each joined to its neighbours by their edge's length (um), then one end the walls, the other outside.
+    # An edge four faces share joins none (trimesh): a wall touches the outside along it, and each pair stays closed
     pairs, n = mesh.face_adjacency, len(mesh.faces)
     edges = mesh.vertices[mesh.face_adjacency_edges]
     width = np.maximum(np.rint(1000 * np.linalg.norm(edges[:, 0] - edges[:, 1], axis=1)), 1)
@@ -161,7 +162,7 @@ def outer(solid):
         np.vstack([mesh.vertices, middle]),
         np.vstack([mesh.faces[~walls], np.column_stack([cap, len(mesh.vertices) + loop])]),
     )
-    return max(capped.decompose(), key=lambda piece: piece.volume())  # less a crumb the cut parted from it
+    return _whole("the outer skin", capped)
 
 
 def under(solid, level):
