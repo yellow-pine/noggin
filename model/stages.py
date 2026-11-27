@@ -4,6 +4,7 @@ sub-assemblies at frames into one document (geometry.STAGES, geometry.MECH). pos
 the four-bar kinematics (model/linkage.py), exactly, without simulating. Part names carry a ":1" suffix, as MuJoCo's
 bodies and the GLBs' nodes."""
 
+import functools
 import math
 import os
 from collections import namedtuple
@@ -12,7 +13,7 @@ import numpy as np
 
 from model import base as candidates
 from model import geometry as g
-from model import gimbal, linkage, neck
+from model import gimbal, linkage, neck, skin
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = os.path.join(
@@ -152,7 +153,9 @@ def eyes_sub():
         parts[stem + ":1"] = part(stl(stem), None, printed(stem))
     for label, (face, shaft, tab, arm) in gimbal.drives().items():
         parts.update(mounted(gimbal.servo_origin(face, shaft), tab, shaft, label, arm))
-    lo, hi = (gimbal.servos(0, p)[1] for p in (gimbal.PITCH, -gimbal.PITCH))
+    # the pitch horn's ends, whichever way it turns the gaze up (#967: up is its positive way now, the bail's arms
+    # hanging from its axis)
+    lo, hi = sorted(gimbal.servos(0, p)[1] for p in (gimbal.PITCH, -gimbal.PITCH))
     limits = {
         "yaw": (-gimbal.YAW, gimbal.YAW),
         "pitch": (lo, hi),
@@ -191,7 +194,7 @@ def eyes_sub():
                 horn,
                 (0.0, horn[1] + crank, horn[2]),
                 bail,
-                (0.0, bail[1] + gimbal.BAIL_IN, bail[2]),
+                (0.0, *gimbal.BAIL_TIP),
                 g.X,
                 "pitch bar:1",
                 ["bail:1"],
@@ -204,7 +207,7 @@ def eyes_sub():
                 f"{s} push-rod",
                 f"{s} push-rod:1",
                 "bail:1",
-                (x, bail[1], bail[2] + gimbal.LEVER),
+                (x, *gimbal.BAIL_BALL),
                 (g.X, g.Z),
                 (f"{s} eyeball pitch", (x, 0.0, 0.0), (-1, 0, 0)),  # pitch up positive, as gimbal.core
                 [f"{s} eyeball core:1", f"{s} eyeball cap:1"],
@@ -362,6 +365,15 @@ def skull_sub():
     return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
 
 
+def skin_sub(shape):
+    """<Skin shape>: its Shells cut from its Sculpt (g.SHELLS, model/morty/shells.py), each drawn in the head's frame at
+    rest on what carries its Motion region (RIDES): the hair and the face on the head, the chin on the jaw, the shirt
+    on nothing, fixed whatever the head does. No document wears it yet (g.SKINS); the review file does (model/review)."""
+    return Sub(
+        {f"{shape} {n}:1": part(stl(f"{shape} {n}"), None, printed(f"{shape} {n}")) for n in g.SHELLS[shape]}, {}
+    )
+
+
 SUBS = {
     "eyes": eyes_sub,
     "neck": neck_sub,
@@ -369,6 +381,7 @@ SUBS = {
     "base": base_sub,
     "cranium": cranium_sub,
     "stand": stand_sub,
+    **{shape: functools.partial(skin_sub, shape) for shape in g.SHELLS},
     g.SKULL_SUB: skull_sub,
 }
 # The documents the model simulates: {document: {sub-assembly: its frame}}, each frame (origin, x axis, z axis) as
@@ -378,6 +391,13 @@ RIDES = {
     "eyes": "head mount:1",  # the gimbal frame screwed on its flange
     "jaw": "head mount:1",  # the jaw on its lugs, the mouth servo in its collar
     "cranium": "gimbal frame:1",  # the cranium tray on its plate (#858)
+    # a Skin's Shells (#850), each on the part its Motion region names (skin.MOTION); the fixed body's on none
+    **{
+        f"{shape} {n}:1": f"{carrier}:1"
+        for shape, names in g.SHELLS.items()
+        for n in names
+        if (carrier := skin.MOTION[skin.region(f"{shape} {n}")])
+    },
     # the realistic skull's bones (#838), each lying on its carrier
     "skull:1": "gimbal frame:1",
     "mandible:1": "jaw:1",

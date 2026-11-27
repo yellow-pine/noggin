@@ -5,11 +5,12 @@ Frame (the eyes Sub-assembly's): x along the eye line (the L eye at +x), -y forw
 between the eye centres. Each eyeball core pitches inside a yoke that yaws on a vertical axis through the eye centre
 (yaw on the outer ring). One servo yaws both yokes through a three-crank parallelogram: its horn and both yokes'
 cranks, equal, pinned to one tie-bar. One servo pitches both cores: its horn drives the bail (a rocker on an x axis
-behind the eyes) through a bar, and each bail arm pushes a rod whose ball end sits on the core's lever, up the yaw
-axis, so a yaw moves it only at second order: the Hooke form, sin(pitch) cos(yaw) (docs/research/2026-11-02-literature-
-mechanical.md 2). Each lid is a shell wedge about the up/down axis through its eye centre, on its own servo through a
-parallelogram. Angles are degrees: yaw positive toward +x, pitch and lid positive up. Every size is ours and inferred
-(no build settles one yet), each chosen against the gates in report()."""
+up behind the eyes, over the lid servos, #967) through a bar, and each bail arm, hanging forward of that axis, pushes a
+rod that leans up to its ball end on the core's lever, up the yaw axis, so a yaw moves it only at second order: the
+Hooke form, sin(pitch) cos(yaw) (docs/research/2026-11-02-literature-mechanical.md 2). Each lid is a shell wedge about
+the up/down axis through its eye centre, on its own servo through a parallelogram. Angles are degrees: yaw positive
+toward +x, pitch and lid positive up. Every size is ours and inferred (no build settles one yet), each chosen against
+the gates in report()."""
 
 import math
 
@@ -35,6 +36,9 @@ CRANK = g.HORN_STEP["pin"]  # the horn's pin hole from its hub: every crank the 
 PIN_R = 1.6  # the busy pivots' M3 steel shank (model/printed/coupon.py) in a bore 0.1 over it
 CORE_R, SEAT_R = 13.0 * K, 8.0 * K  # the core ball; the boss its cap sits on
 LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
+# a push-rod's reach about the line between its balls: its cups' 1.5 mm walls, and the skirt its bail cup stands on
+# its bed with (#967, model/printed/gimbal.py push_rod)
+ROD_R = BALL_R + 1.7
 # yoke U from below; stem bottom: the U grows with the core, the stem keeps its foot on the frame's plate (#901)
 YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0, "stem_r": 4.0, "stem_z": -27.0}
 YAW_CRANK_Z = (-27.0, -24.0)  # the yokes' cranks; the tie-bar under them, the yaw horn's outer face under that
@@ -43,14 +47,25 @@ TIE_Z = (-30.0, -27.0)
 # lids' sweep (#901); near enough that the tie-bar from its pin to each yoke's leans 23.8 deg off x, so each crank meets
 # it at 41.2 deg or more over the yaw's range (the MuJoCo report's floor is 40; 22 read 33.8, #1003)
 YAW_Y = 16.0
-BAIL = (40.0 * K, 0.0)  # (y, z) of the bail's axis
-BAIL_IN = 25.0  # the bail's input arm, along +y
+# The pitch drive (#967, the re-layout round the lids' shell): the belt behind each eye, between its two stowed lids, is
+# the only way out of the eye's sphere, so each push-rod leans down to the back through it, from the lever's ball to a
+# ball on the bail's arm; the bail's axis stands up behind the eyes, over the lid servos' cases and under the cranium
+# tray, each arm hanging forward and down from it, square to its rod at rest (over the pitch and the yaw the rod meets
+# the arm at 70 deg or more and the lever at 50, the pitch bar its horn and the input arm at 51); the input arm leans
+# down to the back over the lid servos, to the pitch bar from the pitch horn, which stays where it was. (y, z) each,
+# inferred, from the rough CAD of the layout (#967, comment 7209502441)
+BAIL = (50.9, 23.7)  # the bail's axis
+# each arm's ball at rest, 24.5 mm from the axis: 1.5 mm forward of the layout's, so the rod's cup stays 2.3 mm from
+# its lid servo's case at the pitch's upper end (0.9 there)
+BAIL_BALL = (38.2, 2.7)
+BAIL_IN, BAIL_IN_DEG = 30.0, -15.0  # the input arm: mm, deg from +y toward +z
+BAIL_TIP = (
+    BAIL[0] + BAIL_IN * math.cos(math.radians(BAIL_IN_DEG)),
+    BAIL[1] + BAIL_IN * math.sin(math.radians(BAIL_IN_DEG)),
+)  # its pin, the pitch bar's
 # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
 BAIL_END = 12.0 * K
-# the frame is cut away this far round the bail's axis where its rod passes the pitch servo's collar: the rod reaches
-# 5.0 mm about its axis and turned through the collar's rim at pitch -15 (#967); past the rim's 5.95 mm, so no sliver
-BAIL_ROOM = 6.3
-PITCH_HORN = (BAIL[0] + BAIL_IN - CRANK, -20.0)  # (y, z): its arm along +y, the pitch bar straight up to the input arm
+PITCH_HORN = (72.25, -20.0)  # its arm along +y at rest: where the bail's old axis put it (60 behind the eyes, #838)
 CAP_R, CAP_HALF = MORTY_EYE_R, 45.0  # each Character's largest eyeball cap, Morty's eye: a sphere segment this wide
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
@@ -77,7 +92,10 @@ LID_EDGES = (LID_SHUT - PITCH, LID_REST + PITCH)
 LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits on the eye
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
-LID_HORN = (37.0, -12.0)  # its case 1 mm behind the jaw's hinge (#901)
+# #967: its case stood across the belt behind the eye, where the push-rod, the tie-bar and the yaw bearing's rail have
+# to leave the eye's sphere once the lids stow under Morty's skin; now behind that belt, under the bail's axis (the
+# layout's 56.5, -8.5, comment 7209502441, a tenth up: its horn's hub 2.0 mm over the pan's moving cap, 1.9 before)
+LID_HORN = (56.5, -8.4)
 
 
 # the upper lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's)
@@ -92,11 +110,12 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 
 # The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
 # four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
-# upper about 0.8x. Inferred, searched (#901) for the lower lid's edge from its rest to shut, its link meeting the crank
-# at 55 deg or more, every pin behind the cap's flat back however the eye turns and above the frame's plate, and
-# building on every OCCT CI and the GX10 run
-LINK_PIN = (29.7, -17.3)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (3.3, -14.9)  # 0.4 mm rearward, 0.1 up: its boss clears the cap while the rest edge stays on its rim
+# upper about 0.8x. Inferred, searched (#901, again for the horn's axis behind the belt, #967) for the lower lid's edge
+# from its rest on the cap's rim to shut, its link meeting the crank at 52 deg or more (54 before: the bar now keeps
+# 8 mm off where the tie-bar's cross-bar is to pass behind the eyes, y 36.5 to 46.5, z -16.9 to -13.9), every pin behind
+# the cap's flat back however the eye turns and above the frame's plate
+LINK_PIN = (41.0, -3.0)  # (y, z) of the link's pin on the bar at rest
+LOWER_PIN = (8.24, -11.32)
 _LOWER = linkage.four_bar(
     (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
@@ -208,20 +227,19 @@ def gaze(yaw, pitch):
 
 
 # The pitch drive: horn -> pitch bar -> the bail's input arm (a planar four-bar about x).
-_PITCH = linkage.four_bar(
-    (0, *PITCH_HORN), (0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, *BAIL), (0, BAIL[0] + BAIL_IN, BAIL[1]), g.X
-)
+_PITCH = linkage.four_bar((0, *PITCH_HORN), (0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, *BAIL), (0, *BAIL_TIP), g.X)
+_BAIL_ARM = np.array([0.0, *np.subtract(BAIL_BALL, BAIL)])  # from the bail's axis to each arm's ball, at rest
 
 
-def _pitch(yaw, bail, side, arm=LEVER):
-    """The core's pitch where the push-rod from the bail arm (`arm` long, at `bail` deg about +x) reaches the lever's
-    ball with the eye at `yaw`: the rod is as long as at rest."""
+def _pitch(yaw, bail, side, scale=0.0):
+    """The core's pitch where the push-rod from the bail arm (at `bail` deg about +x, `scale` longer) reaches the
+    lever's ball with the eye at `yaw`: the rod is as long as at rest."""
     c = np.array(EYE[side])
-    pivot = np.array([c[0], *BAIL])
-    rod = math.dist(pivot + (0, 0, arm), c + (0, 0, LEVER))
-    pin = pivot + _rot(g.X, bail) @ (0, 0, arm)
+    pivot, arm = np.array([c[0], *BAIL]), _BAIL_ARM * (1 + scale)
+    rod = math.dist(pivot + arm, c + (0, 0, LEVER))
+    pin = pivot + _rot(g.X, bail) @ arm
     reach = lambda p: math.dist(pin, c + core(yaw, p) @ (0, 0, LEVER)) - rod  # noqa: E731
-    return brentq(reach, -bail - 30, -bail + 30)
+    return brentq(reach, -45, 45)  # the rod runs back from the ball: its reach grows with the pitch all the way
 
 
 def eyes(yaw_servo, pitch_servo, scale=0.0):
@@ -231,8 +249,7 @@ def eyes(yaw_servo, pitch_servo, scale=0.0):
     l, r = EYE["L"], EYE["R"]
     tie = linkage.four_bar(l, (l[0], CRANK, 0), r, (r[0], CRANK * (1 + scale), 0), g.Z)
     yaws = {"L": yaw_servo, "R": tie(yaw_servo)[0]}
-    arms = {"L": LEVER, "R": LEVER * (1 + scale)}
-    return {s: (yaws[s], _pitch(yaws[s], bail, s, arms[s])) for s in "LR"}
+    return {s: (yaws[s], _pitch(yaws[s], bail, s, scale * (s == "R"))) for s in "LR"}
 
 
 def servos(yaw, pitch):
@@ -272,7 +289,7 @@ def moved(lid, pitch, yaw=0.0):
     bail, a, b = _PITCH(servo)
     out["pitch horn:1"] = linkage.rotation(g.X, servo, (0, *PITCH_HORN))
     out["bail:1"] = linkage.rotation(g.X, bail, (0, *BAIL))
-    out["pitch bar:1"] = _carry((0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, BAIL[0] + BAIL_IN, BAIL[1]), a, b)
+    out["pitch bar:1"] = _carry((0, PITCH_HORN[0] + CRANK, PITCH_HORN[1]), (0, *BAIL_TIP), a, b)
     for s, (y, p) in eyes(yaw_servo, servo).items():
         x = EYE[s][0]
         yoke = linkage.rotation(g.Z, y, (x, 0, 0))
@@ -280,7 +297,7 @@ def moved(lid, pitch, yaw=0.0):
             out[f"{s} yaw yoke:1"] = yoke
         core_m = yoke @ linkage.rotation(g.X, -p, (x, 0, 0))  # as core()
         out[f"{s} eyeball core:1"] = out[f"{s} eyeball cap:1"] = core_m
-        lever, arm = (x, 0, LEVER), (x, BAIL[0], BAIL[1] + LEVER)
+        lever, arm = (x, 0, LEVER), (x, *BAIL_BALL)
         rod = (core_m @ [*lever, 1])[:3], (out["bail:1"] @ [*arm, 1])[:3]
         out[f"{s} push-rod:1"] = _carry(lever, arm, *rod)
     return out
@@ -288,6 +305,27 @@ def moved(lid, pitch, yaw=0.0):
 
 def _angle(a, b):
     return math.degrees(math.acos(min(1.0, float(np.dot(a, b)))))
+
+
+def _sin(u, v):
+    """The sine of the angle two links meet at: the share of a pin's play along one that turns the other."""
+    return float(np.linalg.norm(np.cross(u, v)) / np.linalg.norm(u) / np.linalg.norm(v))
+
+
+def _pitch_play(yaw, pitch, c):
+    """Degrees the L eye's pitch can stray at (yaw, pitch) with each of the pitch drive's pins `c` mm loose: the pitch
+    bar's two stray the bail's input arm, which the bail's arm and the push-rod carry to the eye as they gear it there;
+    the push-rod's two balls stray the lever. Each through the angle its link meets its arm at (#967: the leaned rod
+    is square to neither)."""
+    servo = servos(yaw, pitch)[1]
+    bail, a, b = _PITCH(servo)
+    x = EYE["L"][0]
+    ball = np.array([x, 0, 0]) + core(yaw, pitch) @ (0, 0, LEVER)
+    pin = np.array([x, *BAIL]) + _rot(g.X, bail) @ _BAIL_ARM
+    gear = abs(_pitch(yaw, bail + 0.5, "L") - _pitch(yaw, bail - 0.5, "L"))  # the eye's degrees per degree of bail
+    bar = 2 * c / BAIL_IN / _sin(np.subtract(b, a), np.subtract(b, (0, *BAIL)))
+    rod = 2 * c / LEVER / _sin(pin - ball, ball - (x, 0, 0))
+    return math.degrees(gear * bar + rod)
 
 
 def _grid(n_yaw=11, n_pitch=7):
@@ -300,11 +338,11 @@ def _moving(yaw, pitch):
     rot = core(yaw, pitch)
     ball = rot @ (0, 0, LEVER)
     bail = _PITCH(servos(yaw, pitch)[1])[0]
-    pin = np.array([0, *BAIL]) + _rot(g.X, bail) @ (0, 0, LEVER)  # the bail arm's ball, behind this eye
+    pin = np.array([0, *BAIL]) + _rot(g.X, bail) @ _BAIL_ARM  # the bail arm's ball, behind this eye
     x, bottom = YOKE["inner"] + YOKE["wall"] / 2, -(YOKE["inner"] + YOKE["wall"])
     arm_r = math.hypot(YOKE["wall"] / 2, YOKE["half_y"])
     yaw_rot = _rot(g.Z, yaw)
-    out = [(rot @ (0, 0, CORE_R), ball, BALL_R), (ball, pin, BALL_R + 1.5)]
+    out = [(rot @ (0, 0, CORE_R), ball, BALL_R), (ball, pin, ROD_R)]
     out += [(yaw_rot @ (s * x, 0, YOKE["half_y"]), yaw_rot @ (s * x, 0, bottom), arm_r) for s in (-1, 1)]
     return out + [((0, 0, bottom), (0, 0, YOKE["stem_z"]), YOKE["stem_r"])]
 
@@ -345,14 +383,15 @@ def report():
     turns the gaze the way the play may, so the two add."""
     grid = _grid()
     c = fits.CLEARANCE[0]  # every pin at the tightest agreed fit, its play counted at the arm it turns
-    play = (math.degrees(2 * c / CRANK), math.degrees(c * (2 / BAIL_IN + 2 / LEVER)))
-    gaze_err, cross, verge = 0.0, 0.0, 0.0
+    gaze_err, cross, verge, play = 0.0, 0.0, 0.0, (math.degrees(2 * c / CRANK), 0.0)
     for yaw, pitch in grid:
         cmd = servos(yaw, pitch)
         y, p = eyes(*cmd)["L"]
+        here = _pitch_play(yaw, pitch, c)
+        play = (play[0], max(play[1], here))  # the report's: the pitch's worst
         for sy in (-1, 1):
             for sp in (-1, 1):
-                gaze_err = max(gaze_err, _angle(gaze(yaw, pitch), gaze(y + sy * play[0], p + sp * play[1])))
+                gaze_err = max(gaze_err, _angle(gaze(yaw, pitch), gaze(y + sy * play[0], p + sp * here)))
         cross = max(cross, abs(eyes(yaw, servos(0, pitch)[1])["L"][1] - pitch))
         e = eyes(*cmd, scale=PRINT_SCALE)
         verge = max(verge, _angle(gaze(*e["L"]), gaze(*e["R"])))

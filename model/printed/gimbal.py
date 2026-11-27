@@ -12,7 +12,7 @@ import numpy as np
 from OCP.gp import gp_Trsf
 from scipy.spatial import ConvexHull
 
-from model import envelopes, fits, gates, neck
+from model import envelopes, fits, gates, linkage, neck
 from model import gimbal as gm
 from model.envelopes import box
 from model.printed import bone
@@ -29,10 +29,25 @@ TIE_BONE, ROD_BONE, LID_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0)
 CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
     ((4.5, 4.2), (3.0, 3.5)),
     ((4.0, 7.0), (3.0, 6.0)),
-    ((2.4, 3.3), (2.2, 3.2)),
+    ((2.4, 3.7), (2.2, 3.6)),
     ((3.5, 6.5), (3.0, 5.0)),
 )
+# The lid drives' Bones' longest span, mm (#967): one of their sizes 30 to 36 mm long comes out of OCCT invalid at
+# most of bone.chain's tries, at any angle (the lid bar's carved empty on macOS; all eight of a 32.2 mm spoke's failed
+# on Linux), and one 28 mm or shorter at none. Not lower: the upper lid's 31.5 mm spoke builds as one on both, and
+# as two it carved in pieces
+LID_SPAN = 32.0
 MM = 0.001  # MuJoCo's metres per mm
+NECK = gm.BALL_R + 1.2  # a ball's centre from what its neck stands on
+# The push-rod leans (#967), so it lies on its own bed, the plane under both its cups: the lever's cup's mouth on it,
+# this far under that ball's centre, and the bail's cup standing on it mouth up, its socket's floor 0.8 mm thick
+ROD_BED = (2.0, gm.BALL_R + 0.1 + 0.8)
+# each bail arm's way down from the axis, deg from +y toward +z: steeper than the line to its ball, so it passes its
+# lid servo's top front corner at the pitch's upper end; its ball stands off the arm's round end on its neck
+BAIL_ARM_DEG = -128.0
+# the bail's arms' width in their planes, the input arm's too (ARM before): the leaned bar loads the input arm 1.3
+# times the horn's stall, the leaned rod its arm 1.5 times
+BAIL_ARM_W = 7.0
 CAP_BACK = gm.CAP_R * math.cos(math.radians(gm.CAP_HALF))  # the cap's flat back, on the core's seat
 
 
@@ -50,18 +65,66 @@ def ball(r, at=(0, 0, 0)):
     return cq.Workplane().add(cq.Solid.makeSphere(r, cq.Vector(*at), angleDegrees1=-90, angleDegrees2=90))
 
 
-def ball_on(base, at):
-    """A ball on a neck up from z `base` to its centre `at`: the push-rod's cup closes round it from above."""
-    x, y, z = at
-    return ball(gm.BALL_R, at).union(cyl("z", (x, y, 0), NECK_R, (base, z)))
+def rod(a, b, r):
+    """A round rod of radius r from a to b."""
+    a, b = cq.Vector(*map(float, a)), cq.Vector(*map(float, b))
+    return cq.Workplane().add(cq.Solid.makeCylinder(r, (b - a).Length, a, b - a))
+
+
+def ball_on(foot, at):
+    """A ball on a neck from `foot` to its centre `at`: the push-rod's cup closes round it from the far side."""
+    return ball(gm.BALL_R, at).union(rod(foot, at, NECK_R))
+
+
+def rod_bed():
+    """4x4 from the push-rod's print frame (its bed z 0, the lever's ball over the origin, the bail's along +y) to
+    where it is drawn: at x 0 about its eye's centre, leaning from the lever's ball down to the bail's (#967)."""
+    a, b = np.array([0.0, 0.0, gm.LEVER]), np.array([0.0, *gm.BAIL_BALL])
+    lean = math.atan2(b[2] - a[2], b[1] - a[1]) - math.asin((ROD_BED[1] - ROD_BED[0]) / math.dist(a, b))
+    m = linkage.rotation((1, 0, 0), math.degrees(lean))
+    m[:3, 3] = a - m[:3, :3] @ (0, 0, ROD_BED[0])
+    return m
+
+
+def bail_bed():
+    """4x4 from the bail's print frame (its axis x through the origin, its input arm along -y on the bed under its
+    rod, its arms rising) to the gimbal's: turned about its axis, the input arm on gm.BAIL_IN_DEG (#967)."""
+    m = linkage.rotation((1, 0, 0), gm.BAIL_IN_DEG - 180.0)
+    m[:3, 3] = (0, *gm.BAIL)
+    return m
+
+
+def bail_foot():
+    """(y, z) of each bail arm's round end's centre, in the gimbal's frame: BAIL_ARM_DEG from the axis, its round and
+    its ball's neck from the ball's centre."""
+    u = np.array([math.cos(math.radians(BAIL_ARM_DEG)), math.sin(math.radians(BAIL_ARM_DEG))])
+    ball_at = np.subtract(gm.BAIL_BALL, gm.BAIL)
+    along = float(ball_at @ u)
+    d = along - math.sqrt((NECK + BAIL_ARM_W / 2) ** 2 - float(ball_at @ ball_at) + along**2)  # the nearer crossing
+    return tuple(np.add(gm.BAIL, d * u))
+
+
+# the relief on the core's top (#967): pitched down 15 deg, the leaned push-rod's underside passes 16.9 mm from the
+# core's centre, 2.6 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
+# round the lever's axis, its side this far from the centre and facing (out, up) this way, 2 mm under the rod's bar
+# wherever the eye turns (fitted to its underside over the pitch and the yaw)
+CORE_RELIEF = (14.8, (0.661, 0.750))
 
 
 def core():
-    """The eyeball core: a ball, the seat its cap sits on (forward), the lever up the yaw axis to its ball, and the
-    pitch axle's bores along x."""
-    top = gm.LEVER - gm.BALL_R - 1.2
-    out = ball(gm.CORE_R).union(cyl("y", (0, 0, 0), gm.SEAT_R, (-CAP_BACK, -gm.CORE_R + 3)))
-    out = out.union(cyl("z", (0, 0, 0), LEVER_R, (gm.CORE_R - 3, top))).union(ball_on(top, (0, 0, gm.LEVER)))
+    """The eyeball core: a ball, the seat its cap sits on (forward), the lever up the yaw axis to its ball, whose neck
+    leans forward, square to the push-rod's bed (#967), a cone round the lever cut from its top where that rod passes,
+    and the pitch axle's bores along x."""
+    up = rod_bed()[:3, 2]  # the push-rod's bed's normal: its lever cup's mouth faces down it
+    at = np.array([0.0, 0.0, gm.LEVER])
+    foot = at - NECK * up
+    d, (ny, nz) = CORE_RELIEF
+    far = gm.CORE_R + 1  # the cone's section (out, z), past the ball
+    section = [(0.0, d / nz), (far, (d - ny * far) / nz), (far, far), (0.0, far)]
+    relief = cq.Workplane("YZ").polyline(section).close().revolve(360, (0, 0, 0), (0, 1, 0))
+    out = ball(gm.CORE_R).cut(relief)
+    out = out.union(cyl("y", (0, 0, 0), gm.SEAT_R, (-CAP_BACK, -gm.CORE_R + 3)))
+    out = out.union(rod(foot - 12.0 * up, foot, LEVER_R)).union(ball_on(foot, at))  # the lever, rooted in the cone
     for s in (-1, 1):
         out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, sorted((s * 8.0, s * (gm.CORE_R + 1)))))
     return out
@@ -126,49 +189,65 @@ def tie_bar(mechanical=False):
 
 @bone.grown
 def bail(mechanical=False):
-    """The bail: its rod on an x axis behind the eyes, an arm up to a ball behind each eye, the input arm back to the
-    pitch bar's pin, the shanks' bores in its ends. As Bones (#704): the rod and the input arm flat on the bed under
-    the rod, each arm a round strut; printed as drawn (its bores across the layers)."""
-    by, bz = gm.BAIL
-    end, top, tip = gm.EYE["L"][0] + gm.BAIL_END, gm.LEVER - gm.BALL_R - 1.2, by + gm.BAIL_IN
+    """The bail (#967): its rod on an x axis up behind the eyes, an arm down and forward from it to a ball on a neck
+    behind each eye, the input arm back to the pitch bar's pin, the shanks' bores in its ends. Drawn in its print
+    frame (bail_bed): the rod on the bed, the input arm along it, the arms rising. As Bones (#704): the rod and the
+    input arm flat on the bed under the rod, each arm a round strut; printed as drawn (its bores across the layers)."""
+    to_bed = np.linalg.inv(bail_bed())
+    end = gm.EYE["L"][0] + gm.BAIL_END
+    (_, fy, fz), (_, by, bz) = ((to_bed @ (0, *p, 1))[:3] for p in (bail_foot(), gm.BAIL_BALL))
     x0, x1 = gm.BAIL_INPUT_X
-    ix = (x0 + x1) / 2
+    ix, tip = (x0 + x1) / 2, -gm.BAIL_IN
     if not mechanical:
-        bed = bz - 3
-        out = bone.bone((-end, by, bed), (end, by, bed), *BAIL_ROD, heads=False)  # its ends flat on the uprights
+        bed = -3.0
+        out = bone.bone((-end, 0, bed), (end, 0, bed), *BAIL_ROD, heads=False)  # its ends flat on the uprights
         out = out.union(
-            bone.bone((ix, by, bed), (ix, tip, bed), *BAIL_INPUT).intersect(box((x0, x1), (0, 99), (bed, 99)))
+            bone.bone((ix, 0, bed), (ix, tip, bed), *BAIL_INPUT).intersect(box((x0, x1), (-99, 99), (bed, 99)))
         )
     else:
-        out = cyl("x", (0, by, bz), 3.0, (-end, end))
-        out = out.union(box((x0, x1), (by, tip), (bz - 3, bz + 3))).union(cyl("x", (0, tip, bz), 3.0, (x0, x1)))
+        out = cyl("x", (0, 0, 0), 3.0, (-end, end)).union(lid_mechanical([(0, 0), (tip, 0)], (x0, x1), BAIL_ARM_W))
     for s in (-1, 1):
         x = s * gm.EYE["L"][0]
         if (
             not mechanical
         ):  # its foot's head inside the rod, clear of its bed and its bore's end (#704: flush, Linux's fuse fails)
-            arm = bone.bone((x, by, bz + 0.5), (x, by, top - BAIL_ARM[0][0]), *BAIL_ARM, up=(0, 1, 0), round=True)
-            out = out.union(arm).union(ball_on(top - BAIL_ARM[0][0], (x, by, gm.LEVER)))
+            reach = math.hypot(fy, fz)
+            start = (x, 0.5 * fy / reach, 0.5 * fz / reach)
+            out = out.union(bone.bone(start, (x, fy, fz), *BAIL_ARM, up=(0, 1, 0), round=True))
         else:
-            out = out.union(box((x - 1.5, x + 1.5), (by - ARM / 2, by + ARM / 2), (bz, top)))
-            out = out.union(ball_on(top, (x, by, gm.LEVER)))
-        out = out.cut(cyl("x", (0, by, bz), gm.PIN_R, sorted((s * end, s * (end - 8)))))
-    return out.cut(cyl("x", (0, tip, bz), gm.PIN_R, (x0, x1)))
+            out = out.union(lid_mechanical([(0, 0), (fy, fz)], (x - 1.5, x + 1.5), BAIL_ARM_W))
+        out = out.union(ball_on((x, fy, fz), (x, by, bz)))
+        out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, sorted((s * end, s * (end - 8)))))
+    out = out.cut(cyl("x", (0, tip, 0), gm.PIN_R, (x0, x1)))
+    return _placed(out, bail_bed())
 
 
 @bone.carved
 def push_rod(mechanical=False):
-    """One push-rod (drawn at x 0): a rod back from the lever's ball to the bail arm's on its cups' rims, a cup round
-    each ball. Mechanical: a flat bar round the Bone's waist (#809); as a Bone (#703), carved from it."""
-    z, back = gm.LEVER, gm.BAIL[0]
-    rod = box((-2.5, 2.5), (0, back), (z - 2, z + 2.5))
+    """One push-rod (drawn at x 0): a rod leaning back from the lever's ball down to the bail arm's (#967), a cup round
+    each ball. Drawn on its bed (rod_bed): the lever's cup's mouth on it, the bail's cup standing on it on a skirt, its
+    mouth up to the bail's neck. Mechanical: a flat bar round the Bone's waist (#809); as a Bone (#703), carved from
+    it."""
+    at = rod_bed()
+    lo, hi = ROD_BED
+    back = math.sqrt(math.dist((0, gm.LEVER), gm.BAIL_BALL) ** 2 - (hi - lo) ** 2)
+    bar = box((-2.5, 2.5), (0, back), (0, 4.5))
     # as two Bones, each within bone.LONG: one Bone this long carved from its bar empty (#901)
-    out = rod if mechanical else bone.chain([(0, 0), (0, back / 2), (0, back)], *ROD_BONE, z=z - 2)
-    for y in (0.0, back):
-        out = out.union(ball(CUP_R, (0, y, z)).cut(box((-CUP_R, CUP_R), (y - CUP_R, y + CUP_R), (z - CUP_R, z - 2))))
-    for y in (0.0, back):
+    out = bar if mechanical else bone.chain([(0, 0), (0, back / 2), (0, back)], *ROD_BONE)
+    # the skirt: a cone 40 deg off upright from the bed up to where the cup's ball is as steep
+    lean = math.radians(40.0)
+    rise = hi - CUP_R * math.sin(lean)
+    flare = CUP_R * math.cos(lean)
+    skirt = cq.Solid.makeCone(flare - rise * math.tan(lean), flare, rise, cq.Vector(0, back, 0))
+    out = out.union(ball(CUP_R, (0, 0, lo))).union(ball(CUP_R, (0, back, hi))).union(cq.Workplane().add(skirt))
+    out = out.cut(box((-CUP_R, CUP_R), (-CUP_R, back + CUP_R), (-CUP_R, 0)))  # the bed
+    # the bail's cup's mouth, 2 mm past its ball's centre toward the bail's neck
+    neck = np.linalg.inv(at)[:3, :3] @ (0, *np.subtract(bail_foot(), gm.BAIL_BALL))
+    turn = linkage.rotation((1, 0, 0), math.degrees(math.atan2(neck[2], neck[1])) - 90.0, (0, back, hi))
+    out = out.cut(_placed(box((-CUP_R, CUP_R), (back - CUP_R, back + CUP_R), (hi + 2.0, hi + CUP_R + 1)), turn))
+    for y, z in ((0.0, lo), (back, hi)):
         out = out.cut(ball(gm.BALL_R + 0.1, (0, y, z)))
-    return out
+    return _placed(out, at)
 
 
 def link(a, b, x, mechanical=False, sizes=LID_BONE):
@@ -192,14 +271,14 @@ def lid_arms(points, x, mechanical=False, sizes=LID_BONE):
     return lid_mechanical(points, x) if mechanical else lid_bone(points, x, sizes)
 
 
-def lid_mechanical(points, x):
-    """Mechanical flat arms ARM wide through the (y, z) `points` in turn, filling the slab `x`, round at every joint."""
-    out = cyl("x", (0, *points[0]), ARM / 2, x)
+def lid_mechanical(points, x, w=ARM):
+    """Mechanical flat arms `w` wide through the (y, z) `points` in turn, filling the slab `x`, round at every joint."""
+    out = cyl("x", (0, *points[0]), w / 2, x)
     for a, b in zip(points, points[1:]):
-        side = np.array([a[1] - b[1], b[0] - a[0]]) * ARM / 2 / math.dist(a, b)
+        side = np.array([a[1] - b[1], b[0] - a[0]]) * w / 2 / math.dist(a, b)
         outline = [tuple(map(float, p)) for p in (a + side, b + side, b - side, a - side)]
         arm = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(outline).close().extrude(x[1] - x[0])
-        out = out.union(arm).union(cyl("x", (0, *b), ARM / 2, x))
+        out = out.union(arm).union(cyl("x", (0, *b), w / 2, x))
     return out
 
 
@@ -207,9 +286,13 @@ def lid_bone(points, x, sizes=LID_BONE):
     """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
     face, its joints' pins along x, as low as the slab (unclipped: OCCT's clip of one came out empty one way round): the
     lid drives' bars, links and spokes. Every other span's heads, from the first, are 5% smaller, inside its neighbours'
-    where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way."""
+    where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way.
+    A span longer than LID_SPAN is drawn as two Bones, each half as long."""
     assert sizes[0][1] < x[1] - x[0]
-    out = bone.chain(points, *sizes, swell=1.0)
+    halved = [points[0]]
+    for a, b in zip(points, points[1:]):
+        halved += [tuple(np.add(a, b) / 2)] * (math.dist(a, b) > LID_SPAN) + [b]
+    out = bone.chain(halved, *sizes, swell=1.0)
     # the bed's z onto x, its x and y onto the gimbal's y and z: a turn about (1, 1, 1), then into the slab
     return cq.Workplane().add(out.val().moved(_at([[0, 0, 1, x[0]], [1, 0, 0, 0], [0, 1, 0, 0]])))
 
@@ -218,7 +301,7 @@ def lid_bone(points, x, sizes=LID_BONE):
 def pitch_bar(mechanical=False):
     """The pitch bar: the pitch horn's pin up to the bail's input arm, mechanical or a Bone (#708)."""
     hy, hz = gm.PITCH_HORN
-    return link((hy + gm.CRANK, hz), (gm.BAIL[0] + gm.BAIL_IN, gm.BAIL[1]), gm.PITCH_BAR_X, mechanical)
+    return link((hy + gm.CRANK, hz), gm.BAIL_TIP, gm.PITCH_BAR_X, mechanical)
 
 
 def _slab(name, side=1):
@@ -287,8 +370,11 @@ def lower_lid(side, mechanical=False):
     """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
     lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
     span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    # outboard behind the cap, inboard over it: the rear-down route crossed the tie-bar as the lid closed (#937)
-    out = _lid(gm.LOWER_R, span, (-131.0, 160.0), "lower boss", gm.LOWER_PIN, mechanical)
+    # outboard behind the cap, inboard over it: the rear-down route crossed the tie-bar as the lid closed (#937).
+    # Inboard at 150 deg (160 before, #967): with the crank pin where the moved lid servo puts it, Linux's OCCT built
+    # no Bone to 160 as one span and carved it empty as two; to 150 it builds and carves as on macOS, and the shut
+    # lid passes 6.0 mm over the tie-bar (1.2 at 160)
+    out = _lid(gm.LOWER_R, span, (-131.0, 150.0), "lower boss", gm.LOWER_PIN, mechanical)
     return out if side == "L" else out.mirror("YZ")
 
 
@@ -308,6 +394,9 @@ def frame(mechanical=False):
 
     c, (bottom, top) = gm.EYE["L"][0], gm.PLATE_Z
     by, bz = gm.BAIL
+    # each bail upright in section (y, z), mechanical: twice as deep on the plate as at its boss, as it stands half
+    # as tall again as it did (#967)
+    upright = [(by - 8, top), (by + 8, top), (by + 4, bz), (by + 4, bz + 4), (by - 4, bz + 4), (by - 4, bz)]
     (y0, y1), edge, stem = gm.PLATE_Y, c + gm.LID_X["upright"][1], gm.YOKE["stem_z"]
     jy, jz = neck.JAW
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
@@ -336,7 +425,7 @@ def frame(mechanical=False):
         # at the plate's level, so no convex hull of it with the bearing reaches the tie-bar over it (#901)
         out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), gm.PLATE_Z))
         if mechanical:
-            out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4)))
+            out = out.union(cq.Workplane("YZ", origin=(bx[0], 0, 0)).polyline(upright).close().extrude(bx[1] - bx[0]))
             # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
             out = out.union(box(ux, (-4, 4), (-12, 0))).union(cyl("x", (0, 0, 0), 4.0, ux))
             out = out.union(box(ux, (0, 8), (top, -6)))  # up behind the head: the two meet over 6 mm
@@ -370,8 +459,9 @@ def frame(mechanical=False):
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
     for sign in (-1, 1):
         out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in neck.JAW_X)))
-    servos = [gm.servo_matrix(face, shaft, tab) for face, shaft, tab, _ in gm.drives().values()]
-    servos.append(gm.servo_matrix(*neck.drives()["mouth"][:3]))  # the mouth's, hanging behind the jaw (#838)
+    drives = {label: gm.servo_matrix(face, shaft, tab) for label, (face, shaft, tab, _) in gm.drives().items()}
+    lids = [m for label, m in drives.items() if label.endswith(" lid")]
+    servos = [*drives.values(), gm.servo_matrix(*neck.drives()["mouth"][:3])]  # the mouth's, behind the jaw (#838)
     tz0 = envelopes.SERVO["tabs"][2][0]
     lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
     out = out.union(box((lo[0], hi[0]), tuple(sorted((lo[1], y0 + 1))), gm.PLATE_Z))
@@ -385,11 +475,13 @@ def frame(mechanical=False):
         out = out.union(box(bar, (y0 - gm.WINDOW_BAR, y0 + 1), gm.PLATE_Z))
     for m in servos:
         out = out.cut(passes(m))
-    for m in servos:  # on the plate's top, or hanging from its underside
-        out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
+    for m in servos:  # on the plate's top, or hanging from its underside; a lid servo's on its stand (#967)
+        lid = any(m is other for other in lids)
+        out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom, posts=not lid))
+        if lid:
+            out = out.union(lid_stand(m, top))
     for s, x in zip((-1, 1), inner, strict=True):
         out = out.cut(box(sorted((x, s * gm.WINDOW_X)), (y0, gm.WINDOW_Y), gm.PLATE_Z))
-    out = out.cut(cyl("x", (0, by, bz), gm.BAIL_ROOM, (c + 3, c + gm.BAIL_END - 3)))  # the bail's rod past the collar
     for (x0, x1), depth, flare in gm.BACK_POCKETS:  # room for the neck past the pan's ends (#967)
         pocket = [(x0, y1 + 1), (x0, y1 - depth), (x1, y1 - depth), (x1 + flare, y1), (x1 + flare, y1 + 1)]
         out = out.cut(cq.Workplane("XY", origin=(0, 0, bottom)).polyline(pocket).close().extrude(top - bottom))
@@ -412,10 +504,26 @@ def passes(m):
     return _moved(local.union(top), m)
 
 
-def collar(m, floor):
+def lid_stand(m, floor):
+    """What a lid servo's collar stands on (#967): behind the belt the R one hangs over the hub on the cranium tray's
+    riser, so no post can go down under its tab holes. A shelf under the servo's case, from the collar's lower edge
+    out past the case's outer end, on a post down to `floor` (the plate) there, outboard of the hub. Both sides alike."""
+    case, tabs = (
+        (m @ np.c_[list(itertools.product(*envelopes.SERVO[k])), np.ones(8)].T)[:3].T for k in ("case", "tabs")
+    )
+    side = np.sign(case[:, 0].sum())  # the case's side of the head
+    outer = side * np.abs(case[:, 0]).max()
+    inner = side * np.abs(tabs[:, 0]).max()  # the tab plate's face on the case's side: the collar is on it
+    foot = tabs[:, 2].min() - 2.0  # the collar's lower edge
+    y = (case[:, 1].min() + 2.0, case[:, 1].max() - 2.0)
+    shelf = box(sorted((inner, outer + side * 4.0)), y, (foot, foot + 3.0))
+    return shelf.union(box(sorted((outer + side * 1.0, outer + side * 4.0)), y, (floor, foot + 3.0)))
+
+
+def collar(m, floor, posts=True):
     """A plate round the servo's case at its tab plate, with its two screw holes, on a post under each hole down (or up)
     to `floor`, but where the servo's case stands between the hole and the floor: under the tabs, or over them when
-    the floor is on their side (a servo hanging under the plate)."""
+    the floor is on their side (a servo hanging under the plate). `posts` False: the plate alone (lid_stand)."""
     s = envelopes.SERVO
     (x0, x1), (y0, y1), _ = s["case"]
     (tx0, tx1), (ty0, ty1), (tz0, _) = s["tabs"]
@@ -427,7 +535,7 @@ def collar(m, floor):
     out = _moved(local, m)
     case = (m @ np.c_[list(itertools.product(*s["case"])), np.ones(8)].T)[:3].T
     clo, chi = case.min(axis=0), case.max(axis=0)
-    for hole in s["tab_holes"]:
+    for hole in s["tab_holes"] if posts else ():
         lo, hi = post(m, hole, z)
         span = (floor, hi[2]) if floor < lo[2] else (lo[2], floor)
         if (lo[:2] < chi[:2]).all() and (hi[:2] > clo[:2]).all() and span[0] < chi[2] and span[1] > clo[2]:
@@ -448,6 +556,11 @@ def post(m, hole, z=(0, 3)):
 def _moved(shape, m):
     t = cq.Matrix([list(map(float, row)) for row in m[:3]])
     return cq.Workplane().add(shape.val().transformGeometry(t))
+
+
+def _placed(shape, m):
+    """`shape` moved by the rigid 4x4 m: its geometry stays exact."""
+    return cq.Workplane().add(shape.val().moved(_at(m)))
 
 
 def at_rest(mechanical=False):
