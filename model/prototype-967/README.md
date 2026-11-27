@@ -3,7 +3,7 @@
 Not for main. The primary source behind the result posted on
 https://github.com/yellow-pine/noggin/issues/967 (the eye gimbal re-laid round the lids' swept shell).
 
-Run from a worktree of PR #1029's branch with `just ours` built, the scripts copied to `/tmp/967-proto` and the last
+Run from a worktree of PR #1029's branch with `just ours` built, the scripts copied to `/tmp/967-proto` without their `.txt` (they are kept as text so the lint leaves a throwaway alone) and the last
 implementer's `/tmp/967-lids/common.py` (here as `common_967_lids.py`) beside the private sculpt file:
 
 1. `eyefit.py`: each eyeball's centre and radius fitted to its dome.
