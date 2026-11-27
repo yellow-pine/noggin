@@ -40,9 +40,14 @@ CRANK_BONE, BAIL_ROD, BAIL_ARM, BAIL_INPUT = (
 LID_SPAN = 32.0
 MM = 0.001  # MuJoCo's metres per mm
 NECK = gm.BALL_R + 1.2  # a ball's centre from what its neck stands on
+# Each push-rod's cup closes on its ball this far past the ball's centre. Its mouth turns round the neck the ball
+# stands on, up to 21 deg off its own axis at the lever's (the pitch up with the yaw at an end): at 1.85 its rim keeps
+# the lids' room from that neck, 0.54 mm there (at 2.0, 0.36 at the lever's and 0.48 at the bail's, #967), and the ball
+# still snaps in past a lip 0.51 mm proud (0.63)
+CUP_MOUTH = 1.85
 # The push-rod leans (#967), so it lies on its own bed, the plane under both its cups: the lever's cup's mouth on it,
-# this far under that ball's centre, and the bail's cup standing on it mouth up, its socket's floor 0.8 mm thick
-ROD_BED = (2.0, gm.BALL_R + 0.1 + 0.8)
+# CUP_MOUTH under that ball's centre, and the bail's cup standing on it mouth up, its socket's floor 0.8 mm thick
+ROD_BED = (CUP_MOUTH, gm.BALL_R + 0.1 + 0.8)
 # each bail arm's way down from the axis, deg from +y toward +z: steeper than the line to its ball, so it passes its
 # lid servo's top front corner at the pitch's upper end; its ball stands off the arm's round end on its neck
 BAIL_ARM_DEG = -128.0
@@ -256,10 +261,10 @@ def push_rod(mechanical=False):
     skirt = cq.Solid.makeCone(flare - rise * math.tan(lean), flare, rise, cq.Vector(0, back, 0))
     out = out.union(ball(CUP_R, (0, 0, lo))).union(ball(CUP_R, (0, back, hi))).union(cq.Workplane().add(skirt))
     out = out.cut(box((-CUP_R, CUP_R), (-CUP_R, back + CUP_R), (-CUP_R, 0)))  # the bed
-    # the bail's cup's mouth, 2 mm past its ball's centre toward the bail's neck
+    # the bail's cup's mouth, CUP_MOUTH past its ball's centre toward the bail's neck
     neck = np.linalg.inv(at)[:3, :3] @ (0, *np.subtract(bail_foot(), gm.BAIL_BALL))
     turn = linkage.rotation((1, 0, 0), math.degrees(math.atan2(neck[2], neck[1])) - 90.0, (0, back, hi))
-    out = out.cut(_placed(box((-CUP_R, CUP_R), (back - CUP_R, back + CUP_R), (hi + 2.0, hi + CUP_R + 1)), turn))
+    out = out.cut(_placed(box((-CUP_R, CUP_R), (back - CUP_R, back + CUP_R), (hi + CUP_MOUTH, hi + CUP_R + 1)), turn))
     for y, z in ((0.0, lo), (back, hi)):
         out = out.cut(ball(gm.BALL_R + 0.1, (0, y, z)))
     return _placed(out, at)
