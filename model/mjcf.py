@@ -39,6 +39,9 @@ FINE_MM = {
     # the jaw's arms turn 2 mm outside its lugs and the plate's edge (model/neck.py JAW_X): pieces within 1 mm of the
     # frame, not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869)
     f"gimbal frame{g.MECHANICAL}": 1.0,
+    # and the jaw's own pieces as near it (#967): at CoACD's default they strayed far enough that, once the frame was
+    # cut anew, the hero's opening jaw read 1.94 mm into the frame across that 2 mm gap (run 45944124292)
+    f"jaw{g.MECHANICAL}": 1.0,
 } | {
     # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
     # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
