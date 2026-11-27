@@ -50,7 +50,7 @@ FINE_MM = {
 # The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many
 # pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read
 # the core 1.6 mm deep in it
-MAX_PIECES = dict.fromkeys((f"{p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
+MAX_PIECES = {f"bail{g.MECHANICAL}": 12}
 # The parts CoACD cuts as they are meshed. Its "auto" preprocess rebuilds from voxels a mesh it takes for no manifold,
 # 0.55 of a voxel fatter all round, a voxel 1/100 of the part's longest side (docs/research/2026-11-01-coacd-tuning.md
 # 1). The jaw's mesh is closed, but its triangles cross where its Bones join, so its pieces came out 0.5 mm fat: its

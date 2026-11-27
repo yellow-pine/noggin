@@ -22,13 +22,16 @@ from scipy.spatial.transform import Rotation
 from model import fits, linkage
 from model import geometry as g
 
-# Morty at life size (#872 step 3 round 2, his sculpt x7.126, #901): his eye a sphere this radius (37.1 fitted, #967:
-# the cap and the lids follow with the lids' re-layout); its outline's radius about its centre every 30 deg from +x
-# (outward on the L eye) toward up, seen from the front; his eyeballs' centres this far apart
+# Morty at life size (#872 step 3 round 2, his sculpt x7.126, #901): his eye a sphere this radius (the cap and the lids
+# follow his fitted ball, MORTY_BALL_R, with the lids' re-layout, #967); its outline's radius about its centre every
+# 30 deg from +x (outward on the L eye) toward up, seen from the front; his eyeballs' centres this far apart
 MORTY_EYE_R = 40.4
+MORTY_BALL_R = 37.1  # his eyeball, a sphere fitted to each dome of his Sculpt (#967, model/review MORTY_EYES)
 MORTY_OUTLINE = (39.5, 39.0, 39.0, 37.5, 35.5, 33.0, 31.0, 29.5, 30.0, 32.0, 35.0, 37.5)
 SPACING = 73.3  # eye centres apart: his Sculpt's eyeballs', each fitted to its dome (#967, model/review MORTY_EYES)
-K = round(MORTY_EYE_R / 27.0, 1)  # the eye's growth, x1.5, from the 27 mm cap the gimbal was first drawn round (#630)
+# the eye's growth, x1.4, from the 27 mm cap the gimbal was first drawn round (#630): the core, its lever and the yoke
+# are sized to his eyeball's own radius (x1.5, to the 40.4 mm cap's, before #967), so they turn inside the lids' shell
+K = round(MORTY_BALL_R / 27.0, 1)
 EYE = {"L": (SPACING / 2, 0.0, 0.0), "R": (-SPACING / 2, 0.0, 0.0)}
 SERVO_DEG = 90.0  # a servo's travel either side of its centre
 YAW, PITCH = 25.0, 15.0  # each eye's range, +-: the neck joins larger gaze shifts (#51)
@@ -39,10 +42,28 @@ LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
 # a push-rod's reach about the line between its balls: its cups' 1.5 mm walls, and the skirt its bail cup stands on
 # its bed with (#967, model/printed/gimbal.py push_rod)
 ROD_R = BALL_R + 1.7
-# yoke U from below; stem bottom: the U grows with the core, the stem keeps its foot on the frame's plate (#901)
-YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0, "stem_r": 4.0, "stem_z": -27.0}
-YAW_CRANK_Z = (-27.0, -24.0)  # the yokes' cranks; the tie-bar under them, the yaw horn's outer face under that
-TIE_Z = (-30.0, -27.0)
+YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from below, round the core
+# The yaw drive round the lids' shell (#967, the re-layout): what the hidden lids and their cap will sweep, a shell this
+# far from each eye's centre, nothing else may cross but in the belt behind the eye, between the two stowed lids (under
+# LIDS_BELT deg about the eye line from forward, down positive... the lower lid's back edge) and between the eyes. So
+# each yoke has no stem: its crank lies at its bottom bar's level, and it turns on a post (POST_R) on the yaw bearing's
+# rail, a strip of a sphere (RAIL_R) inside the shell, from under the yoke back and inboard to the belt, where it leaves
+# the shell RAIL_EXIT (deg inboard along the eye line, deg about it from forward) to a pylon on the plate. The tie-bar
+# has a finger from each yoke's crank pin, under the crank (FINGER_Z), back and up inside the shell and out through
+# the belt (FINGER: its (y, z) line, FINGER_X outboard of the pin) to a cross-bar behind the eyes (CROSS_Y, CROSS_Z),
+# and a tail down the midline to the yaw horn's pin, which stays in TIE_Z with the horn and its servo. Inferred, from the
+# rough CAD of the layout (#967, comment 7209502441)
+LIDS_SHELL = (35.8, 38.0)
+YAW_CRANK_Z = (-(YOKE["inner"] + YOKE["wall"]), -YOKE["inner"])  # the yokes' cranks, at their bottom bars' level
+FINGER_Z = (YAW_CRANK_Z[0] - 3.0, YAW_CRANK_Z[0])  # the tie-bar's fingers' pins, under the cranks
+TIE_Z = (-30.0, -27.0)  # the tie-bar's tail at the yaw horn's pin, the horn's outer face under it
+POST_R = 4.5
+RAIL_R = (LIDS_SHELL[0] - 2.0, LIDS_SHELL[0] - 0.5)
+RAIL_EXIT = (25.0, -150.0)
+FINGER_X = (0.0, 8.0)
+CROSS_Y, CROSS_Z = (38.5, 46.5), (-16.0, -12.0)
+# from its pin, at CRANK back of the eye's centre: level under the crank, up at 43 deg, level out through the belt
+FINGER = ((19.5, sum(FINGER_Z) / 2), (30.0, sum(CROSS_Z) / 2), (CROSS_Y[0] + 1.0, sum(CROSS_Z) / 2))
 # the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684) and behind the lower
 # lids' sweep (#901); near enough that the tie-bar from its pin to each yoke's leans 23.8 deg off x, so each crank meets
 # it at 41.2 deg or more over the yaw's range (the MuJoCo report's floor is 40; 22 read 33.8, #1003)
@@ -64,7 +85,7 @@ BAIL_TIP = (
     BAIL[1] + BAIL_IN * math.sin(math.radians(BAIL_IN_DEG)),
 )  # its pin, the pitch bar's
 # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
-BAIL_END = 12.0 * K
+BAIL_END = 18.0
 PITCH_HORN = (72.25, -20.0)  # its arm along +y at rest: where the bail's old axis put it (60 behind the eyes, #838)
 CAP_R, CAP_HALF = MORTY_EYE_R, 45.0  # each Character's largest eyeball cap, Morty's eye: a sphere segment this wide
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred)
@@ -334,7 +355,7 @@ def _grid(n_yaw=11, n_pitch=7):
 
 def _moving(yaw, pitch):
     """The capsules (a, b, r) inside the L lid at the eye's pose, about its centre: the lever and its ball, the
-    push-rod with its sockets, the yoke's arms and stem."""
+    push-rod with its sockets, the yoke's arms and the post it turns on."""
     rot = core(yaw, pitch)
     ball = rot @ (0, 0, LEVER)
     bail = _PITCH(servos(yaw, pitch)[1])[0]
@@ -344,7 +365,7 @@ def _moving(yaw, pitch):
     yaw_rot = _rot(g.Z, yaw)
     out = [(rot @ (0, 0, CORE_R), ball, BALL_R), (ball, pin, ROD_R)]
     out += [(yaw_rot @ (s * x, 0, YOKE["half_y"]), yaw_rot @ (s * x, 0, bottom), arm_r) for s in (-1, 1)]
-    return out + [((0, 0, bottom), (0, 0, YOKE["stem_z"]), YOKE["stem_r"])]
+    return out + [((0, 0, bottom), (0, 0, -RAIL_R[0]), POST_R)]
 
 
 def lid_points(edge, n=48, radii=LID_R, span=LID_SPAN):

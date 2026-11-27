@@ -45,7 +45,7 @@ PARTS = {
 # The Skeleton drawn as Bones (#704, #708): each builder's switch `mechanical` draws its mechanical style (#805), the
 # same interfaces; PARTS holds it under the stem's mechanical name (geometry.MECHANICAL)
 STYLED = {
-    **{stem: PARTS[stem] for stem in ("yaw yoke", "tie-bar", "bail", "push-rod", "pitch bar")},
+    **{stem: PARTS[stem] for stem in ("yaw yoke", "bail", "push-rod", "pitch bar")},
     **{stem: PARTS[stem] for stem in ("lid bar", "lid link", "gimbal frame")},
     **{f"{s} {lid}": PARTS[f"{s} {lid}"] for s in "LR" for lid in ("upper lid", "lower lid")},
     **{stem: PARTS[stem] for stem in ("jaw", "jaw bar")},
@@ -54,6 +54,7 @@ STYLED = {
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
+    "tie-bar": "flat arms through the belt behind each eye, inside the lids' shell and the skull: none (#967)",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
     **dict.fromkeys(
         (

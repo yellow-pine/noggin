@@ -21,7 +21,8 @@ LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every print
 # the Bones' (head, waist) as (semi-width, height): the tie-bar's heads flattened to its 3 mm slab, each push-rod's
 # inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so); the
 # lid drives' (#698) low enough to lie within their 3 mm slabs
-TIE_BONE, ROD_BONE, LID_BONE = ((4.5, 4.2), (2.2, 2.6)), ((3.6, 5.5), (2.4, 4.0)), ((4.0, 2.9), (3.0, 2.6))
+ROD_BONE, LID_BONE = ((3.6, 5.5), (2.4, 4.0)), ((4.0, 2.9), (3.0, 2.6))
+TIE_BOSS = 3.5  # the tie-bar's bosses' radius, round each pin's bore
 # (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending, its waist 0.5 mm over the slab so the
 # slab's top cuts it flat (a crown grazing it, 2.9, fused invalid on aarch64's OCCT, #890); the bail's rod flat-bottomed
 # with the shanks' bores at its middle height, each arm a strut round in section, the input arm's tip round the pitch
@@ -104,11 +105,11 @@ def bail_foot():
     return tuple(np.add(gm.BAIL, d * u))
 
 
-# the relief on the core's top (#967): pitched down 15 deg, the leaned push-rod's underside passes 16.9 mm from the
-# core's centre, 2.6 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
+# the relief on the core's top (#967): pitched down 15 deg, the leaned push-rod's underside passes 16.1 mm from the
+# core's centre, 2.1 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
 # round the lever's axis, its side this far from the centre and facing (out, up) this way, 2 mm under the rod's bar
 # wherever the eye turns (fitted to its underside over the pitch and the yaw)
-CORE_RELIEF = (14.8, (0.661, 0.750))
+CORE_RELIEF = (14.0, (0.649, 0.760))
 
 
 def core():
@@ -132,9 +133,10 @@ def core():
 
 @bone.grown
 def yoke(mechanical=False):
-    """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, the stem down the yaw axis
-    with its crank (back) on the tie-bar. As Bones (#704): the U a cradle round the core, its underside flaring at 45
-    deg into the stem, the crank a Bone in its slab; printed as drawn, on the stem and the crank."""
+    """The yaw yoke: a U from below round the core, the pitch axle's bores through its arms, its crank back from its
+    bottom bar, at the bar's level, to the tie-bar's finger under it (#967: no stem, the yaw shank's bore through the
+    bar, which turns on the frame's post). As Bones (#704): the U a cradle round the core, its underside flaring at
+    40 deg from its flat foot, the crank a Bone in its slab; printed as drawn, on the foot and the crank."""
     y = gm.YOKE
     x0, x1, h = y["inner"], y["inner"] + y["wall"], y["half_y"]
     z = gm.YAW_CRANK_Z
@@ -142,12 +144,10 @@ def yoke(mechanical=False):
         r = math.hypot(x1, h)  # round the bosses' corners
         # the cone tangent to the cradle 40 deg under its equator: the overhang no more than that on either
         rt, zt = r * math.cos(math.radians(40)), -r * math.sin(math.radians(40))
-        flare = zt - (rt - y["stem_r"]) / math.tan(math.radians(40))
-        cone = cq.Solid.makeCone(y["stem_r"], rt, zt - flare, cq.Vector(0, 0, flare))
+        foot = rt - (zt - z[0]) * math.tan(math.radians(40))  # its radius on the bed
+        cone = cq.Solid.makeCone(foot, rt, zt - z[0], cq.Vector(0, 0, z[0]))
         out = ball(r).union(cq.Workplane().add(cone))
-        if flare > y["stem_z"]:  # else the cone flares from under the stem's foot (#901: the bigger core)
-            out = out.union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], flare)))
-        out = out.intersect(box((-x1, x1), (-h, h), (y["stem_z"], 0))).cut(ball(x0))
+        out = out.intersect(box((-x1, x1), (-h, h), (z[0], 0))).cut(ball(x0))
         crank = bone.bone((0, 0, z[0]), (0, gm.CRANK, z[0]), *CRANK_BONE).intersect(box((-9, 9), (-9, 20), z))
         out = out.union(crank)
     else:
@@ -157,34 +157,45 @@ def yoke(mechanical=False):
         for s in (-1, 1):  # the U's lower corners cut back: yawed, a square one nears the cheek's Skin (#967)
             corner = [(s * (x1 - gm.YOKE_CUT), -x1), (s * x1, -x1), (s * x1, -x1 + gm.YOKE_CUT)]
             out = out.cut(cq.Workplane("XZ", origin=(0, h, 0)).polyline(corner).close().extrude(2 * h))
-        out = out.union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], -x1)))
         out = out.union(box((-ARM / 2, ARM / 2), (0, gm.CRANK), z)).union(cyl("z", (0, gm.CRANK, 0), ARM / 2, z))
     for s in (-1, 1):
         xs = sorted((s * x0, s * x1))
         out = out.union(cyl("x", (0, 0, 0), h, xs)).cut(cyl("x", (0, 0, 0), gm.PIN_R, xs))
-    out = out.cut(cyl("z", (0, gm.CRANK, 0), gm.PIN_R, z))
-    return out.cut(cyl("z", (0, 0, 0), gm.PIN_R, (y["stem_z"], y["stem_z"] + 8)))
+    return out.cut(cyl("z", (0, gm.CRANK, 0), gm.PIN_R, z)).cut(cyl("z", (0, 0, 0), gm.PIN_R, z))
 
 
-@bone.grown
-def tie_bar(mechanical=False):
-    """The tie-bar under the yokes' cranks: both eyes' pins and the yaw horn's, one parallelogram. Mechanical: a bar across
-    both eyes' pins and a tail back from its middle to the horn's. As Bones (#703): a Bone (model/printed/bone.py) from
-    each eye's pin back to the yaw horn's, one chain, flat on top within its slab where the cranks ride on it."""
-    c, horn = gm.EYE["L"][0], (0.0, gm.YAW_Y + gm.CRANK, gm.TIE_Z[0])
-    if mechanical:
-        out = box((-c - ARM / 2, c + ARM / 2), (gm.CRANK - ARM / 2, gm.CRANK + ARM / 2), gm.TIE_Z)
-        out = out.union(box((-ARM / 2, ARM / 2), (gm.CRANK, horn[1]), gm.TIE_Z))
-        out = out.union(cyl("z", (0, horn[1], 0), ARM / 2, gm.TIE_Z))
-    else:
-        slab = box(
-            (-c - ARM, c + ARM), (0, horn[1] + ARM), (gm.TIE_Z[0] - 1, gm.TIE_Z[1])
-        )  # past the bed: no shared face
-        # one chain through the horn's pin, its two heads there unalike: two identical ones fused invalid (#838)
-        out = bone.chain([(-c, gm.CRANK), horn[:2], (c, gm.CRANK)], *TIE_BONE, z=gm.TIE_Z[0]).intersect(slab)
-    for x, y, _ in ((-c, gm.CRANK, 0), (c, gm.CRANK, 0), horn):
-        out = out.cut(cyl("z", (x, y, 0), gm.PIN_R, (gm.TIE_Z[0] - 1, gm.TIE_Z[1] + 1)))
-    return out
+def tie_bed():
+    """4x4 from the tie-bar's print frame (its bed z 0: the cross-bar's back edge on it, the fingers and the tail
+    rising) to the gimbal's: the gimbal's -y up."""
+    m = linkage.rotation((1, 0, 0), 90.0)
+    m[:3, 3] = (0, gm.CROSS_Y[1], 0)
+    return m
+
+
+def tie_bar():
+    """The tie-bar (#967): a finger under each yoke's crank from its pin, back and up inside the lids' shell and out
+    through the belt behind the eye to the cross-bar behind the eyes, and a tail from that bar's back edge down the
+    midline to the yaw horn's pin: one parallelogram with both yokes' cranks and the horn. Flat arms, one style
+    (model/printed UNSTYLED); printed on the cross-bar's back edge (tie_bed), so each finger and the tail rise within
+    45 deg of upright, a wedge under each pin's boss."""
+    c, t, thick = gm.EYE["L"][0], gm.FINGER_Z[1] - gm.FINGER_Z[0], gm.CROSS_Z[1] - gm.CROSS_Z[0]
+    pin, horn = (gm.CRANK, sum(gm.FINGER_Z) / 2), (gm.YAW_Y + gm.CRANK, sum(gm.TIE_Z) / 2)
+    out = box((-c - gm.FINGER_X[1], c + gm.FINGER_X[1]), gm.CROSS_Y, gm.CROSS_Z)
+    # the tangent under the boss 45 deg off the bed's normal, down to the finger's inboard face
+    k = TIE_BOSS * math.sqrt(0.5)
+    wedge = [(-k, pin[0] + k), (0.0, pin[0] + 2 * k), (0.0, pin[0])]
+    for s in (-1, 1):
+        x = sorted((s * (c + gm.FINGER_X[0]), s * (c + gm.FINGER_X[1])))
+        out = out.union(lid_mechanical([pin, *gm.FINGER[:2]], x, t)).union(cyl("z", (s * c, pin[0], 0), TIE_BOSS, gm.FINGER_Z))
+        out = out.union(lid_mechanical(gm.FINGER[1:], x, thick))  # out through the belt, as thick as the cross-bar
+        gusset = [(s * (c + u), y) for u, y in wedge]
+        out = out.union(cq.Workplane("XY", origin=(0, 0, gm.FINGER_Z[0])).polyline(gusset).close().extrude(t))
+        out = out.cut(cyl("z", (s * c, pin[0], 0), gm.PIN_R, (gm.FINGER_Z[0] - 1, gm.FINGER_Z[1] + 1)))
+    back = (gm.CROSS_Y[1] - t / 2, sum(gm.CROSS_Z) / 2)
+    out = out.union(lid_mechanical([horn, back], (-TIE_BOSS, TIE_BOSS), t)).union(cyl("z", (0, horn[0], 0), TIE_BOSS, gm.TIE_Z))
+    drop = [(-k, horn[0] + k), (0.0, horn[0] + 2 * k), (k, horn[0] + k)]  # the horn's boss a teardrop on that bed
+    out = out.union(cq.Workplane("XY", origin=(0, 0, gm.TIE_Z[0])).polyline(drop).close().extrude(t))
+    return out.cut(cyl("z", (0, horn[0], 0), gm.PIN_R, (gm.TIE_Z[0] - 1, gm.TIE_Z[1] + 1)))
 
 
 @bone.grown
@@ -378,6 +389,61 @@ def lower_lid(side, mechanical=False):
     return out if side == "L" else out.mirror("YZ")
 
 
+# Each yaw bearing's rail (#967, model/gimbal.py RAIL_R): its strip's sides from its middle line (- inboard and forward),
+# wider from RAIL_WIDE deg along it on; the web that stands on its middle line, a blade in the plane of the yaw axis and
+# the rail's way out, from RAIL_WEB mm from the eye's centre out to the strip, its sides WEB_LAT (the strip alone is a
+# 1.5 mm leaf: with the eye held and the pitch servo stalled its post would bend it at 120 MPa); the neck it leaves the
+# lids' shell by, RAIL_NECK deg on from the strip's end and out to RAIL_OUT mm; and the pylon under the neck's tip, its
+# sides from that tip in x and y, a buttress forward from PYLON_KNEE (z) down to PYLON_TOE (y from the tip) on the plate
+RAIL_LAT, WEB_LAT, PAD_LAT = (-5.0, 3.0), (-3.0, 1.0), (-12.0, 12.0)
+RAIL_WEB, RAIL_NECK, RAIL_OUT, RAIL_ROOM = 27.0, 16.0, 39.0, 2.0
+PYLON, PYLON_KNEE, PYLON_TOE = ((-5.0, 3.0), (-2.5, 2.5)), -23.0, -9.0
+
+
+def rail():
+    """The L yaw bearing (#967; the R its mirror): a post under the yoke's bottom bar, the yaw shank's bore down it, on
+    a strip of a sphere inside the lids' shell and a web over it, which run back and inboard from under the yoke to the
+    belt behind the eye; a neck leaves the shell there, on a pylon on the plate. The web keeps under the sweep of the
+    crank and of the tie-bar's boss on its pin."""
+    eye, (r0, r1) = np.array(gm.EYE["L"]), gm.RAIL_R
+    a, phi = math.radians(-gm.RAIL_EXIT[0]), math.radians(gm.RAIL_EXIT[1])
+    down = np.array([0.0, 0.0, -1.0])
+    way = np.array([math.sin(a), -math.cos(a) * math.cos(phi), math.cos(a) * math.sin(phi)])  # where it leaves
+    n = np.cross(down, way)
+    n /= np.linalg.norm(n)
+    end, neck = math.acos(float(down @ way)), math.radians(RAIL_NECK)
+    plane = cq.Plane(origin=tuple(eye), xDir=tuple(down), normal=tuple(n))
+
+    def fan(t0, t1, lat=RAIL_LAT):
+        pts = [(0.0, 0.0)] + [(60 * math.cos(t), 60 * math.sin(t)) for t in np.linspace(t0, t1, 24)]
+        return cq.Workplane(plane).polyline(pts).close().extrude(lat[1] - lat[0]).translate(tuple(n * lat[0]))
+
+    def shell(lo, hi):
+        return ball(hi, tuple(eye)).cut(ball(lo, tuple(eye)))
+
+    strip = shell(r0, r1)
+    out = strip.intersect(fan(0.0, end))
+    web = shell(RAIL_WEB, r1).intersect(fan(0.0, end + neck, WEB_LAT))
+    # yawed, the tie-bar's boss sweeps under the crank's pin and the crank's head over it: the web keeps RAIL_ROOM
+    # under and outside each, and under the boss's sweep a pad as wide as the sphere allows carries the post instead
+    boss, head = (gm.CRANK + r + RAIL_ROOM for r in (TIE_BOSS, CRANK_BONE[0][0]))
+    under = gm.FINGER_Z[0] - RAIL_ROOM
+    web = web.cut(cyl("z", (eye[0], 0, 0), boss, (under, 0.0)))
+    out = out.union(web.cut(cyl("z", (eye[0], 0, 0), head, (gm.YAW_CRANK_Z[0] - RAIL_ROOM, 0.0))))
+    pad = ball(r1, tuple(eye)).intersect(fan(0.0, end, PAD_LAT))
+    out = out.union(pad.intersect(box((eye[0] - r1, eye[0] + r1), (-gm.POST_R, r1), (-r1, under))))
+    out = out.union(shell(r0, RAIL_OUT).intersect(fan(end, end + neck)))
+    tip = eye + RAIL_OUT * way
+    (x0, x1), (y0, y1) = PYLON
+    top, floor = tip[2] + 1.0, gm.PLATE_Z[1]
+    side = [(y1, floor), (y1, top), (y0, top), (y0, PYLON_KNEE), (PYLON_TOE, floor)]
+    side = [(tip[1] + y, z) for y, z in side]
+    out = out.union(cq.Workplane("YZ", origin=(tip[0] + x0, 0, 0)).polyline(side).close().extrude(x1 - x0))
+    z = (-math.sqrt(r0**2 - gm.POST_R**2) - 0.2, gm.YAW_CRANK_Z[0])
+    out = out.union(cyl("z", (eye[0], 0, 0), gm.POST_R, z))
+    return out.cut(cyl("z", (eye[0], 0, 0), gm.PIN_R, (z[1] - 8.0, z[1])))
+
+
 @bone.grown
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
@@ -397,7 +463,7 @@ def frame(mechanical=False):
     # each bail upright in section (y, z), mechanical: twice as deep on the plate as at its boss, as it stands half
     # as tall again as it did (#967)
     upright = [(by - 8, top), (by + 8, top), (by + 4, bz), (by + 4, bz + 4), (by - 4, bz + 4), (by - 4, bz)]
-    (y0, y1), edge, stem = gm.PLATE_Y, c + gm.LID_X["upright"][1], gm.YOKE["stem_z"]
+    (y0, y1), edge = gm.PLATE_Y, c + gm.LID_X["upright"][1]
     jy, jz = neck.JAW
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
     out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
@@ -420,10 +486,7 @@ def frame(mechanical=False):
         depth = gm.CHEEK_Y[1] - gm.CHEEK_Y[0]  # the XZ workplane extrudes toward -y
         out = out.cut(cq.Workplane("XZ", origin=(0, gm.CHEEK_Y[1], 0)).polyline(corner).close().extrude(depth))
         out = out.union(cq.Workplane("XY", origin=(0, 0, z0)).polyline(arm).close().extrude(z1 - z0))
-        # each yoke's bearing reaching forward from the plate's front, under the tie-bar (#901): both styles
-        out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
-        # at the plate's level, so no convex hull of it with the bearing reaches the tie-bar over it (#901)
-        out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), gm.PLATE_Z))
+        out = out.union(rail() if s == 1 else rail().mirror("YZ"))  # each yoke's bearing (#967): both styles
         if mechanical:
             out = out.union(cq.Workplane("YZ", origin=(bx[0], 0, 0)).polyline(upright).close().extrude(bx[1] - bx[0]))
             # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
@@ -445,7 +508,6 @@ def frame(mechanical=False):
                 out = out.union(strut((x, foot, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
                     cyl("x", (0, y, z), r, xs)
                 )
-        out = out.cut(cyl("z", (s * c, 0, 0), gm.PIN_R, (stem - 8, stem)))
         out = holes(holes(out, [(by, bz)], bx), [(0, 0)], ux).cut(cyl("x", (0, jy, jz), TAP_R, lx))
         # the lid upright's head flat in front, inside the temple's Skin (#967): cut, as a head drawn smaller came back
         # null or in pieces from Linux's OCCT at 3.5, 3.6 and 3.0 mm
@@ -465,14 +527,11 @@ def frame(mechanical=False):
     tz0 = envelopes.SERVO["tabs"][2][0]
     lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
     out = out.union(box((lo[0], hi[0]), tuple(sorted((lo[1], y0 + 1))), gm.PLATE_Z))
-    # the maxillae's windows (#967) from the yaw servo's collar (its posts stay on the plate) out to WINDOW_X, each
-    # closed in front by a bar from the plate beside the servo to the yoke's rail: the bars before the servos' passes,
-    # which stay open through them, the windows after the collars and the mouth servo's web, which would fill them
+    # the maxillae's windows (#967) from the yaw servo's collar (its posts stay on the plate) out to WINDOW_X, open in
+    # front (a bar closed each to the yoke's old bearing, inside the lids' shell): after the collars and the mouth
+    # servo's web, which would fill them
     tabs = envelopes.SERVO["tabs"][0]
     inner = sorted((servos[0] @ (x, 0, 0, 1))[0] for x in (tabs[0] - 2, tabs[1] + 2))
-    for s, x in zip((-1, 1), inner, strict=True):
-        bar = sorted((x - s * gm.WINDOW_BAR, s * (c - 5)))
-        out = out.union(box(bar, (y0 - gm.WINDOW_BAR, y0 + 1), gm.PLATE_Z))
     for m in servos:
         out = out.cut(passes(m))
     for m in servos:  # on the plate's top, or hanging from its underside; a lid servo's on its stand (#967)
@@ -485,9 +544,6 @@ def frame(mechanical=False):
     for (x0, x1), depth, flare in gm.BACK_POCKETS:  # room for the neck past the pan's ends (#967)
         pocket = [(x0, y1 + 1), (x0, y1 - depth), (x1, y1 - depth), (x1 + flare, y1), (x1 + flare, y1 + 1)]
         out = out.cut(cq.Workplane("XY", origin=(0, 0, bottom)).polyline(pocket).close().extrude(top - bottom))
-    for s in (-1, 1):  # room for each yoke's crank to turn: the lid servo's collar comes down beside it
-        reach = gm.CRANK + CRANK_BONE[0][0] + 0.5  # its Bone's head, which the yoke grows into its mechanical one
-        out = out.cut(cyl("z", (s * c, 0, 0), reach, (gm.YAW_CRANK_Z[0], gm.YAW_CRANK_Z[1] + 0.5)))
     return out
 
 
