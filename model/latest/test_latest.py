@@ -27,6 +27,23 @@ def test_the_newest_push_touching_a_layer_is_its_candidate():
     assert latest.pick(MAIN, [old])["Mechanism"]["name"] == "PR #975"
 
 
+def test_main_beats_a_pr_pushed_before_main_last_changed_the_layer():
+    """#960, a draft last pushed three weeks before #975 landed, emptied the Mechanism layer: main's is the newer. A
+    PR pushed since main last changed the layer keeps it, whatever else merged after."""
+    main = MAIN | {"date": "2026-11-27T08:00:00Z", "dates": {"Mechanism": "2026-11-26T10:00:00+01:00"}}
+    stale = pr(960, "2026-11-04T09:00:00Z", ["model/neck.py", "model/skeleton/fit.py"])
+    pick = latest.pick(main, [stale])
+    assert pick["Mechanism"]["name"] == "main" and pick["Skeleton"]["name"] == "PR #960"
+    fresh = pr(1030, "2026-11-26T12:00:00Z", ["model/neck.py"])
+    assert latest.pick(main, [stale, fresh])["Mechanism"]["name"] == "PR #1030"
+
+
+def test_main_last_changed_a_layer_at_its_newest_commit_touching_it():
+    log = "@2026-11-26T10:00:00+01:00\n\ndocs/adr/0025.md\nmodel/skeleton/fit.py\n@2026-11-20T09:00:00+01:00\n\n"
+    log += "model/neck.py\nmodel/skeleton/budget.py\n"
+    assert latest.changed(log) == {"Skeleton": "2026-11-26T10:00:00+01:00", "Mechanism": "2026-11-20T09:00:00+01:00"}
+
+
 def test_a_pr_touching_two_layers_counts_for_both_and_the_skin_is_both_its_collections():
     both = pr(976, "2026-11-20T11:00:00Z", ["model/skeleton/fit.py", "model/printed/skin.py"])
     pick = latest.pick(MAIN, [both])

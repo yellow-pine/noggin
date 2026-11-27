@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from datetime import datetime
 
 from model import review, skeleton, stages
 from scripts.gx10 import atomic_json, checksum
@@ -69,13 +70,21 @@ def trusted(pr):
 
 
 def pick(main, prs):
-    """{layer: candidate}: of the trusted open PRs whose changes touch the layer, the most recently pushed, else main.
+    """{layer: candidate}: of the trusted open PRs whose changes touch the layer, pushed since main last changed it
+    (main's `dates`: {layer: ISO}, a layer left out older than every PR), the most recently pushed, else main.
     Each record is {name, sha, date (ISO), files, checks: [(name, conclusion)]} and a PR's {fork, author,
     association}; each candidate adds its label."""
-    out = {}
+    out, when = {}, datetime.fromisoformat
     for layer in LAYERS:
-        touching = [p for p in prs if trusted(p) and any(layer in layers(f) for f in p["files"])]
-        c = max(touching, key=lambda p: p["date"]) if touching else main
+        since = main.get("dates", {}).get(layer)
+        touching = [
+            p
+            for p in prs
+            if trusted(p)
+            and any(layer in layers(f) for f in p["files"])
+            and not (since and when(p["date"]) < when(since))
+        ]
+        c = max(touching, key=lambda p: when(p["date"])) if touching else main
         out[layer] = c | {"label": f"{c['name']} {c['sha'][:7]} {c['date'][:10]} {gate(c['checks'])}"}
     return out
 
@@ -92,6 +101,17 @@ def _checks(rollup):
     ]
 
 
+def changed(log):
+    """{layer: when main last changed it} from `git log --format=@%cI --name-only`, newest first."""
+    out, date = {}, None
+    for line in log.splitlines():
+        if line.startswith("@"):
+            date = line[1:]
+        for layer in layers(line):
+            out.setdefault(layer, date)
+    return out
+
+
 def records():
     """(main, [open PR]) as pick reads them, from origin and gh; each PR's push time is its head commit's date."""
     _run(["git", "fetch", "-q", "origin", "main"])
@@ -101,7 +121,9 @@ def records():
         ["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{sha}/check-runs", "--paginate", "--jq", ".check_runs[]"]
     )
     checks = _checks(json.loads(line) for line in runs.splitlines())
-    main = {"name": "main", "sha": sha, "date": date.strip(), "files": [], "checks": checks}
+    # shortcut: main's last 300 commits on model/; a layer untouched in them counts as older than every open PR
+    dates = changed(_run(["git", "log", "--format=@%cI", "--name-only", "-n", "300", sha, "--", "model"]))
+    main = {"name": "main", "sha": sha, "date": date.strip(), "files": [], "checks": checks, "dates": dates}
     nodes = json.loads(
         _run(["gh", "api", "graphql", "-F", "owner={owner}", "-F", "name={repo}", "-f", f"query={QUERY}"])
     )["data"]["repository"]["pullRequests"]["nodes"]
