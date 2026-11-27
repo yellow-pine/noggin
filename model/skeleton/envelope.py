@@ -10,6 +10,7 @@ between grid points linearly. morty() is the sculpt's, built once and kept in mo
 import functools
 import hashlib
 import os
+import subprocess
 
 import numpy as np
 import trimesh
@@ -22,6 +23,9 @@ ROOM = skin.WALL + 0.5  # under Morty's surface: the Skin's wall and its clearan
 GRID, BAND = 1.0, 16.0  # the grid's pitch; how deep the exact distances reach, mm
 DENSITY = 8.0  # surface samples a mm2: about 0.35 mm apart, so a depth is good to 0.2 mm
 FLOOR = -200.0  # the sculpt is read down to here in the head's frame: under C7 and the shoulders' tops
+# the sculpt's eye centres that place it on the Mech's eyes, raw mm, z up, -y forward (#872's measure on its front depth
+# map, inferred; model/review places it by the same)
+SCULPT_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
 # the sculpt's own eyeballs' centres in today's head frame: a ball fitted to each eye dome in 3D (#967's measure, its
 # comment 7209215753: radius 37.0, rms 0.48 mm), 73.33 mm apart. The Mech's eyes (gimbal.EYE, 72.7 mm apart from
 # #872's rougher measure) move onto them in #967 (Cansin, 2026-11-27); the orbits, the lids' shell and the belt are
@@ -79,22 +83,34 @@ class Skin:
         return g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)
 
 
-def sculpt_file():
-    """The sculpt's file: the copy #850 commits (COMMITTED) or, until it lands, the local original beside the
-    review's reference (docs/references in the main checkout)."""
-    from model import review
+def _main_checkout():
+    """The repo's main checkout (a worktree's references live there alone: gitignored, never copied)."""
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=stages.REPO,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except OSError:  # no git here (every bone's module imports this one): no worktree either
+        common = ""
+    return os.path.dirname(common) if common else stages.REPO
 
-    return COMMITTED if os.path.exists(COMMITTED) else os.path.join(os.path.dirname(review.MORTY), "morty-fixed.stl")
+
+REFERENCES = os.path.join(_main_checkout(), "docs/references/morty/chelscct-morty-smith")  # the local sculpt's folder
+
+
+def sculpt_file():
+    """The sculpt's file: the copy #850 commits (COMMITTED) or, until it lands, the local original (REFERENCES)."""
+    return COMMITTED if os.path.exists(COMMITTED) else os.path.join(REFERENCES, "morty-fixed.stl")
 
 
 def sculpt():
     """(The Morty sculpt in the head's frame, its file): ChelsCCT's, CC BY 4.0, its eyes' middle on the Mech's, scaled
     to their spacing, as model/review places it."""
-    from model import review  # its eye centres are one source
-
     path = sculpt_file()
     mesh = trimesh.load(path, force="mesh")
-    eyes = np.array([review.MORTY_EYES[s] for s in "LR"])
+    eyes = np.array([SCULPT_EYES[s] for s in "LR"])
     mesh.vertices = (mesh.vertices - eyes.mean(0)) * (gimbal.SPACING / np.linalg.norm(eyes[0] - eyes[1]))
     return mesh, path
 
