@@ -36,7 +36,7 @@ calibrated ([Calibration](calibration.md)).
 
 1. **Jaw** on the gimbal frame's lugs, turning at the mandible's condyles; it turns down to open the mouth. Its
    carrier is a chain of Bones inside the mandible, down each ramus and along the body to the chin, sized to hold the
-   mouth servo's stall. The mandible lies on it and lifts off.
+   mouth servo's stall.
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 

@@ -23,7 +23,6 @@ BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mech
 # the ramus' plate deep fore and aft, where it is thin across; the body round
 _NECK, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
 JAW_SPANS = (_NECK, _RAMUS, _RAMUS, _BODY, _BODY, _BODY, _BODY)
-PIN_TAP = 8.0  # the jaw pin's tapping hole, into its post from the bar's side
 
 
 def tie(x, y, z):
@@ -262,7 +261,7 @@ def jaw(mechanical=False):
     # the pin's post: from its chain's joint in the ramus in to the bar's outer face, the bar's shank tapped into it
     post = (nk.JAW_BAR_X[1] + 0.3, points["L"][2][0])
     out = out.union(cyl("x", (0, *nk.JAW_PIN), 4.0 if mechanical else 3.5, post))
-    out = out.cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, (post[0], post[0] + PIN_TAP)))
+    out = out.cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, (post[0], post[0] + 8.0)))  # 8 mm deep, short of the chain
     # Keep the existing resting mouth Shell on its actual Seat while the hidden anatomical load path changes.
     seat = next(s for s in skin.SEATS if s.shell == "morty mouth cover")
     at = np.subtract(seat.at, np.multiply(seat.normal, seat.pad * 0.75))  # the strut's slanted end stays in the pad
