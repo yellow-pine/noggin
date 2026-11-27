@@ -126,7 +126,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   hardware we own until its own parts land: linked eyes (one servo for left/right, one for up/down, each eye's
   lids their own), a big head, the redesigned base (boards in the cranium, the pack in the shirt area), a PETG Skeleton (checked
   as PETG HF, geometry.MATERIALS' worst case) wearing a magnet-mounted PLA Skin in its Palette's filaments
-  ([Themes](face-design.md)). *Upcoming (#850): Morty's Skin, cut from his sculpt.*
+  ([Themes](face-design.md)): Morty's, cut from his sculpt by `model/morty/shells.py` (docs/adr/0028). *Upcoming (#850):
+  its Seats.*
   Its eye gimbal is in (#630, model/gimbal.py, the parts in model/printed/gimbal.py): drawn at rest in the Mech's documents, moved
   by its own kinematics, its numbers in the Mech's sim report under "gimbal" (gaze error with every pin's play and
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk

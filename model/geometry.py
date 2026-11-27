@@ -82,8 +82,8 @@ THEMES = {
         },
         "black": dict.fromkeys(("Bones", "Joints", "Linkages", "Mounts"), _BLACK),
     },
-    # none: the Skeleton bare, the stills' look (#876); morty: his Sculpt's Skin (docs/adr/0027), its Shells still to
-    # be cut (#850). Bart (#913) and Cansin (#917) return when each has a Sculpt
+    # none: the Skeleton bare, the stills' look (#876); morty: his Sculpt's Skin (docs/adr/0027, SHELLS).
+    # Bart (#913) and Cansin (#917) return when each has a Sculpt
     "Skin shape": (SKINLESS := "none", "morty"),
     "Skin palette": {
         "morty": {

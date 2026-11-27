@@ -23,9 +23,8 @@ pick another in the header; the viewer mixes any Shape with any Palette.
   Palettes: anatomical, robot and black (PETG Basic Black throughout). *Upcoming (#893): the realistic Skeleton
   becomes a life-size bust from one anatomical source, warped into Morty.*
 - Skin, PLA: a Character's Shells, cut from its sculpt (docs/adr/0027). The eyeball caps, every Character's, are the
-  only Shells in the model; a Character's caps may grow up to touching. Its Shapes: none, the Skeleton bare, and
-  morty, which has no Shells yet, so it draws the Skeleton as the document has it. *Upcoming (#850): Morty's Shells
-  are cut from his sculpt.* *Upcoming (#913): Bart returns when he has a sculpt to be cut from.* *Upcoming (#917):
+  eye whites; a Character's caps may grow up to touching. Its Shapes: none, the Skeleton bare, and morty, his four
+  Shells ([Morty's Shells](#mortys-shells)). *Upcoming (#913): Bart returns when he has a sculpt to be cut from.* *Upcoming (#917):
   Cansin returns when he has a sculpt to be cut from.* Its Palettes: morty and default (the four PLA Pure colours),
   each of the same six Colour groups (face, hair, pupils, clothes, eye whites, accessories), the accessories in one
   of the Palette's other filaments where its Character has none.
@@ -43,9 +42,12 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 <!-- #}-->
 
 ## Morty's Shells
-*Upcoming (#850): his Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surface the outside from
-the crown to the base, the wall 1.6 mm inward, split along his hairline, eye domes, mouth line and collar
-(docs/adr/0027).* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
+His Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surface the outside from the crown to the
+base, the wall grown inward, open underneath (docs/adr/0027, 0028). Four Shells, split along his cuts: the hair, above
+and behind his hairline; the face, with his nose and ears; the chin, under the mouth line, which opens with the jaw;
+and the shirt, under the collar, the whole fixed body. The face is open round each eye, where the eyeball cap is the
+eye white and the lids stow behind the rim. *Upcoming (#850): their Seats, and the gaps at the collar and the mouth
+line that let the head and the jaw move.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
 the hair and the shirt, for a plug.*
 
 What the model has of them today (model/skin.py, model/printed/skin.py):
