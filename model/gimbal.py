@@ -129,7 +129,7 @@ LID_SHELL_X = {
 }
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
-# to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) between those uprights' feet
+# to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) hung from those uprights' feet
 PLATE_Z = (-38.0, -35.0)
 # under the eyes' centres, behind the lower lids' sweep (#901: in front of the coronoids before), to past the head
 # mount's rear screws (model/neck.py)
@@ -137,9 +137,30 @@ PLATE_Y = (16.0, 87.0)
 PLATE_X, BACK_Y = 33.5, 40.0  # the body's half-width, out under the jaw's lugs (model/neck.py JAW_LUG_X)
 BACK_X = SPACING / 2 + BAIL_END + 4.0  # behind BACK_Y (the condyles') the back's, out to the bail's uprights
 CHEEK_Y = (-10.0, -6.0)
-# the bar a beam down its whole width, the face's Seats flush in its front (#852), under the lower lids' sweep (#901),
-# hung from the lid uprights' feet
+# the bar a beam, the face's Seats flush in its front (#852), under the lower lids' sweep (#901)
 BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' covers too
+# #967: Morty's life-size cheeks narrow under his eyes and widen behind them (the private reference, read locally by
+# model/review/test_hidden.py), so the beam ends inside them, its Seats' bosses within it, and an arm at its level runs
+# back from each end to its lid upright's foot, behind the lower lids' sweep; the upright leans back down to the plate's
+# level, where its rail reaches forward to meet it; his cheeks curve in under the beam, so its lower outer corners are
+# cut back BEAM_CUT and the arms start that far up
+BEAM_X, BEAM_CUT = 53.0, 4.0
+FOOT_Y = (14.0, 20.0)
+# each lid upright's head is flat in front, this far from the lids' axis, inside the temple's Skin; the mechanical
+# yoke's lower corners are cut back this far, which yawed near the cheek's
+UPRIGHT_FLAT, YOKE_CUT = 3.5, 2.0
+# #967: a window through the plate either side of the yaw servo's collar, out to WINDOW_X and back to WINDOW_Y: the
+# realistic skull's maxillae rise through them from the palate to the cranium's base, behind the orbits' openings
+# (model/skeleton REACH), so the palate stays on the skull; a bar in front of each window, WINDOW_BAR deep, joins the
+# plate to its yoke's rail
+WINDOW_X, WINDOW_Y, WINDOW_BAR = 30.0, 21.0, 4.0
+# #967, #978: nodded, with the pan half a degree past either end (where its loaded servo sags to), the plate's back edge
+# passed 0.5 mm from the tilt servo's tab and 0.9 mm from the nod plate, less than their collision pieces stray: Linux's
+# sim read the frame 0.35 mm into each. A pocket in the edge at each, (x span, depth, how far its inboard end flares
+# out to the edge), keeps BACK_ROOM_MM on the exact solids: the first ends at the cranium tray's leg, the second 1.6 mm
+# short of the head mount's rear screw, flared round it
+BACK_ROOM_MM = 1.9
+BACK_POCKETS = (((37.5, 44.0), 1.7, 0.0), ((-27.5, -23.6), 1.4, 1.4))
 # the head the gimbal fits (#684, #838): width, depth, height; Morty's life-size cranium (#893: 160 x 176 x 175)
 HEAD_MM = (160.0, 176.0, 175.0)
 

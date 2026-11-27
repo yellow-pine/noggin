@@ -67,6 +67,38 @@ def test_the_block_fits_the_compact_head(rest):
     assert all(b <= h for b, h in zip(gimbal.bounds(rest), gm.HEAD_MM))
 
 
+SAG_DEG = 0.5  # how far past either end of the pan its loaded servo sags, inside its band (#978)
+
+
+@pytest.mark.model
+@pytest.mark.parametrize(("end", "other"), [(1, "tilt servo:1"), (-1, "nod plate:1")])
+def test_the_plates_back_edge_keeps_room_from_the_neck_past_the_pans_ends(end, other):
+    """#967, #978: nodded, with the pan SAG_DEG past its end, the frame plate's back edge keeps gm.BACK_ROOM_MM from
+    the tilt servo's tab and from the nod plate, on the exact solids: more than those parts' collision pieces stray,
+    which read the frame 0.35 mm into each on Linux while it passed 0.5 and 0.9 mm from them."""
+    from model import envelopes, stages
+    from model.printed import PARTS
+
+    stage = stages.STAGES["mech-back-mechanical"]  # the sim's document
+    rest = {n: p.matrix for n, p in stage.parts.items()}
+
+    def seen(mats):  # the other part from the frame
+        return np.linalg.inv(mats["gimbal frame:1"]) @ mats[other]
+
+    def moved(horn, deg):  # how the horn moves it against the frame, in the frame's own coordinates
+        return seen(stages.pose(stage, horn, deg).parts) @ np.linalg.inv(seen(rest))
+
+    def solid(name):
+        stem = stages.stem(stage.parts[name].file)
+        return (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val()
+
+    tilt, pan = (stage.horns[h].limits for h in ("tilt horn", "pan horn"))
+    at = moved("pan horn", end * (pan[1] + SAG_DEG)) @ moved("tilt horn", tilt[1]) @ seen(rest)
+    y1 = gm.PLATE_Y[1]  # the edge alone, behind the plate's opening: the nod plate's tube stands in that by design
+    edge = solid("gimbal frame:1").intersect(envelopes.box((-99, 99), (y1 - 2.0, y1), gm.PLATE_Z).val())
+    assert edge.distance(solid(other).moved(gimbal._at(at))) >= gm.BACK_ROOM_MM
+
+
 @pytest.fixture(scope="module")
 def skeleton(rest):
     return gimbal.skeleton(rest)

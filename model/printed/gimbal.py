@@ -91,6 +91,9 @@ def yoke(mechanical=False):
         out = box((-x1, x1), (-h, h), (-x1, -x0))
         for s in (-1, 1):
             out = out.union(box(sorted((s * x0, s * x1)), (-h, h), (-x1, 0)))
+        for s in (-1, 1):  # the U's lower corners cut back: yawed, a square one nears the cheek's Skin (#967)
+            corner = [(s * (x1 - gm.YOKE_CUT), -x1), (s * x1, -x1), (s * x1, -x1 + gm.YOKE_CUT)]
+            out = out.cut(cq.Workplane("XZ", origin=(0, h, 0)).polyline(corner).close().extrude(2 * h))
         out = out.union(cyl("z", (0, 0, 0), y["stem_r"], (y["stem_z"], -x1)))
         out = out.union(box((-ARM / 2, ARM / 2), (0, gm.CRANK), z)).union(cyl("z", (0, gm.CRANK, 0), ARM / 2, z))
     for s in (-1, 1):
@@ -294,11 +297,11 @@ def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
     (#838, model/gimbal.py PLATE_Z), with the yaw bearings reaching forward under the yokes' stems, the bail's and the
     lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, the face's
-    Seats flush in its front, #852), the
+    Seats flush in its front, #852, its ends and the feet inside Morty's cheeks, #967), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
-    servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), and the
-    holes the head mount
-    (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
+    servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), a window
+    either side of the yaw servo's for the realistic skull's maxillae (#967, model/gimbal.py WINDOW_X), and the holes
+    the head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
     waisted strut up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
     in (bone.grown: OCCT carved the Bones out of it empty or broken, #838)."""
     from model.printed.neck import TAP_R, strut  # here: model.printed.neck imports this module
@@ -310,32 +313,54 @@ def frame(mechanical=False):
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
     out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
     out = out.union(box((-edge, edge), (y0, y0 + 4), gm.PLATE_Z))  # its front out to the lids' uprights
-    out = out.union(box((-edge, edge), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852) under the lids (#901)
+    out = out.union(box((-gm.BEAM_X, gm.BEAM_X), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852) under the lids (#901)
     for s in (-1, 1):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
         ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
         lx = sorted(s * u for u in neck.JAW_LUG_X)
-        # the lid upright's foot, hanging the bar, and its rail on the plate's level back to the plate's front
-        out = out.union(box(ux, (gm.CHEEK_Y[0], 4), (gm.BEAM_Z[0], top))).union(box(ux, (4, y0 + 4), gm.PLATE_Z))
+        # the cheek curves in under the beam's end: its lower outer corner cut back BEAM_CUT, the arm and the foot that
+        # far up
+        z0, z1 = gm.BEAM_Z[0] + gm.BEAM_CUT, gm.BEAM_Z[1]
+        # the lid upright's foot behind the cheek, an arm from it to the beam's end, and its rail on the plate's level
+        # from under the upright back to the plate's front (#967)
+        out = out.union(box(ux, gm.FOOT_Y, (z0, top))).union(box(ux, (0, y0 + 4), gm.PLATE_Z))
+        end = [(s * x, y) for x in (gm.BEAM_X - 6.0, gm.BEAM_X) for y in gm.CHEEK_Y]
+        arm = np.array(end + [(x, y) for x in ux for y in (gm.FOOT_Y[0], gm.FOOT_Y[0] + 4.0)])
+        arm = [tuple(map(float, arm[i])) for i in ConvexHull(arm).vertices]
+        corner = [(s * (gm.BEAM_X - gm.BEAM_CUT), gm.BEAM_Z[0]), (s * gm.BEAM_X, gm.BEAM_Z[0]), (s * gm.BEAM_X, z0)]
+        depth = gm.CHEEK_Y[1] - gm.CHEEK_Y[0]  # the XZ workplane extrudes toward -y
+        out = out.cut(cq.Workplane("XZ", origin=(0, gm.CHEEK_Y[1], 0)).polyline(corner).close().extrude(depth))
+        out = out.union(cq.Workplane("XY", origin=(0, 0, z0)).polyline(arm).close().extrude(z1 - z0))
         # each yoke's bearing reaching forward from the plate's front, under the tie-bar (#901): both styles
         out = out.union(cyl("z", (s * c, 0, 0), 5.0, (top, stem)))
         # at the plate's level, so no convex hull of it with the bearing reaches the tie-bar over it (#901)
         out = out.union(box((s * c - 5, s * c + 5), (0, y0 + 1), gm.PLATE_Z))
         if mechanical:
-            out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4))).union(box(ux, (-4, 4), (top, 4)))
+            out = out.union(box(bx, (by - 4, by + 4), (top, bz + 4)))
+            # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
+            out = out.union(box(ux, (-4, 4), (-12, 0))).union(cyl("x", (0, 0, 0), 4.0, ux))
+            out = out.union(box(ux, (0, 8), (top, -6)))  # up behind the head: the two meet over 6 mm
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
             )
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle
-            for xs, y, z, r in ((bx, by, bz, 4.0), (ux, 0.0, 0.0, 4.0), (lx, jy, jz, neck.JAW_FIXED_R)):
+            # the lid upright leaning back to the plate, behind the cheek (#967)
+            for xs, y, foot, z, r in (
+                (bx, by, by, bz, 4.0),
+                (ux, 0.0, 4.0, 0.0, 4.0),
+                (lx, jy, jy, jz, neck.JAW_FIXED_R),
+            ):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
                 # strut's flush on the plate's edge reads back from Linux's STEP crossing the plate's (#851)
                 x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2 - 0.25
-                out = out.union(strut((x, y, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
+                out = out.union(strut((x, foot, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
                     cyl("x", (0, y, z), r, xs)
                 )
         out = out.cut(cyl("z", (s * c, 0, 0), gm.PIN_R, (stem - 8, stem)))
         out = holes(holes(out, [(by, bz)], bx), [(0, 0)], ux).cut(cyl("x", (0, jy, jz), TAP_R, lx))
+        # the lid upright's head flat in front, inside the temple's Skin (#967): cut, as a head drawn smaller came back
+        # null or in pieces from Linux's OCCT at 3.5, 3.6 and 3.0 mm
+        out = out.cut(box(ux, (-5.0, -gm.UPRIGHT_FLAT), (-12, 5)))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
@@ -346,10 +371,23 @@ def frame(mechanical=False):
     tz0 = envelopes.SERVO["tabs"][2][0]
     lo, hi = post(servos[-1], envelopes.SERVO["tab_holes"][0], (tz0 - 3.0, tz0))
     out = out.union(box((lo[0], hi[0]), tuple(sorted((lo[1], y0 + 1))), gm.PLATE_Z))
+    # the maxillae's windows (#967) from the yaw servo's collar (its posts stay on the plate) out to WINDOW_X, each
+    # closed in front by a bar from the plate beside the servo to the yoke's rail: the bars before the servos' passes,
+    # which stay open through them, the windows after the collars and the mouth servo's web, which would fill them
+    tabs = envelopes.SERVO["tabs"][0]
+    inner = sorted((servos[0] @ (x, 0, 0, 1))[0] for x in (tabs[0] - 2, tabs[1] + 2))
+    for s, x in zip((-1, 1), inner, strict=True):
+        bar = sorted((x - s * gm.WINDOW_BAR, s * (c - 5)))
+        out = out.union(box(bar, (y0 - gm.WINDOW_BAR, y0 + 1), gm.PLATE_Z))
     for m in servos:
         out = out.cut(passes(m))
     for m in servos:  # on the plate's top, or hanging from its underside
         out = out.union(collar(m, top if (m @ (0, 0, 0, 1))[2] > top else bottom))
+    for s, x in zip((-1, 1), inner, strict=True):
+        out = out.cut(box(sorted((x, s * gm.WINDOW_X)), (y0, gm.WINDOW_Y), gm.PLATE_Z))
+    for (x0, x1), depth, flare in gm.BACK_POCKETS:  # room for the neck past the pan's ends (#967)
+        pocket = [(x0, y1 + 1), (x0, y1 - depth), (x1, y1 - depth), (x1 + flare, y1), (x1 + flare, y1 + 1)]
+        out = out.cut(cq.Workplane("XY", origin=(0, 0, bottom)).polyline(pocket).close().extrude(top - bottom))
     for s in (-1, 1):  # room for each yoke's crank to turn: the lid servo's collar comes down beside it
         reach = gm.CRANK + CRANK_BONE[0][0] + 0.5  # its Bone's head, which the yoke grows into its mechanical one
         out = out.cut(cyl("z", (s * c, 0, 0), reach, (gm.YAW_CRANK_Z[0], gm.YAW_CRANK_Z[1] + 0.5)))

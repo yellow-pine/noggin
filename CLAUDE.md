@@ -22,6 +22,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - The project starts at the Mech's Stage 1: one Mech, "the Mech", never "next" or "today's". The docs say what the code does in present tense and mark what an open issue changes (ADR 0024).
 - The Mech (#51) is designed clean-room from its requirements: never the designer's geometry or dimensions (ADR 0024).
 - The look is a Preset (default the Default build), a Shape and a Palette for the Skeleton (PETG) and the Skin (PLA Shells on magnets, swappable on the one Skeleton); every part prints in its Colour group's filament for the Preset, from model/geometry.py THEMES and PRESETS alone (ADR 0022).
+- Morty's actual skin is the Skin: every Shell is cut from its Character's sculpt (Morty's is public, `model/morty`, CC BY 4.0), never drawn by hand. The sculpt's surface is the Skin's outside, its wall 1.6 mm inward with 0.5 mm clearance, and every limit on bone and mechanism is measured from that surface. I accept the character-copyright risk for Morty and a later Bart (ADR 0027).
 - Ground truth, in order: the model (parts, MuJoCo, reports, tests), then the Mech you build (its photos, local only, and measurements). The designer's and vendor's files are credits (`docs/credits.md`) and history (docs/research) only. Record every conflict with both sources; inference only fills what none settles, marked inferred.
 - I can't measure (no calliper): a size the model leaves open is a best guess from the build's behaviour or photos, marked inferred.
 - Hardware never gates a merge: Core and Link PRs merge on green, and I try them on the physical Mech after.
@@ -45,7 +46,7 @@ Animatronic Mech that reacts to Claude Code. See README.md.
 - Vocabulary: `GLOSSARY.md`. Architecture decisions: `docs/adr/`. Behaviour table: the site's home (`docs/index.md`) and `docs/use/gestures.md`, built by `macros.py` from the code (numbers in docs: ADR 0009).
 - Building the Mech (parts, Stages, wiring, flashing, calibration lessons): `docs/build/`; running it (noggin service, hooks, gestures, tuning): `docs/use/`. The Core's firmware through the vendor's tools only, esptool for read-only queries (ADR 0012).
 - The site: Astro Starlight in `site/` (ADR 0013), home `docs/index.md`, nav `site/astro.config.mjs`, vendor and designer names on `docs/credits.md` and the buy list only (test_vocabulary.py).
-- Themes, the Mech's Skeleton and Skins (Shells planned, #51): `docs/face-design.md`.
+- Themes, the Mech's Skeleton and Skins (Shells planned, #51): `docs/face-design.md`. Morty's sculpt, his Skin's source under its own licence: `model/morty/`.
 - Model pictures (Blender, from MuJoCo's trajectories; look, the six stills): `docs/model-notes.md`; `just render`, `just pictures all` (what the site publishes).
 - Web viewer (three.js page at the site's /viewer): GLBs `web/`, page and module `site/src/`, ADR 0008; `just web` builds the GLBs, the site serves the Mech's; `just site` the whole site.
 - Primary-source research (hooks, serial, launchd, eye kinematics): `docs/research/`.

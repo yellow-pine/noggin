@@ -141,7 +141,13 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   sphere, the core, yoke, lever and bail x1.5 with it, the upper lid 1 mm off the cap; each eye's inboard drives (bar,
   link, ears) within 33.75 mm of it, the two eyes' 5.2 mm apart about their shared axis. The bigger lower lids sweep
   under the eyes, so the frame's plate starts behind that sweep (the yokes' bearings reach forward from it) and its bar,
-  a beam the face sits on, hangs under it from the lids' uprights; the yaw servo hangs behind it too. Each eye has an
+  a beam the face sits on, hangs under it from the lids' uprights; the yaw servo hangs behind it too. Since #967 the
+  frame hides inside Morty's Skin: the beam ends inside his cheeks, its lower outer corners cut back, an arm runs back
+  from each end to its lid upright's foot behind the lower lid's sweep, and each upright leans back down to the plate,
+  so the frame and the eyes' drives lie a Shell's wall and its clearance inside the private Morty reference at rest and
+  over each eye servo's range (model/review/test_hidden.py, one of the review's checks: the reference stays private). A
+  window through the plate either side of the yaw servo's collar lets the realistic skull's maxillae up from the
+  palate to the cranium's base, so the bare skull is one piece (`gimbal.WINDOW_X`). Each eye has an
   upper and a lower lid on that one servo: the upper lid's crank through the lid bar (a
   parallelogram, bent to pass behind the tie-bar), the lower lid's through a link from a pin on that bar, a crossed
   four-bar turning it against the upper about 0.8x (`gimbal.lower`; searched again for #901's layout); at rest each
@@ -187,7 +193,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, x1.08
-  about that hinge since #901 (its drive its size), its servo hanging under the frame's plate behind it), each servo
+  about that hinge since #901 (its drive its size), its servo hanging under the frame's plate behind it; since #968
+  its carrier a chain of Bones inside the mandible, its bar, horn and servo inboard of the left ramus), each servo
   drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF

@@ -2,6 +2,7 @@
 0025): on the Mech's eyes and neck, under Morty's skin (envelope.py), one piece each; the scene itself committed
 light, its one source under its own licence."""
 
+import itertools
 import os
 import subprocess
 
@@ -96,6 +97,17 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
 
 @pytest.mark.model
 @pytest.mark.bones
+def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
+    """#967: the skull's one piece (the test below) reaches under the gimbal frame's plate in front of it, between its
+    windows: the palate, which the plate cut off before the maxillae rose through them (a piece that small is still
+    kept, skeleton.KEEP, so losing it again shows there as a second piece)."""
+    v = trimesh.load(stages.stl("skull"), force="mesh").vertices
+    under = (v[:, 2] < gm.PLATE_Z[0]) & (v[:, 1] < gm.PLATE_Y[0]) & (np.abs(v[:, 0]) < gm.WINDOW_X)
+    assert under.sum() > 1000
+
+
+@pytest.mark.model
+@pytest.mark.bones
 @pytest.mark.parametrize("stem", g.BONES)
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
     """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid."""
@@ -109,3 +121,41 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
             - stages.DOCS[skeleton.DOC]["eyes"][0][2]
         )
         assert top < mesh.bounds[0][2] and mesh.bounds[1][2] < nk.HEAD_AXES["tilt"][0][2]
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
+def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
+    """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), straight
+    outboard of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
+    bone) and stands the print floor thick beyond it, to a voxel. Inboard the carrier may show: its post, and the
+    chain where the ramus is thinner than it. nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to
+    the bone (ADR 0011)."""
+    from model.printed import neck
+
+    rng = np.random.default_rng(0)
+    bone, jaw = (
+        np.asarray(trimesh.sample.sample_surface(trimesh.load(stages.stl(stem), force="mesh"), 400_000, seed=rng)[0])
+        for stem in ("mandible", "jaw")
+    )
+    sign = 1.0 if side == "L" else -1.0
+    bare = []
+    for a, b in itertools.pairwise(np.array(neck.jaw_chains()[side])):
+        for t in (0.1, 0.3, 0.5, 0.7, 0.9):
+            p = a + (b - a) * t
+            # each surface's points straight outboard of the chain here, mm from it
+            of_bone, of_jaw = (
+                sign * (s[np.linalg.norm(s[:, 1:] - p[1:], axis=1) < 1.0, 0] - p[0]) for s in (bone, jaw)
+            )
+            face = of_jaw[
+                (of_jaw > 0) & (of_jaw < 6.0)
+            ].max()  # the carrier's own outboard face (not the other chain's)
+            beyond = of_bone[of_bone > face - skeleton.PITCH]
+            if not (
+                len(beyond)
+                and beyond.min() < face + skeleton.PITCH
+                and beyond.max() - face >= skeleton.FLOOR - skeleton.PITCH
+            ):
+                bare.append((tuple(np.round(p, 1)), round(float(face), 2)))
+    assert bare == []

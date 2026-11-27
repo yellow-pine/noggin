@@ -42,9 +42,10 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 
 ## Morty's Shells
 In model/printed/skin.py, on Stage 3 (#665), each drawn in what carries it, shaped from his model sheet (#844; every
-size inferred). *Upcoming (#850): his Shells are refitted round the life-size skull as one smooth loft, the hair's
-Seats re-placed on the new cranium.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through
-the Shells over it, the hair and the shirt, for a plug.*
+size inferred). *Upcoming (#850): these hand-drawn Shells go, and his Skin is cut from his sculpt
+(`model/morty`, [Credits](credits.md)): its surface the outside from the crown to the base, the wall 1.6 mm inward,
+split along his hairline, eye domes, mouth line and collar (docs/adr/0027).* *Upcoming (#864): each Core's USB-C
+opening, and the Torso's, is cut through the Shells over it, the hair and the shirt, for a plug.*
 - the head: round from the front, its face flat over the eyes and its cranium round behind, the muzzle over the jaw and
   the head mount, square from above where the mouth servo's corners need it; 210 x 210 x 225 mm (x1.5 with the eyes, #901)
   but for the ears (model/printed/test_skin.py);
@@ -86,7 +87,7 @@ held at the peak acceleration the sim reads for Morty's there (model/test_report
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
   carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852):
-  the face's in the front of the gimbal frame's beam (its bar to the lids' uprights, deepened its whole width; Stage
+  the face's in the front of the gimbal frame's beam (its bar under the eyes, hung from the lids' uprights' feet; Stage
   1's stand stands behind it), the mouth cover's in the jaw's chin, thickened inside its U, the shirt's in the Torso's
   front and back walls, thickened 1 mm inside (the shirt on bosses out to its sleeve); the face carries the hair's
   front Seats. The cores, the lids and the gimbal frame plate's back (the hair's back Seats, #838) take theirs in
