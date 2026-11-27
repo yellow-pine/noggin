@@ -52,20 +52,30 @@ def strut(a, b, head, waist):
 def cervical_carrier():
     """Fixed split lateral load path into the Torso; the centre remains open for the anatomical wire canal."""
     _, y, z = nk.HEAD_AXES["tilt"][0]
-    out = box((-20, 20), (56, 72), nk.MOUNT_Z)
-    for sign in (-1, 1):
+    _, ay, az = nk.TILT_ANCHOR
+    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
+    t = (az - z0) / (z1 - z0)  # the anchor's height along the path's long span
+    out = box((-22, 22), (54, 74), nk.MOUNT_Z)
+    for sign, side in ((-1, "R"), (1, "L")):
         xs = sorted(sign * x for x in (18.0, 22.4))
-        rail = box(sorted(sign * x for x in (14, 18)), (60, 68), (nk.MOUNT_Z[0] + 1, nk.MOUNT_Z[1] + 1))
         points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
-        for a, b in zip(points, points[1:]):
-            rail = rail.union(strut(a, b, (4, 2), (3, 1.6)))
+        points.insert(3, tuple(np.add(points[3], t * np.subtract(points[2], points[3]))))
+        # #1060: one loft of flat ellipses (nk.CERVICAL_RAILS), straight between them, its root through the foot plate
+        stations = [
+            ((*points[0][:2], nk.MOUNT_Z[0]), nk.CERVICAL_RAILS[side][0]),
+            *zip(points, nk.CERVICAL_RAILS[side]),
+        ]
+        wires = [
+            cq.Wire.assembleEdges(
+                [cq.Edge.makeEllipse(deep, wide, cq.Vector(*p), cq.Vector(0, 0, 1), cq.Vector(0, 1, 0))]
+            )
+            for p, (deep, wide) in stations
+        ]
+        rail = cq.Workplane().add(cq.Solid.makeLoft(wires, True))
         rail = rail.union(cyl("x", (0, y, z), 3.5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
         out = out.union(rail)
     # A passive bar reacts the low rear moving-case motor (#978) at a pin beside the R rail, the reduction four-bar's
     # fixed arm (nk.TILT_ARMS), inboard of the jaw's sweep: the pin's boss on a strut from the rail at the pin's height.
-    _, ay, az = nk.TILT_ANCHOR
-    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
-    t = (az - z0) / (z1 - z0)
     boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
     # straight back from the rail, which it swallows, its inner side 0.2 mm short of the boss's face, where the bar's
     # slab starts (touching that face's plane, it left a solid of no volume there)

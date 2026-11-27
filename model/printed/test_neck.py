@@ -149,7 +149,7 @@ def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
     """#1039: the carrier's strut from its R rail straight back to the reduction's anchor, longer since the rails run
     straight: SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts
     at the bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends
-    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on are not sectioned here."""
+    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on have their own test, below."""
     solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
     _, ay, az = nk.TILT_ANCHOR
     (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
