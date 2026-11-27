@@ -41,7 +41,7 @@ from model import geometry as g
 from model import morty, skeleton, skin, stages
 from model.render import pictures, scene
 from scripts import heavy
-from scripts.gx10 import blender_ceiling
+from scripts.gx10 import atomic_json, blender_ceiling, checksum
 
 OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage3.blend"))  # Cansin's review file
 SLOT = heavy.PATH  # the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
@@ -321,8 +321,8 @@ def lock(path, wait=False):
 
 
 def build(out=OUT, quality="production", before=False):
-    """The review file at `out`: written beside it and renamed into place, under its lock (one writer) and the Blender
-    slot (one Blender)."""
+    """The review file at `out`: written beside it and renamed into place with its receipt, under its lock (one writer)
+    and the Blender slot (one Blender)."""
     held, part = [lock(out + ".lock")], out.removesuffix(".blend") + ".tmp.blend"  # beside it: one disk's rename
     try:
         held.append(lock(SLOT, wait=True))
@@ -344,6 +344,8 @@ def build(out=OUT, quality="production", before=False):
                     _blender([part, "-P", SCRIPT, "--", path, part, stem])
             _blender([part, "-P", SCRIPT, "--", path, part, "scenes"])
             os.replace(part, out)
+            # what reload.py refreshes on, as the GX10's delivery and model/latest leave theirs (#1045)
+            atomic_json(out.removesuffix(".blend") + ".blend.ready.json", {"sha256": checksum(out)})
     finally:
         if os.path.exists(part):  # a failed run's half
             os.remove(part)
