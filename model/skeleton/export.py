@@ -14,7 +14,7 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
-MECH, CARVE, OPENINGS, FINISHED = "Mech", "Carve", "Openings", "Finished"
+MECH, CARVE, OPENINGS, FINISHED, VAULT = "Mech", "Carve", "Openings", "Finished", "Vault"
 
 
 def collection(name, parent=None):
@@ -122,6 +122,10 @@ def swap(job, ratio=None):
     for o in openings.objects:
         o.matrix_world = frame @ o.matrix_world  # the job's openings are in the head's frame
         o.display_type, o.hide_render = "WIRE", True
+    vault = collection(VAULT, collection("helpers"))  # the vault's bones once more, for the Finish to thicken
+    for name in job["vault"]["bones"]:
+        if name not in vault.objects:
+            vault.objects.link(bpy.data.objects[name])
 
 
 def _corners(me):
@@ -150,13 +154,82 @@ def _there_and_back(group, grid, name, sign):
     return grid
 
 
-def rounded(group):
-    """The skull's Finish (the one cutting the Openings), once, sealed and rounded. Sealed: its bones' SDF grown by
+def _thickened(group, bones, middle):
+    """The bones' SDF `bones` (a socket) united with the vault's bones (the Vault collection) once more, each vertex
+    moved toward `middle` (the cranium's, in the Finish's own frame) by what the bone lacks there of the group's input
+    Thick (a ray through the bone, against its normal, measures it), half of that and all of it: a bone of the vault
+    thinner than Thick comes out Thick, inward, its outer side where it was, and a thicker one unchanged. Two steps,
+    so the seal after it closes what is left between a thin sheet and its copies."""
+    N, L = group.nodes, group.links
+    if "Thick" not in group.interface.items_tree:
+        group.interface.new_socket("Thick", in_out="INPUT", socket_type="NodeSocketFloat")
+    gi = next(n for n in N if n.bl_idname == "NodeGroupInput")
+
+    def vector(operation, *sockets):
+        n = N.new("ShaderNodeVectorMath")
+        n.operation = operation
+        for i, s in enumerate(sockets):
+            L.new(s, n.inputs["Scale" if operation == "SCALE" and i else i])
+        return n
+
+    def number(operation, a, b):
+        n = N.new("ShaderNodeMath")
+        n.operation = operation
+        for socket, value in zip(n.inputs, (a, b)):
+            if isinstance(value, float):
+                socket.default_value = value
+            else:
+                L.new(value, socket)
+        return n.outputs[0]
+
+    info = N.new("GeometryNodeCollectionInfo")
+    info.transform_space = "RELATIVE"
+    info.inputs["Collection"].default_value = bpy.data.collections[VAULT]
+    info.inputs["Separate Children"].default_value = False
+    real = N.new("GeometryNodeRealizeInstances")
+    L.new(info.outputs[0], real.inputs[0])
+    position = N.new("GeometryNodeInputPosition").outputs[0]
+    into = vector("SCALE", N.new("GeometryNodeInputNormal").outputs[0])  # against the normal: through the bone
+    into.inputs["Scale"].default_value = -1.0
+    start = vector("SCALE", into.outputs[0])
+    start.inputs["Scale"].default_value = 0.05  # off its own face
+    ray = N.new("GeometryNodeRaycast")
+    L.new(real.outputs[0], ray.inputs["Target Geometry"])
+    L.new(vector("ADD", position, start.outputs[0]).outputs[0], ray.inputs["Source Position"])
+    L.new(into.outputs[0], ray.inputs["Ray Direction"])
+    lacks = number("MAXIMUM", number("SUBTRACT", gi.outputs["Thick"], ray.outputs["Hit Distance"]), 0.0)
+    inward = N.new("ShaderNodeVectorMath")
+    inward.operation = "SUBTRACT"
+    inward.inputs[0].default_value = middle
+    L.new(position, inward.inputs[1])
+    unit = vector("NORMALIZE", inward.outputs[0])
+    band = bones.node.inputs["Band Width"].default_value  # the bones' own Mesh to SDF Grid's
+    for part in (0.5, 1.0):
+        moved = N.new("GeometryNodeSetPosition")
+        moved.name = f"Thick {part}"
+        L.new(real.outputs[0], moved.inputs["Geometry"])
+        L.new(vector("SCALE", unit.outputs[0], number("MULTIPLY", lacks, part)).outputs[0], moved.inputs["Offset"])
+        sdf = N.new("GeometryNodeMeshToSDFGrid")
+        L.new(moved.outputs[0], sdf.inputs["Mesh"])
+        L.new(gi.outputs["Voxel"], sdf.inputs["Voxel Size"])
+        sdf.inputs["Band Width"].default_value = band
+        both = N.new("GeometryNodeSDFGridBoolean")
+        both.operation = "UNION"
+        for grid in (bones, sdf.outputs[0]):  # a union's grids all go into its one many-input socket
+            L.new(grid, both.inputs["Grid 2"])
+        bones = both.outputs[0]
+    return bones
+
+
+def rounded(group, middle):
+    """The skull's Finish (the one cutting the Openings), once, thickened, sealed and rounded. Thickened: the vault's
+    bones at least Thick through, inward toward `middle` (_thickened; the parietals are 0.8 to 2.2 mm thick at the
+    temples, which the rounding took away: two holes, #874). Sealed: its bones' SDF grown by
     Seal, then eroded by it, before the shell and the cuts, so BodyParts3D's 21 bones, which only abut (the palate
     hung on one such gap, model/skeleton SEAL, #874), are one bone across every gap under twice Seal. Rounded: opened
     by Round before its Mean, eroded, then grown back, so every piece thinner than twice Round goes (#838's floor) and
     every convex edge, the orbits' and the nose's rims among them, comes out rounded to it (#993). Older scenes'
-    Finishes get both here, at export; build.py's are born with them."""
+    Finishes get all three here, at export; build.py's are born with them."""
     N, L = group.nodes, group.links
     cuts = {n.inputs["Collection"].default_value for n in N if n.bl_idname == "GeometryNodeCollectionInfo"}
     if bpy.data.collections.get(OPENINGS) not in cuts:
@@ -167,7 +240,7 @@ def rounded(group):
             n.outputs[0] for n in N if n.bl_idname == "GeometryNodeMeshToSDFGrid" and len(n.outputs[0].links) == 2
         )
         into = [link.to_socket for link in bones.links]
-        sealed = _there_and_back(group, bones, "Seal", 1.0)
+        sealed = _there_and_back(group, _thickened(group, bones, middle), "Seal", 1.0)
         for socket in into:
             L.new(sealed, socket)
     if "Round there" not in N and "Round erode" not in N:  # "Round erode": a scene saved by an older export
@@ -176,14 +249,15 @@ def rounded(group):
 
 
 def numbers(job):
-    """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Seal and Round) on every
-    finish."""
+    """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Thick, Seal and Round) on
+    every finish."""
+    middle = Vector(job["frame"]) + Vector(job["vault"]["middle"])  # the job's is in the head's frame
     for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
         mod = o.modifiers["Finish"]
         if mod.node_group:  # a Finish not wired yet (the review's stand-in scene) has nothing to round
-            rounded(mod.node_group)
+            rounded(mod.node_group, o.matrix_world.inverted() @ middle)
         for key, value in job["numbers"].items():
-            if key not in ("Seal", "Round") or key in mod.node_group.interface.items_tree:  # the skull's alone
+            if key not in ("Thick", "Seal", "Round") or key in mod.node_group.interface.items_tree:  # the skull's
                 getattr(mod.properties.inputs, mod.node_group.interface.items_tree[key].identifier).value = value
 
 
