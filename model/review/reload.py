@@ -21,7 +21,9 @@ _seen = None
 
 def _open():
     """The generated file open in this Blender, if one is."""
-    path = Path(bpy.data.filepath).resolve() if bpy.data.filepath else None
+    # getattr: while startup scripts register, bpy.data is Blender's restricted stand-in, which has no filepath (#1045)
+    filepath = getattr(bpy.data, "filepath", "")
+    path = Path(filepath).resolve() if filepath else None
     return path if path in TARGETS else None
 
 
