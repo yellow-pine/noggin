@@ -55,8 +55,9 @@ FPS, FRAMES = 24, 240  # the loop: 10 s, frame 1 its rest pose
 STEP = 2  # a pose keyed every STEP frames
 BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
-# the Morty sculpt's eye centres, raw mm (#872's measure on its front depth map, inferred), z up, -y forward
-MORTY_EYES = {"L": (84.36, 245.85, 107.2), "R": (74.16, 245.85, 107.4)}
+# the Morty sculpt's eyeballs' centres, its own mm, z up, -y forward: each a sphere fitted to its dome, which
+# model/test_skin.py refits (#967; #872's measure on a front depth map before). His pupils sit 9 deg outward of them
+MORTY_EYES = {"L": (84.467, 245.677, 107.54), "R": (74.186, 245.682, 107.54)}
 CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 

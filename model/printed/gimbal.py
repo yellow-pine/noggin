@@ -361,6 +361,10 @@ def frame(mechanical=False):
         # the lid upright's head flat in front, inside the temple's Skin (#967): cut, as a head drawn smaller came back
         # null or in pieces from Linux's OCCT at 3.5, 3.6 and 3.0 mm
         out = out.cut(box(ux, (-5.0, -gm.UPRIGHT_FLAT), (-12, 5)))
+        # and its outer front edge cut back: his temple's Skin is nearest there since his eyes sit on ours (#967)
+        xo, y, cut = s * edge, -gm.UPRIGHT_FLAT, gm.UPRIGHT_EDGE
+        corner = [(xo - s * cut, y), (xo, y), (xo, y + cut)]
+        out = out.cut(cq.Workplane("XY", origin=(0, 0, -12.5)).polyline(corner).close().extrude(17.5))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))

@@ -21,11 +21,12 @@ from scipy.spatial.transform import Rotation
 from model import fits, linkage
 from model import geometry as g
 
-# Morty at life size (#872 step 3 round 2, his sculpt x7.123, #901): his eye a sphere this radius; its outline's radius
-# about its centre every 30 deg from +x (outward on the L eye) toward up, seen from the front; his pupils this far apart
+# Morty at life size (#872 step 3 round 2, his sculpt x7.126, #901): his eye a sphere this radius (37.1 fitted, #967:
+# the cap and the lids follow with the lids' re-layout); its outline's radius about its centre every 30 deg from +x
+# (outward on the L eye) toward up, seen from the front; his eyeballs' centres this far apart
 MORTY_EYE_R = 40.4
 MORTY_OUTLINE = (39.5, 39.0, 39.0, 37.5, 35.5, 33.0, 31.0, 29.5, 30.0, 32.0, 35.0, 37.5)
-SPACING = 72.7  # eye centres apart: on Morty's pupils
+SPACING = 73.3  # eye centres apart: his Sculpt's eyeballs', each fitted to its dome (#967, model/review MORTY_EYES)
 K = round(MORTY_EYE_R / 27.0, 1)  # the eye's growth, x1.5, from the 27 mm cap the gimbal was first drawn round (#630)
 EYE = {"L": (SPACING / 2, 0.0, 0.0), "R": (-SPACING / 2, 0.0, 0.0)}
 SERVO_DEG = 90.0  # a servo's travel either side of its centre
@@ -146,9 +147,9 @@ BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # under the lower lids' co
 # cut back BEAM_CUT and the arms start that far up
 BEAM_X, BEAM_CUT = 53.0, 4.0
 FOOT_Y = (14.0, 20.0)
-# each lid upright's head is flat in front, this far from the lids' axis, inside the temple's Skin; the mechanical
-# yoke's lower corners are cut back this far, which yawed near the cheek's
-UPRIGHT_FLAT, YOKE_CUT = 3.5, 2.0
+# each lid upright's head is flat in front, this far from the lids' axis, inside the temple's Skin, its outer front
+# edge cut back UPRIGHT_EDGE; the mechanical yoke's lower corners are cut back YOKE_CUT, which yawed near the cheek's
+UPRIGHT_FLAT, UPRIGHT_EDGE, YOKE_CUT = 3.5, 2.0, 2.0
 # #967: a window through the plate either side of the yaw servo's collar, out to WINDOW_X and back to WINDOW_Y: the
 # realistic skull's maxillae rise through them from the palate to the cranium's base, behind the orbits' openings
 # (model/skeleton REACH), so the palate stays on the skull; a bar in front of each window, WINDOW_BAR deep, joins the
