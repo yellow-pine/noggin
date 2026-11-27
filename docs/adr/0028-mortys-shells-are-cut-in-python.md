@@ -1,7 +1,8 @@
-# Morty's Shells are cut in Python, four of them
+# Morty's Shells are cut in Python, six of them
 
 > Decided on 2026-11-27, ticket #850 (made while away). Cansin confirmed the collar and set the eye openings the
-> same day (spec #893, "Decided by Cansin (2026-11-27, second grilling round…)"). Builds on ADR 0027.
+> same day (spec #893, "Decided by Cansin (2026-11-27, second grilling round…)"), and made the brows dark after
+> looking at the review file (#850): four Shells became six. Builds on ADR 0027.
 
 ADR 0027 makes Morty's Sculpt his Skin. This is how the Shells are cut from it (`model/morty/shells.py`) and which
 Shells there are.
@@ -18,8 +19,14 @@ Shells there are.
   under 0.8 mm wide at the brow's inner end (the original has them too, so the adoption did not make them). A wall
   grown from every surface would follow a pocket in. So a pocket's walls are left out whole and each crack is capped
   where it leaves the outside (#850, `outer()`): a brow is its ridge on the face and nothing behind it.
-- **Four Shells: hair, face, chin, shirt.** The eyes get none: the eyeballs, the mechanism's own, are the eye
-  whites.
+- **Six Shells: hair, face, a brow over each eye, chin, shirt.** The eyes get none: the eyeballs, the mechanism's
+  own, are the eye whites.
+- **A brow is its own Shell, in the hair's filament** (Cansin: the brow's shape is right, and it should be dark). On
+  this Sculpt a brow is a slab standing 1.4 to 2.3 mm proud of the forehead, 8 mm across, from over the nose round
+  to the temple. Its Shell is the wall inside the slab's outline, cut through, and the face steps back a seam's gap
+  from it (ADR 0029). The outline is traced on the original sculpt in a front view turned 40° toward the brow's
+  side: the slab's foot, or its top's own edge where that hides the foot from the view. The plain front view sees
+  the temple end edge on, where a gap measured in the view would open to three times its size on the surface. How a brow holds on the face is the Seats' question (#850).
 - **An eye's opening is the Sculpt's own dome's edge, exactly** (Cansin): the face is open inside each eye white's
   cut and no further. So the lids cannot hide whole behind the rim: an open lid's edge rests at the rim and shows
   there as a sliver (#967). The face's wall comes to 36.3 mm from each eye's centre at its nearest (38.0 before), and
@@ -38,6 +45,10 @@ Shells there are.
   within the wall's thickness of the outside, at each brow's inner end, its walls counted as outside, and the face
   held 0.1 cm² of them with a spur of wall to 2.4 mm deep behind.
 - A neck Shell between the head and the shirt: this Sculpt shows no neck to cut one from.
+- The brows left on the face and painted, or printed in a second filament in one piece: every Colour group is a
+  Shell of its own in one filament (ADR 0022), so a Palette can change a brow's colour by swapping a spool.
+- A brow as the proud slab alone, laid on a face that runs on under it: the face under a brow would be a surface
+  the Sculpt does not have, the first we would invent. It stays open for the Seats, as a ledge behind the brow.
 - An eye Shell cut from each dome: the lids sweep where the dome's wall would be (#967).
 - The face open to a 38.0 mm sphere about each eye's centre, so the lids stow hidden under its rim (#1037 to
   #1046): the opening stood 0.3 to 2.6 mm outside the dome's edge, and Cansin chose his eyes' own outline over

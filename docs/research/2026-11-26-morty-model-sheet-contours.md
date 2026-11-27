@@ -112,7 +112,17 @@ Every point was read by script off the mesh. A form's foot on a sculpt is a conc
 6. Collar (side view): the crease where the head meets the shirt, traced like the hairline (stations 1 mm apart,
    the median within 1.5 mm across). From above it is one closed loop round the neck. From the side its two halves
    fall on one line, and its front and back fall on that line's two ends.
-7. Smoothing, as on the sheet: each trace is smoothed along itself (Gaussian: σ 4 mm on the hairline, 9° on a dome
+7. Brows (added 2026-11-27, #850, when Cansin made them dark; each in a front view turned 40° about z toward its
+   side, `TURNED` in `model/skin.py`): a brow is a slab standing proud of the forehead, and its foot is the crease all
+   round it. The crease points within 3.2 mm in depth of the first surface the view sees (a step's foot hides under
+   its own edge) are drawn on a 0.1 mm grid and thickened by 0.3 mm; the region they close round a point on the slab
+   is the brow, and its outline the guide. At stations 0.5 mm apart along it the trace takes the median of the crease
+   points within 1.0 mm, four passes, then is smoothed along itself (Gaussian, σ 0.75 mm). Where the view hides the
+   foot under the slab's own edge (the crease points there lie 0.4 mm or more behind the first surface: along the
+   upper edge and round the inner end), the trace moves out from the foot to that edge, where the first surface
+   drops away by over 1 mm, so the outline holds all the view sees of the slab. Then it is smoothed again (σ 0.5 mm)
+   and resampled at 36 evenly spaced points.
+8. Smoothing, as on the sheet: each trace is smoothed along itself (Gaussian: σ 4 mm on the hairline, 9° on a dome
    and on a pupil, 2 mm on the mouth line and the collar) and resampled at evenly spaced points: 16 on the hairline,
    24 on each dome, 12 on each pupil and on the collar, 8 on the mouth line.
 
@@ -141,6 +151,15 @@ Every point was read by script off the mesh. A form's foot on a sculpt is a conc
 - Collar: 94 mm long from the side. It starts under the chin at (27.6, -117.8) mm, rises to (80.7, -94.7) mm under
   the ear, where the hairline ends, and drops to (110.9, -109.8) mm behind the neck. The curve stays within 0.86 mm of
   the trace (0.10 mm on average). The sheet's collar ran level behind the neck at -94 mm, up to 16 mm higher.
+
+- Brows: each a closed outline 126 mm round, 55 mm long and 24 mm tall in its turned view (8.6 to 64.1 mm across,
+  z 27.2 to 51.2 mm), 472 mm² each, the two mirror images to 0.2 mm. From 18.5 mm off the midline, over the eye,
+  round the temple to 78 mm off it and 10 mm behind the eyes' plane. The foot alone encloses 449 mm² (L) and 450 mm²
+  (R); the slab's edge hides it along 63.5 mm of the outline, standing up to 1.05 mm out past it. The curve through
+  the 36 points stays within 0.19 mm of the trace, and the trace within 0.31 mm of a crease point, either way (0.17 mm
+  at the 95th percentile). Across 12 stations a brow, seen from the front, the slab is 7.0 to 8.1 mm wide and stands
+  1.4 to 2.0 mm proud at its lower edge and 2.1 to 2.3 mm at its upper. The plain front view was tried first: it sees the last 10 mm at the temple at 70° to the
+  surface, the creases there fall up to 1 mm apart and the outline does not close.
 
 ### Limits
 
