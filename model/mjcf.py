@@ -48,6 +48,9 @@ FINE_MM = {
     # the jaw's arms turn 2 mm outside its lugs and the plate's edge (model/neck.py JAW_X): pieces within 1 mm of the
     # frame, not chords across that gap, which read the opening jaw 0.22 mm into it while the solids never meet (#869)
     f"gimbal frame{g.MECHANICAL}": 1.0,
+    # the tie-bar's fingers pass 2 mm over the frame's yaw bearings and its cross-bar 2.8 mm behind the shut lower
+    # lids (#967): pieces within 0.5 mm of it, where the default lets a fork's pieces fill 4 mm of its inside corners
+    "tie-bar": 0.5,
 } | {
     # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
     # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
@@ -59,7 +62,7 @@ FINE_MM = {
 # The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many
 # pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read
 # the core 1.6 mm deep in it
-MAX_PIECES = dict.fromkeys((f"{p}{g.MECHANICAL}" for p in ("tie-bar", "bail")), 12)
+MAX_PIECES = {f"bail{g.MECHANICAL}": 12}
 VISUAL, COLLISION = 2, 3  # geom groups: the viewer shows 0-2, so the pieces stay hidden until group 3 is toggled
 MM = 0.001
 # the viewer draws no outlines: black and white pulled in so their shading reads (the pictures keep their own)
