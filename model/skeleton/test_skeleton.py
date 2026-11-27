@@ -87,6 +87,17 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
 
 @pytest.mark.model
 @pytest.mark.bones
+def test_the_vertebrae_stay_inside_the_skins_neck():
+    """Every vertebra's spine the Skin's wall and the clearance (fit.ROOM) in front of the Skin's neck back (fit.back,
+    our coarse measure of the reference), to half the Finish's voxel: C5 to C7 stood 2 to 9 mm out of it (#874)."""
+    for stem, mesh in _bones().items():
+        if stem in g.NECK:
+            v = mesh.vertices
+            assert (fit.back(v) - v[:, 1]).min() >= fit.ROOM - skeleton.PITCH / 2, stem
+
+
+@pytest.mark.model
+@pytest.mark.bones
 @pytest.mark.parametrize(
     "stem",
     [pytest.param(s, marks=pytest.mark.xfail(strict=True, reason=SEVERED[s])) if s in SEVERED else s for s in g.BONES],
