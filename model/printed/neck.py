@@ -30,6 +30,9 @@ JAW_CHIN_LAP_R = 1.0
 # #1039: the tilt lever's arm, from the shaft: its slab along x, 0.9 mm off the case's face, and where it steps in from
 # the disc's slab, 0.6 mm outside the horn's rim (inferred)
 TILT_ARM_X, TILT_STEP = (1.0, 5.0), 15.6
+# #1039: the strut from the R rail back to the reaction anchor, (head, waist), each its half-height then across: the
+# straight rail stands 16 mm in front of the anchor (model/printed/test_neck.py holds it at the tilt servo's stall)
+ANCHOR_STRUT = ((6.0, 5.0), (5.5, 4.5))
 
 
 def tie(x, y, z):
@@ -64,7 +67,7 @@ def cervical_carrier():
     t = (az - z0) / (z1 - z0)
     rail = (-(nk.CERVICAL_X[3] + t * (nk.CERVICAL_X[2] - nk.CERVICAL_X[3])), y0 + t * (y1 - y0), az)
     boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
-    out = out.union(strut(rail, (boss[0] + 3.0, ay, az), (3.5, 3), (3, 2.5)))
+    out = out.union(strut(rail, (boss[0] + 3.0, ay, az), *ANCHOR_STRUT))
     out = out.union(cyl("x", (0, ay, az), 3.5, boss)).cut(cyl("x", (0, ay, az), TAP_R, boss))
     out = out.union(tie(20.0, 78.5, -65.7))
     for x, fy in nk.CARRIER_FEET:

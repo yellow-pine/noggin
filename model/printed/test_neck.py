@@ -133,6 +133,43 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
 
 
 @pytest.mark.model
+def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
+    """#1039: the carrier's strut from its R rail back to the reduction's anchor, longer since the rails run straight:
+    SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts at the
+    bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends it by
+    the bar's lean and by the bar's place inboard of it. The rails it hangs on are not sectioned here."""
+    solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
+    _, ay, az = nk.TILT_ANCHOR
+    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
+    t = (az - z0) / (z1 - z0)
+    a = np.array((-(nk.CERVICAL_X[3] + t * (nk.CERVICAL_X[2] - nk.CERVICAL_X[3])), y0 + t * (y1 - y0), az))
+    b = np.array((nk.REACTION_TAP_X[1] - 5.0, ay, az))  # as cervical_carrier() draws it
+    along, pin = (b - a) / np.linalg.norm(b - a), np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))
+    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
+    force /= math.sin(math.radians(_tilt_angle()))
+    pulls = []  # the bar's direction as the fixed carrier sees it: the case's, turned back by the head's turn
+    for s in nk._sweep("tilt"):
+        rocker, p, q = nk.TILT_LOOP(s)
+        pulls.append(linkage.rotation(g.X, -rocker, (0, 0, 0))[:3, :3] @ np.subtract(p, q) / math.dist(p, q) * force)
+    across = np.cross(along, g.Z) / np.linalg.norm(np.cross(along, g.Z))
+    for t in (0.15, 0.3, 0.5, 0.7, 0.85):
+        cut = _section(solid, tuple(a + (b - a) * t), tuple(along), tuple(across), (13, 13))
+        area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
+        inertia = np.array(cq.Shape.matrixOfInertia(cut)) / 0.01
+        corners = np.array([v.toTuple() for v in cut.Vertices()]) - centre
+
+        def stress(pull):
+            moment = np.cross(pin - centre, pull)
+            bent = sum(
+                abs(moment @ axis) * abs(corners @ np.cross(along, axis)).max() / (axis @ inertia @ axis)
+                for axis in (across, np.array(g.Z, float))
+            )
+            return abs(pull @ along) / area + bent
+
+        assert mat["tensile_mpa"]["z"] / max(map(stress, pulls)) >= beams.MIN_SF, t
+
+
+@pytest.mark.model
 def test_the_tilt_lever_swings_beside_its_case_with_room():
     """#1039: the lever's arm steps inboard round the horn's rim and rides beside the case's face, and its pin passes
     the case's corner in mid-swing, which neither end of the range shows: at 21 poses through the tilt's sweep the
