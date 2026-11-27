@@ -140,6 +140,15 @@ def test_the_eyes_and_nose_gate_refuses_a_fold_a_shear_and_a_collapse():
         fit.gate(v, v, faces, one * (fit.JACOBIAN_MIN - 0.01), [np.zeros(3)])
 
 
+def test_the_gate_reads_nothing_the_finish_opens():
+    """The sheet folded at its middle: refused, but not once the Finish opens a ball round the fold."""
+    v, faces = _sheet()
+    folded = v.copy()
+    folded[40] += (4, 0, 0)
+    report = fit.gate(v, folded, faces, np.ones(len(v)), [np.zeros(3)], [(np.zeros(3), 6.0)])
+    assert report["folded"] == 0 and 0 < report["triangles"] < 128
+
+
 def test_the_gate_reads_no_shear_off_a_sliver():
     """A triangle slenderer than SOUND shears with the field's bend along it, whatever the Warp: only its fold counts."""
     v = np.array(((0, 0, 0), (30, 0, 0), (15, 0.5, 0)), float)

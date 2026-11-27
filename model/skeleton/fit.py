@@ -18,7 +18,7 @@ from scipy.optimize import minimize
 from scipy.spatial import cKDTree
 
 from model import geometry as g
-from model import neck
+from model import neck, skeleton
 from model.skeleton import budget, envelope
 
 LATTICE = 20.0  # the field's control spacing, mm
@@ -37,11 +37,13 @@ C0_BELOW = (
 # bone by (model/skeleton PITCH); AIM: the solve's margin inside it, so the check passes
 RAW, AIM = envelope.ROOM + 0.4, 0.5
 # the eyes-and-nose gate (#991), from the fit measured in Morty's skin on 2026-11-27: within FACE_R of each orbit's
-# centre and the nasal aperture's middle no triangle may fold; a sound one (its longest edge at most SOUND heights)
-# shears at most SHEAR_MAX (measured 2.09 on a frontal triangle 12 mm long; the budget's own bound at a point is 1.25 /
-# 0.75 = 1.67, 2.0 in the growth zone), a slenderer one shearing with the field's bend along it, whatever the Warp; the
-# Jacobian stays over JACOBIAN_MIN (measured 0.61)
-FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 2.2, 0.5
+# centre and the nasal aperture's middle, where the Finish leaves bone (outside the lids' shell round each eye, 2,791
+# triangles of 12,655), no triangle may fold; a sound one (its longest edge at most SOUND heights) shears at most
+# SHEAR_MAX (measured 2.26 on a nasal triangle 9.6 mm long and 0.9 tall; 99.9% of them stay under 1.84, and the
+# budget's own bound at a point is 1.25 / 0.75 = 1.67), a slenderer one shearing with the field's bend along it,
+# whatever the Warp; the Jacobian stays over JACOBIAN_MIN (measured 0.53). Inside the shell 3 slivers the turn could
+# not mend (0.1 to 0.7 mm tall) still fold
+FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 2.4, 0.5
 # the cranium's outer side (the vault's bones' farthest vertices from MIDDLE on the Basis, outer()) drawn
 # out to RAW under Morty's skin, FILL its pull's weight (on the rows' mean square gap): the vault closes over the mechanism,
 # which lies 10 mm and more under his skin there, and (#991's skull-base guides) the growth zone's under side comes
@@ -181,16 +183,19 @@ def shear(basis, warped, faces):
         return np.sqrt(lam[:, 1] / lam[:, 0])
 
 
-def gate(x, y, faces, det, centres):
+def gate(x, y, faces, det, centres, opened=()):
     """The eyes-and-nose gate (#991) on the Warp `y` of the Basis `x`, over the triangles and vertices within FACE_R of
-    `centres` (the orbits' and the nasal aperture's, on the Basis). Raises on a folded triangle (its normal turned past a
-    right angle), a sound one (no slenderer than SOUND) sheared past SHEAR_MAX, or a Jacobian (`det`, a vertex each)
-    under JACOBIAN_MIN; returns its report."""
+    `centres` (the orbits' and the nasal aperture's, on the Basis), but the triangles the Finish opens: those warped
+    into a ball of `opened` ((centre, radius): the lids' shell round each eye). Raises on a folded triangle (its
+    normal turned past a right angle), a sound one (no slenderer than SOUND) sheared past SHEAR_MAX, or a Jacobian
+    (`det`, a vertex each) under JACOBIAN_MIN; returns its report."""
 
     def near(p):
         return np.min([np.linalg.norm(p - c, axis=1) for c in centres], axis=0) < FACE_R
 
     f = faces[near(x[faces].mean(1))]
+    for centre, radius in opened:
+        f = f[np.linalg.norm(y[f].mean(1) - centre, axis=1) > radius]
     e0, e1 = (v[f[:, [1, 2, 0]]] - v[f] for v in (x, y))
     n0, n1 = (np.cross(e[:, 0], e[:, 1]) for e in (e0, e1))
     folded = int(((n0 * n1).sum(1) <= 0).sum())
@@ -355,7 +360,8 @@ def warp(basis, faces, landmarks, skin):
     ]
     y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, clear=(zone, moving), faces=tris)
     report["skull"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, y, tris)}
-    report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)])
+    shells = [(e, skeleton.LID_SHELL + CLEAR_MM) for e in envelope.EYES.values()]
+    report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)], shells)
     base = np.isin(tris, zone).all(axis=1)
     room = float(moving.query(surface(y, tris[base]))[0].min())
     if room < CLEAR_MM:
