@@ -59,10 +59,10 @@ worktrees-clean:
 check-light: venv lint
     {{PY}} -m pytest -q -n auto -m "not model"
 
-# just ours, then the pytest arguments given, in CI's Blender image (the base image and Blender, for the bones: docs/adr/0025) as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
+# just ours, then the pytest arguments given, in CI's Blender image (the base image and Blender, for the bones: docs/adr/0025) as main has it (Linux and its OCCT, where macOS passes parts CI fails: #737, #772), its venv synced to this uv.lock, its Blender named for the build and for the tests (which skip the bones' checks where they find none, #1019), the repo mounted and its Linux model/build a volume the run deletes (parallel worktrees never share one): a model/ change's affected tests before its push (just linux-test model/printed/test_bone.py)
 [positional-arguments]
 linux-test +args:
-    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 ghcr.io/yellow-pine/noggin-ci-blender:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin BLENDER=blender ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
+    docker run --rm --pull always --platform linux/amd64 --user root -v "{{REPO}}:{{REPO}}" -v "{{REPO}}/model/build" -w "{{REPO}}" -e UV_PROJECT_ENVIRONMENT=/opt/uv/venv -e PYTHONDONTWRITEBYTECODE=1 -e BLENDER=blender ghcr.io/yellow-pine/noggin-ci-blender:main sh -c 'uv sync -q --frozen && /opt/uv/venv/bin/just --no-deps BIN=/opt/uv/venv/bin ours && /opt/uv/venv/bin/python -m pytest -q -p no:cacheprovider "$@"' sh "$@"
 
 # the committed command on the native GX10 worker (#979), with bounded memory, private inputs and immutable FETCH snapshots
 [positional-arguments]
