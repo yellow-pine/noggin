@@ -4,7 +4,8 @@ placed, then the skull and the mandible each take one smooth field, a cubic B-sp
 the functional landmarks land on the Mech: the orbits on the eyes, the condyles on the jaw's hinge, the occipital
 condyles on the tilt axis, the skull's box on the compact head's (LO, HI). Its local length factors, the singular
 values of the field's Jacobian at every vertex, stay within the confirmed budget (budget.py) or the fit raises. The
-neck's seven vertebrae are only resized and moved, each canal onto the cervical canal's path, C1's round the pan axis.
+neck's seven vertebrae are resized and moved, each canal onto the cervical canal's path, C1's round the pan axis, then
+take one field of their own that brings their spines inside the Skin's neck (BACK_Y, ROOM), or the fit raises.
 
 rewarp.py hands Blender's Basis over and writes the Warp back: `warp(basis, faces, landmarks)`."""
 

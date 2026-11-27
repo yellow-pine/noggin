@@ -93,3 +93,10 @@ fronts (Cansin, 2026-11-27, #874; model/skeleton/test_skeleton.py holds it). A d
 within the length budget an anatomical brow reaches about 24 mm ahead of the orbits, and Morty's 40.4 mm eyes stand
 proud of it. Anatomy comes first.
 
+The vertebrae take a field of their own too (2026-11-27, #874): resized and moved alone, C5 to C7's spines stood 2.5,
+6.3 and 8.9 mm out of the private reference's neck at the back, and 0.07 mm off every Skin's shirt back. The neck
+keeps its size (0.968); one B-spline field over C1 to C7 brings every vertex the Skin's wall and the clearance
+(3.2 mm) in front of the Skin's neck back, each canal and each body's front held where they stand, the local length
+factors inside the same 0.75 to 1.25 (fit.py raises otherwise). The Skin's neck back is committed as our own coarse
+measure of the reference, three columns by seven heights (`fit.BACK_Y`), the coarse hull this ADR allows.
+
