@@ -24,6 +24,8 @@ from model.skeleton import budget, envelope
 LATTICE = 20.0  # the field's control spacing, mm
 LOW, MARGIN = 0.75, 0.01  # the compression floor; the solve's margin inside every bound, so the check passes
 TOL_MM = 1.0  # a functional landmark's miss, at most
+# the solve's weights: on a length factor past the budget, a landmark's miss and a vertex past its limit (a mm2 each)
+BUDGET, PAIR, SKIN = 1e6, 1e3, 1e2
 NECK = g.NECK  # C1 (the atlas) to C7
 JAW = "mandible"
 TILT, HINGE, PAN = (neck.HEAD_AXES[k][0] for k in ("tilt", "jaw", "pan"))
@@ -39,11 +41,11 @@ RAW, AIM = envelope.ROOM + 0.4, 0.5
 # with the field's bend along it, whatever the Warp (measured up to 5.1); the Jacobian stays over JACOBIAN_MIN
 FACE_R, SOUND, SHEAR_MAX, JACOBIAN_MIN = 30.0, 20.0, 1.8, 0.5
 # the cranium's outer side (the vault's bones, where a vertex's normal points away from MIDDLE on the Basis) drawn
-# out to RAW under Morty's skin, FILL its pull's weight against the budget's: the vault closes over the mechanism,
+# out to RAW under Morty's skin, FILL its pull's weight (on the rows' mean square gap): the vault closes over the mechanism,
 # which lies 10 mm and more under his skin there, and (#991's skull-base guides) the growth zone's under side comes
-# down toward his nape and under-jaw, each vertex of it under BASE_Z no lower than CLEAR_MM over what moves under it:
-# the vertebrae over the tilt's and the pan's ranges
-FILL, MIDDLE, BASE_Z, CLEAR_MM = 0.02, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
+# down toward his nape and under-jaw, each vertex of it under BASE_Z at least CLEAR_MM off what moves under it: the
+# vertebrae over the tilt's and the pan's ranges
+FILL, MIDDLE, BASE_Z, CLEAR_MM = 2.0, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # model/skeleton's CLEAR_MM
 VAULT = (*sorted(budget.CRANIAL), "frontal bone")
 POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
@@ -72,11 +74,11 @@ def lattice(points, lo, shape):
     return [sp.csr_matrix((np.concatenate(v), (r, c)), shape=(len(points), n)) for v in vals]
 
 
-def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf):
+def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None):
     """The field over the region's Basis `x` (n, 3): x -> scale * (x + u(x)). `pairs`: (Basis point, target, per-axis
     weight); `skin` (envelope.Skin): every warped vertex RAW under it; `fill`: the rows drawn out to that limit,
-    softly: the budget and the pairs win; `lo`: the warped region's lower bound, one or a vertex each (n, 3).
-    Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
+    softly: the budget and the pairs win; `lo`: the warped region's lower bound; `clear` (rows, points): those rows
+    kept CLEAR_MM off the points. Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
     lo = x.min(0) - LATTICE
     shape = np.ceil((x.max(0) + LATTICE - lo) / LATTICE).astype(int) + 3
     B = lattice(x, lo, shape)
@@ -93,23 +95,28 @@ def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf):
         u, s, vt = np.linalg.svd(jacobians(d))
         over, under = np.maximum(s[:, 0] - (caps - MARGIN), 0), np.maximum(LOW + MARGIN - s[:, 2], 0)
         gf = 2 * (over[:, None, None] * (u[:, :, :1] @ vt[:, :1]) - under[:, None, None] * (u[:, :, 2:] @ vt[:, 2:]))
-        e = 1e4 * (over @ over + under @ under)
-        gd = 1e4 * sum(B[j + 1].T @ gf[:, :, j] for j in range(3))
+        e = BUDGET * (over @ over + under @ under)
+        gd = BUDGET * sum(B[j + 1].T @ gf[:, :, j] for j in range(3))
         r = (scale * (P + Bp @ d) - T) * W
-        e += 10 * (r * r).sum()
-        gd += 20 * scale * (Bp.T @ (r * W))
+        e += PAIR * (r * r).sum()
+        gd += 2 * PAIR * scale * (Bp.T @ (r * W))
         v = np.maximum(lo - y, 0)
         e += 10 * (v * v).sum()
         gy = -20 * v
         if skin:
             depth, inward = skin.depth(y), skin.inward(y, 1e-3)
             v = np.maximum(RAW + AIM - depth, 0)
-            e += 10 * (v * v).sum()
-            gy -= 20 * v[:, None] * inward
+            e += SKIN * (v * v).sum()
+            gy -= 2 * SKIN * v[:, None] * inward
             if fill is not None:
                 v = np.maximum(depth[fill] - RAW - AIM, 0)
-                e += FILL * (v * v).sum()
-                gy[fill] += 2 * FILL * v[:, None] * inward[fill]
+                e += FILL * (v * v).mean()
+                gy[fill] += 2 * FILL / len(v) * v[:, None] * inward[fill]
+        if clear:
+            off, j = clear[1].query(y[clear[0]])
+            v = np.maximum(CLEAR_MM + AIM - off, 0)
+            e += SKIN * (v * v).sum()
+            gy[clear[0]] -= 2 * SKIN * (v / np.maximum(off, 1e-9))[:, None] * (y[clear[0]] - clear[1].data[j])
         gd += scale * (B[0].T @ gy)
         return e + 1e-3 * (z @ z), (gd + 2e-3 * d).ravel()
 
@@ -190,14 +197,6 @@ def seen(points, tilt, pan):
     return trimesh.transform_points(points, np.linalg.inv(head))
 
 
-def floors(points, obstacles, reach=CLEAR_MM + 2.0):
-    """Each point's floor: CLEAR_MM and the solve's AIM over the top of the `obstacles` under it (within `reach` in
-    plan), none (-inf) where nothing is."""
-    near = cKDTree(obstacles[:, :2]).query_ball_point(points[:, :2], reach)
-    tops = [obstacles[i, 2][obstacles[i, 2] < p[2]].max(initial=-np.inf) for i, p in zip(near, points)]
-    return np.array(tops) + CLEAR_MM + AIM
-
-
 def canal(mesh, b=0.5):
     """(x, y) of a vertebra's canal: the largest hole in its plan view (its surface sampled, b mm bins)."""
     p = trimesh.sample.sample_surface(mesh, int(mesh.area / b**2 * 4), seed=0)[0][:, :2]
@@ -275,10 +274,17 @@ def _region(f, caps, hit, pairs):
     }
 
 
-def outer(v, faces):
-    """Which of a bone's vertices face away from the cranium's MIDDLE: its outer side."""
-    out = v - MIDDLE
-    return (trimesh.Trimesh(v, faces, process=False).vertex_normals * out).sum(1) > 0.3 * np.linalg.norm(out, axis=1)
+def outer(x, step=3.0, skin=3.0):
+    """Which of the skull's vertices `x` lie on its outer side: within `skin` mm of the farthest one from the cranium's
+    MIDDLE in their direction (`step` degrees a bin)."""
+    v = x - MIDDLE
+    r = np.linalg.norm(v, axis=1)
+    az, el = np.degrees(np.arctan2(v[:, 0], v[:, 1])), np.degrees(np.arcsin(v[:, 2] / r))
+    bins = (np.floor(az / step).astype(int) + 1000) * 1000 + np.floor(el / step).astype(int)
+    _, at = np.unique(bins, return_inverse=True)
+    far = np.zeros(at.max() + 1)
+    np.maximum.at(far, at, r)
+    return r > far[at] - skin
 
 
 def warp(basis, faces, landmarks, skin):
@@ -300,22 +306,20 @@ def warp(basis, faces, landmarks, skin):
     caps = np.concatenate([budget.caps(n, basis[n], ref) for n in skull])
     sizes = [len(basis[n]) for n in skull]
     tris = np.vstack([faces[n] + at for n, at in zip(skull, np.cumsum([0, *sizes[:-1]]))])
-    fill = np.flatnonzero(np.concatenate([outer(basis[n], faces[n]) & (n in VAULT) for n in skull]))
-    # the skull base: its growth zone's under side stays over the neck as the head moves
+    fill = np.flatnonzero(outer(x) & np.concatenate([np.full(len(basis[n]), n in VAULT) for n in skull]))
+    # the skull base: its growth zone's under side stays clear of the neck as the head moves
     zone = np.flatnonzero((caps > 1.375) & (SCALES["skull"] * x[:, 2] < BASE_Z))
-    moving = np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES])
-    lo = np.full_like(x, -np.inf)
-    lo[zone, 2] = floors(SCALES["skull"] * x[zone], moving)
+    moving = cKDTree(np.vstack([seen(surface(fitted[n], faces[n]), *pose) for n in NECK for pose in POSES]))
     pairs = [
         *((lm[f"{s} orbit"], (sign * gimbal.SPACING / 2, 0, 0), (1, 1, 1)) for s, sign in (("L", 1), ("R", -1))),
         *((lm[f"{s} condyle"], HINGE, (0, 1, 1)) for s in "LR"),
         *((p, (0, TILT[1], TILT[2] - C0_BELOW), (0, 1, 1)) for p in occ),
     ]
-    y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, lo)
+    y, f, hit = solve(x, caps, pairs, SCALES["skull"], skin, fill, clear=(zone, moving))
     report["skull"] = _region(f, caps, hit, pairs) | {"skin_mm": _under(skin, y)}
     report["eyes_and_nose"] = gate(x, y, tris, np.linalg.det(f), [*ref["eyes"], aperture(basis)])
     base = np.isin(tris, zone).all(axis=1)
-    room = float(cKDTree(moving).query(surface(y, tris[base]))[0].min())
+    room = float(moving.query(surface(y, tris[base]))[0].min())
     if room < CLEAR_MM:
         raise ValueError(
             f"the skull base comes within {room:.2f} mm of the neck as the head moves, less than {CLEAR_MM}"

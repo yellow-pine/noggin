@@ -4,6 +4,7 @@ within the budget and under a skin, refuses a stretch past it, and finds a verte
 import numpy as np
 import pytest
 import trimesh
+from scipy.spatial import cKDTree
 
 from model.skeleton import envelope, fit
 
@@ -132,10 +133,15 @@ def test_the_gate_reads_no_shear_off_a_sliver():
         fit.gate(v, w, np.array(((0, 1, 2),)), np.ones(3), [np.array((15.0, 0, 0))])
 
 
-def test_a_floor_stands_clear_over_what_moves_under_a_point_and_nowhere_else():
-    obstacles = np.array(((0, 0, -70.0), (1, 0, -72.0), (0, 0, -20.0), (50, 50, -60.0)))
-    points = np.array(((0, 0, -50.0), (20, 0, -50.0), (50, 51, -80.0)))  # over two, beside them, under the last
-    assert fit.floors(points, obstacles).tolist() == [-70 + fit.CLEAR_MM + fit.AIM, -np.inf, -np.inf]
+def test_the_field_keeps_its_rows_clear_of_what_moves_by_them():
+    """A 40 mm box in a 40 mm ball, its bottom's corners pinned, its top filled toward the ball, a plate of points
+    2 mm over the top: the top's rows stop CLEAR_MM under the plate, where unhindered they rise 4 mm and more."""
+    x, ball = _box(), envelope.Skin(trimesh.creation.icosphere(subdivisions=4, radius=40.0))
+    pairs = [((sx * 20, sy * 20, -20), (sx * 20, sy * 20, -20), (1, 1, 1)) for sx in (-1, 1) for sy in (-1, 1)]
+    rows, caps = np.flatnonzero(x[:, 2] > 19), np.full(len(x), 1.25)
+    plate = np.c_[np.mgrid[-30:30.1:1, -30:30.1:1].reshape(2, -1).T, np.full(61 * 61, 22.0)]
+    y, _, _ = fit.solve(x, caps, pairs, 1.0, ball, rows, clear=(rows, cKDTree(plate)))
+    assert y[rows, 2].max() <= 22.0 - fit.CLEAR_MM
 
 
 def test_the_head_sees_the_neck_turn_back_as_it_tilts_and_pans():
