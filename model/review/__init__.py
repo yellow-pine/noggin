@@ -4,9 +4,12 @@ plus the local Morty reference, which Cansin's Blender reloads once it is writte
 `just review [production|coarse] [before]` (`python -m model.review`): the Skeleton scene (docs/adr/0025) with the Stage 3
 document just built (just ours) in place of its Scene Mech, each of the document's bones finished at the quality's
 voxel (production: the print files' skeleton.PITCH; coarse when asked), one Blender process a bone under CEILING_KB,
-then three scenes on the same meshes (model/review/blender.py): Assembled (Mech, Skeleton and Morty, each in Skull,
+then three scenes on the same meshes (model/review/blender.py): Assembled (Mech, Skeleton, Skin and Morty, each in Skull,
 Mechanism and Pedestal, at ALPHA; a looping motion through every horn's range), Exploded (Explode's Parts level, model/render/pictures.py offsets) and Print bed (every printed part laid
-on its largest flat face, packed on BED plates); `before` adds a scene of main's bones beside the branch's. Run it in a
+on its largest flat face, packed on BED plates); `before` adds a scene of main's bones beside the branch's. The Skin
+layer is the Shells cut from Morty's Sculpt (model/morty/shells.py) and the eyeball caps, in the Skin's colours, each
+on what carries its Motion region: worn() puts them on the review's own copy of the document whether or not a document
+wears them yet (#850, #998: the review shows the newest Skin, failing its wearing gates or not). Run it in a
 branch's worktree to review that branch. Written beside OUT and renamed into place, under its lock: one writer at a time.
 
 The private Morty reference is `docs/references/morty/chelscct-morty-smith/morty-review.blend` (NOGGIN_MORTY overrides
@@ -15,12 +18,15 @@ slots named by Skin Colour group. Each mesh names its `reference_region`, a Moti
 eye, a lid, or the fixed neck, shoulders and torso), which names the live part carrying it (CARRIERS), and its
 `display_region`; a `carrier` it still names must agree. The recipe reads it without changing it, applies the Default Skin
 palette, cuts it at the model's floor and along Morty's cuts (skin.cuts(), #992), which share its faces out among its
-regions and Colour groups anew. Without this reference, Morty's layer stays empty, including in a fresh clone.
+regions and Colour groups anew. Its layer, Morty, shares the Skin's surface, so it is a toggle that starts off (it
+keeps what the Shells have none of: his eye domes and pupils, and the witnesses below). Without this reference,
+Morty's layer stays empty, including in a fresh clone.
 Independent source vertex groups `witness neck`, `witness L shoulder` and `witness R shoulder` locate the fixed
 anatomical surfaces for the output's motion checks; their positions stay private with the reference.
 """
 
 import fcntl
+import functools
 import json
 import os
 import subprocess
@@ -32,19 +38,19 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import gimbal as gm
-from model import skeleton, skin, stages
+from model import morty, skeleton, skin, stages
 from model.render import pictures, scene
+from scripts import heavy
 from scripts.gx10 import blender_ceiling
 
 OUT = os.environ.get("NOGGIN_REVIEW", os.path.expanduser("~/Desktop/noggin-stage3.blend"))  # Cansin's review file
-# the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
-SLOT = os.environ.get("NOGGIN_HEAVY_LOCK", "/tmp/noggin-heavy.lock")  # noqa: S108 one path every worktree shares
+SLOT = heavy.PATH  # the laptop's one Blender slot: scripts/heavy.py's lock, which every heavy recipe takes
 DOC = skeleton.DOC  # Stage 3, the realistic document the bones are carved for
 PRESET = g.PRESETS["Morty"] | {"Skin palette": "default"}  # anatomical bones and Cansin's owned Skin filaments
 QUALITY = {"production": skeleton.PITCH, "coarse": 1.6}  # the finish's voxel, mm
 CEILING_KB = blender_ceiling(sys.platform, os.environ)  # the Mac remains protected; GX10 also has a whole-job cgroup
-ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Morty": 0.33}  # innermost to outermost
+# innermost to outermost; the Skin and the private reference share one surface, so the reference starts hidden
+ALPHA = {"Mech": 1.0, "Skeleton": 0.69, "Skin": 0.33, "Morty": 0.33}
 REGIONS = {
     "eyes": "Skull",
     "jaw": "Skull",
@@ -53,11 +59,9 @@ REGIONS = {
 }  # else Pedestal
 FPS, FRAMES = 24, 240  # the loop: 10 s, frame 1 its rest pose
 STEP = 2  # a pose keyed every STEP frames
-BED, GAP, PLATE_GAP = 256.0, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
+BED, GAP, PLATE_GAP = g.BED, 6.0, 60.0  # the plates' side, the room round each piece, between plates, mm
 BESIDE = 300.0  # before: main's bones this far along -x of the branch's, mm
-# the Morty sculpt's eyeballs' centres, its own mm, z up, -y forward: each a sphere fitted to its dome, which
-# model/test_skin.py refits (#967; #872's measure on a front depth map before). His pupils sit 9 deg outward of them
-MORTY_EYES = {"L": (84.467, 245.677, 107.54), "R": (74.186, 245.682, 107.54)}
+MORTY_EYES = morty.EYES  # the Sculpt's eye centres, and placed(): model/morty's, which cuts his Skin by them too
 CARRIERS = {r: c and f"{c}:1" for r, c in skin.MOTION.items()}  # {Motion region: its live part, None: fixed}
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blender.py")
 
@@ -78,20 +82,34 @@ MORTY = os.environ.get(
 )
 
 
-def regions(doc=DOC):
+def _frames():
+    """The review's document's sub-assemblies: Stage 3's, and every Skin's Shells (g.SHELLS) in the head's frame."""
+    doc = stages.DOCS[DOC]
+    return dict.fromkeys(g.SHELLS, doc["eyes"]) | doc
+
+
+@functools.cache
+def worn():
+    """The Stage 3 document wearing every Shell cut from a Sculpt, each on what carries its Motion region
+    (stages.skin_sub): what the review shows, the newest Skin whether a document wears it yet or not (g.SKINS, #850:
+    the gates that hold a worn Shell are the documents')."""
+    return stages.assemble(DOC, _frames())
+
+
+def regions():
     """{part: Skull, Mechanism or Pedestal}: its sub-assembly's region, a rider its carrier's (stages.RIDES)."""
-    owner = {n: s for s in stages.DOCS[doc] for n in stages.SUBS[s]().parts}
+    owner = {n: s for s in _frames() for n in stages.SUBS[s]().parts}
     for n, carrier in stages.RIDES.items():
         if n in owner and carrier in owner:
             owner[n] = owner[carrier]
-    return {n: REGIONS.get(owner[n], "Pedestal") for n in stages.STAGES[doc].parts}
+    return {n: REGIONS.get(owner[n], "Pedestal") for n in worn().parts}
 
 
 def layer(file):
-    """A part's layer: Skeleton for a bone, Mech for the rest, None for a Skin's Shell (the Morty layer stands for the
-    Skin; its Shells show on Print bed alone)."""
+    """A part's layer: Skeleton for a bone, Skin for a Shell (one cut from a Sculpt, or an eyeball cap, the eye white),
+    Mech for the rest."""
     s = stages.stem(file)
-    return "Skeleton" if s in g.BONES else None if s in skin.SHELLS else "Mech"
+    return "Skeleton" if s in g.BONES else "Skin" if s in skin.SHELLS or s.split()[0] in g.SHELLS else "Mech"
 
 
 def keys(stage):
@@ -203,19 +221,7 @@ def plates(stage):
     return out
 
 
-def placed():
-    """4x4 taking the Morty reference's raw frame to the documents' world: his eyes on the Mech's, scaled to their
-    spacing."""
-    eyes = stages.align(*stages.DOCS[DOC]["eyes"])
-    mech = {s: (eyes @ [*e, 1])[:3] for s, e in gm.EYE.items()}
-    raw = {s: np.array(e) for s, e in MORTY_EYES.items()}
-    scale = np.linalg.norm(mech["L"] - mech["R"]) / np.linalg.norm(raw["L"] - raw["R"])
-    mid, raw_mid = (mech["L"] + mech["R"]) / 2, (raw["L"] + raw["R"]) / 2
-    return (
-        trimesh.transformations.translation_matrix(mid)
-        @ np.diag([scale] * 3 + [1])
-        @ (trimesh.transformations.translation_matrix(-raw_mid))
-    )
+placed = morty.placed  # the Morty reference's raw frame is his Sculpt's
 
 
 def _morty(stage):
@@ -244,9 +250,13 @@ def job(quality="production", before=None):
     """What blender.py needs, JSON-ready: skeleton.job() (the parts, the carving, the finish's numbers at the quality's
     voxel), each part's region, layer, colour, Exploded offset and plate, the motion's horn curves and poses, Morty
     (None without the local reference) and main's scene for `before`."""
-    stage = stages.STAGES[DOC]
+    stage = worn()
     out = skeleton.job()
     out["numbers"]["Voxel"] = QUALITY[quality]
+    # the Shells no document wears yet: drawn and moved like its parts, round no bone's carving
+    unworn = {n: p for n, p in stage.parts.items() if n not in stages.STAGES[DOC].parts}
+    out["files"] |= {n: p.file for n, p in unworn.items()}
+    out["rest"] |= {n: p.matrix.tolist() for n, p in unworn.items()}
     region, offsets = regions(), pictures.offsets(DOC, 2)
     curves = keys(stage)
     out |= {
@@ -256,7 +266,7 @@ def job(quality="production", before=None):
                 "region": region[n],
                 "layer": layer(p.file),
                 "colour": scene.colour(p.file, PRESET),
-                "offset": list(map(float, offsets[n])),
+                "offset": list(map(float, offsets.get(n, (0, 0, 0)))),  # Exploded draws the Mech and the Skeleton
             }
             for n, p in stage.parts.items()
         },
@@ -266,7 +276,7 @@ def job(quality="production", before=None):
         "frames": FRAMES,
         "horns": curves,
         "motion": [[f, {n: m.tolist() for n, m in mats.items()}] for f, mats in motion(stage, curves)],
-        "morty": _morty(stage) if os.path.isfile(MORTY) else None,
+        "morty": _morty(stages.STAGES[DOC]) if os.path.isfile(MORTY) else None,
         "bed": [BED, PLATE_GAP],
         "before": before,
         "beside": BESIDE,
@@ -297,17 +307,16 @@ def _blender(args, ceiling_kb=CEILING_KB):
 
 
 def lock(path, wait=False):
-    """flock(2) on `path`, held (an open file) until it is closed or the process ends: waited for, or SystemExit when
-    another process holds it."""
+    """flock(2) on `path`, held (an open file) until it is closed or the process ends: SystemExit when another process
+    holds it, or with `wait` the heavy lock as scripts/heavy.py takes it, waited for unless the command above holds it."""
+    if wait:
+        return os.fdopen(heavy.take(path))
     f = open(path, "a+")  # noqa: SIM115 held by the caller
     try:
         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        if not wait:
-            f.close()
-            raise SystemExit(f"review: another writer holds {path}; try again once it is done") from None
-        print(f"review: waiting for {path}, the laptop's one Blender slot", flush=True)
-        fcntl.flock(f, fcntl.LOCK_EX)
+        f.close()
+        raise SystemExit(f"review: another writer holds {path}; try again once it is done") from None
     return f
 
 

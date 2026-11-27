@@ -82,8 +82,8 @@ THEMES = {
         },
         "black": dict.fromkeys(("Bones", "Joints", "Linkages", "Mounts"), _BLACK),
     },
-    # none: the Skeleton bare, the stills' look (#876); morty: his Sculpt's Skin (docs/adr/0027), its Shells still to
-    # be cut (#850). Bart (#913) and Cansin (#917) return when each has a Sculpt
+    # none: the Skeleton bare, the stills' look (#876); morty: his Sculpt's Skin (docs/adr/0027, SHELLS).
+    # Bart (#913) and Cansin (#917) return when each has a Sculpt
     "Skin shape": (SKINLESS := "none", "morty"),
     "Skin palette": {
         "morty": {
@@ -175,9 +175,15 @@ PRINTED = {
     "L eyeball cap": ("eye whites", "PLA Pure"),
     "R eyeball cap": ("eye whites", "PLA Pure"),
 }
-# The Skin shapes that have Shells, each its sub-assembly: none until Morty's are cut from his Sculpt (#850,
-# docs/adr/0027); the eyeball caps above are every Character's
+# The Skin shapes whose Shells a document wears, each its sub-assembly: none yet. Morty's are cut from his Sculpt
+# (SHELLS: model/morty/shells.py, docs/adr/0027, 0028) and built beside our parts, but no document wears them until
+# the mechanism and the bones leave them room (#850: the gates in model/printed/test_skin.py hold every worn Shell).
+# The eyeball caps above are every Character's, and the eye whites. A Skin's Shells and their Colour groups: the face
+# with his nose and ears, the chin under the mouth line, the shirt the whole fixed body under the collar
 SKINS = {}
+BED = 256.0  # the printer's bed, each way, mm: every printed piece fits it whole
+SHELLS = {"morty": {"hair": "hair", "face": "face", "chin": "face", "shirt": "clothes"}}
+PRINTED |= {f"{skin} {name}": (group, "PLA Pure") for skin, names in SHELLS.items() for name, group in names.items()}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix
 MECHANICAL = " mechanical"

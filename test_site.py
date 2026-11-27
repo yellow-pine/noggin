@@ -191,8 +191,9 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skeleton | robot | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
-        # no Shell is drawn by hand (#850): a group has no part until Morty's are cut from his Sculpt
-        "| Skin | morty | hair |  | PLA Basic Cocoa Brown (10802) | #6F5034 |",
+        # Morty's Shells, cut from his Sculpt (#850)
+        "| Skin | morty | hair | morty hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",
+        "| Skin | default | face | morty face, morty chin | PLA Pure Milky Pink (17200) | #F7CED7 |",
         "| Skin | default | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
         assert row in table, row
