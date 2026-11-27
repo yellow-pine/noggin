@@ -52,8 +52,9 @@ _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 **Shell**:
 One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
 Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). None is drawn by
-hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair, his face, his chin (under the
-mouth line, on the jaw) and his shirt (under the collar, the whole fixed body). *Upcoming (#850): the Seats of Morty's
+hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair, his face, each brow (its
+ridge, in the hair's filament), his chin (under the mouth line, on the jaw) and his shirt (under the collar, the whole
+fixed body). *Upcoming (#850): the Seats of Morty's
 Shells.*
 _Avoid_: cover, cosmetic
 

@@ -42,12 +42,15 @@ WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
 # midpoint, each in the view it was measured in, front (x, z) or side (y, z), and swept through the head along that
 # view's axis. Cut once, on his Sculpt's skin (docs/adr/0027, cuts()), each where the Sculpt itself has the form: its
-# hair's boundary ("sculpt hairline"), each eye dome's foot, each pupil's ring, the middle of its lips' ridge, and the
-# collar where its head meets its shirt
+# hair's boundary ("sculpt hairline"), each eye dome's foot, each pupil's ring, each brow's ridge's outline, the
+# middle of its lips' ridge, and the collar where its head meets its shirt
 with open(os.path.join(os.path.dirname(__file__), "contours.json")) as _f:
     _SHEET = json.load(_f)
 CONTOURS = _SHEET["contours"]
 FAR = 400.0  # mm out, past the whole head and body, where an open contour's region closes
+# A front view, and the two turned this many degrees about z toward Morty's left: a brow runs from over the nose
+# round the temple, where the plain front view sees it edge on (40 deg: no part of a brow is over 35 deg off it)
+TURNED = {"front": 0.0, "front left": 40.0, "front right": -40.0}
 
 
 def contour(name, step=2.0):
@@ -62,8 +65,16 @@ def contour(name, step=2.0):
     return np.array(interpolate.splev(np.linspace(0, 1, n, endpoint=not closed), tck)).T
 
 
+def facing(points, view):
+    """`points` (n, 3), the head's frame, as the front view `view` sees them (TURNED): (across, depth, up), the depth
+    negative ahead of the eyes' plane turned with the view. Its contours are drawn in (across, up)."""
+    c, s = math.cos(math.radians(TURNED[view])), math.sin(math.radians(TURNED[view]))
+    x, y, z = np.asarray(points, float).T
+    return np.stack([c * x + s * y, c * y - s * x, z], axis=1)
+
+
 def outline(name, step=2.0):
-    """The region contour `name` bounds, a closed polygon in its view's plane: an eye white's or a pupil's its own; the
+    """The region contour `name` bounds, a closed polygon in its view's plane: an eye white's, a pupil's or a brow's its own; the
     hair above and behind a hairline (forehead first), the shirt under the collar, the jaw under the mouth line between
     its corners, each closed FAR out."""
     p = contour(name, step)
@@ -84,7 +95,8 @@ def cuts():
     """Morty's cuts on his Sculpt, {cut: (its view, the closed region it bounds, mm in the head's frame)}: the one source
     that colours the review's Morty (model/review) and splits the printed Shells (#850), each cut where the Sculpt
     itself has the form. The hair is above and behind the hairline, its hair's boundary; an eye white is its eye's whole
-    dome, inside its foot, and its pupil the ring on it (no lid has a cut: the lids are the mechanism's covers); the jaw
+    dome, inside its foot, and its pupil the ring on it (no lid has a cut: the lids are the mechanism's covers); a brow
+    is its ridge, all its view sees of it, a front view turned toward its side (TURNED, facing()), printed dark; the jaw
     is under the mouth line, the middle of the lips' ridge, between its corners and in front of the eyes; the shirt is
     under the collar, where the head meets it, on the fixed body, where it takes what the hair's region covers too."""
     names = {"hairline": "sculpt hairline"} | {n: n for n in CONTOURS if "hairline" not in n}
@@ -127,7 +139,7 @@ MOTION = {
     **dict.fromkeys(("shoulders", "torso")),
 }
 # {a word of a Shell's name: its region}, an eye's or a lid's after the Shell's side
-_WORDS = {"face": "head", "hair": "head", "chin": "jaw", "shirt": "torso"}
+_WORDS = {"face": "head", "hair": "head", "brow": "head", "chin": "jaw", "shirt": "torso"}
 _WORDS |= {"pupil": "eye", "eyeball": "eye", "upper": "upper lid", "lower": "lower lid"}
 
 

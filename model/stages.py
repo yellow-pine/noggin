@@ -367,8 +367,8 @@ def skull_sub():
 
 def skin_sub(shape):
     """<Skin shape>: its Shells cut from its Sculpt (g.SHELLS, model/morty/shells.py), each drawn in the head's frame at
-    rest on what carries its Motion region (RIDES): the hair and the face on the head, the chin on the jaw, the shirt
-    on nothing, fixed whatever the head does. No document wears it yet (g.SKINS); the review file does (model/review)."""
+    rest on what carries its Motion region (RIDES): the hair, the face and each brow on the head, the chin on the jaw,
+    the shirt on nothing, fixed whatever the head does. No document wears it yet (g.SKINS); the review file does (model/review)."""
     return Sub(
         {f"{shape} {n}:1": part(stl(f"{shape} {n}"), None, printed(f"{shape} {n}")) for n in g.SHELLS[shape]}, {}
     )

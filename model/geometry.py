@@ -179,10 +179,13 @@ PRINTED = {
 # (SHELLS: model/morty/shells.py, docs/adr/0027, 0028) and built beside our parts, but no document wears them until
 # the mechanism and the bones leave them room (#850: the gates in model/printed/test_skin.py hold every worn Shell).
 # The eyeball caps above are every Character's, and the eye whites. A Skin's Shells and their Colour groups: the face
-# with his nose and ears, the chin under the mouth line, the shirt the whole fixed body under the collar
+# with his nose and ears, each brow's ridge in the hair's filament (Cansin, 2026-11-27: the brows are dark), the chin
+# under the mouth line, the shirt the whole fixed body under the collar
 SKINS = {}
 BED = 256.0  # the printer's bed, each way, mm: every printed piece fits it whole
-SHELLS = {"morty": {"hair": "hair", "face": "face", "chin": "face", "shirt": "clothes"}}
+SHELLS = {
+    "morty": {"hair": "hair", "L brow": "hair", "R brow": "hair", "face": "face", "chin": "face", "shirt": "clothes"}
+}
 PRINTED |= {f"{skin} {name}": (group, "PLA Pure") for skin, names in SHELLS.items() for name, group in names.items()}
 # Each Skeleton part is drawn in two styles (#704, model/printed): as Bones (realistic) under its own name, mechanical
 # under this suffix

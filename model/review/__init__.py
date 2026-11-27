@@ -244,7 +244,8 @@ def _morty(stage):
 
 
 def contours():
-    """{cut: (its view, the region it bounds)}, skin.cuts(): what the reference is cut along (#992), JSON-ready."""
+    """{cut: (its view, the region it bounds)}, skin.cuts(): what the reference is cut along (#992), JSON-ready. Of
+    them it takes no brow's: its brows stay the face's colour, as the reference file paints them."""
     return {n: (view, region.tolist()) for n, (view, region) in skin.cuts().items()}
 
 
