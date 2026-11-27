@@ -232,7 +232,12 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   short crank on the moving case, a longer arm on the fixed carrier, `neck.TILT_ARMS`; the report's `tilt.gain`): the head
   turns about half the servo's turn, so the servo holds the head in its Skin and bare (`tilt.bare`) under
   its rating with no balance spring. The MJCF hangs the bar on the crank's pin and closes it on the carrier's anchor,
-  so the transmission gate reads the bar against the carrier's arm, the angle the moving case sees. The neck is a spine since #838: since #858 the neck
+  so the transmission gate reads the bar against the carrier's arm, the angle the moving case sees. Since #1039 the
+  neck lies under a skin that moves (docs/adr/0030): Morty's skin above the collar rides the head, so the cervical
+  carrier's rails run straight from C7's foot to the canal's top, between where the nape's and the throat's rims swing
+  as the head nods, and the tilt lever's arm steps inboard round its horn, nearer the pan axis as the pan swings it
+  across the nape; every part of the neck lies a Shell's wall and its clearance under that skin through tilt and pan
+  together (model/review/test_nape.py, on the Sculpt git holds). The neck is a spine since #838: since #858 the neck
   mount's hollow post (20 mm) rises from the Torso's floor through its lid, the pan servo on it over the lid and the
   pan at its top, the yoke's disc under its top floor and the tilt servo under the head, the cheeks short from there;
   the neck cable runs up inside the post and out over the lid into the pan's flexing span; the Torso a box pedestal 120 x 116 x 52 with its own lid sunk flush inside its walls, as the picture

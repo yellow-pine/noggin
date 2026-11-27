@@ -12,6 +12,7 @@ import pytest
 from model import beams, envelopes, linkage, sim, stages
 from model import geometry as g
 from model import neck as nk
+from model.gimbal import LID_CLEAR_MM
 from model.printed import PARTS, gimbal, neck
 from model.printed.test_gimbal import ON_SPLINE, _overlaps
 
@@ -129,6 +130,57 @@ def test_the_tilt_horn_adapter_holds_the_actual_standard_servo_at_stall():
     assert (
         _bending_sf(solid, a, b, force, "z", math.dist(a, b), ts=(0.05, 0.25, 0.5, 0.65)) >= beams.MIN_SF
     )  # the pin boss ends at the bar
+
+
+@pytest.mark.model
+def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
+    """#1039: the carrier's strut from its R rail straight back to the reduction's anchor, longer since the rails run
+    straight: SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts
+    at the bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends
+    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on are not sectioned here."""
+    solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
+    _, ay, az = nk.TILT_ANCHOR
+    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
+    rail = y0 + (az - z0) / (z1 - z0) * (y1 - y0)  # the rail's middle at the anchor's height
+    x, pin = nk.REACTION_TAP_X[1] - 5.0, np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))  # x: the strut's middle, about
+    force = sim.limits("tilt horn")["stall_kgf_cm"] * beams.G * 10 / np.linalg.norm(nk.TILT_CRANK)
+    force /= math.sin(math.radians(_tilt_angle()))
+    pulls = []  # the bar's direction as the fixed carrier sees it: the case's, turned back by the head's turn
+    for s in nk._sweep("tilt"):
+        rocker, p, q = nk.TILT_LOOP(s)
+        pulls.append(linkage.rotation(g.X, -rocker)[:3, :3] @ np.subtract(p, q) / math.dist(p, q) * force)
+    for t in (0.15, 0.3, 0.5, 0.7, 0.85):
+        cut = _section(solid, (x, rail + (ay - rail) * t, az), (0, 1, 0), (1, 0, 0), (13, 13))
+        box, centre = cut.BoundingBox(), np.array(cut.Center().toTuple())
+        inertia = np.asarray(cq.Shape.matrixOfInertia(cut)) / 0.01
+        wide, tall = (
+            max(hi - c, c - lo) for hi, lo, c in ((box.xmax, box.xmin, centre[0]), (box.zmax, box.zmin, centre[2]))
+        )
+
+        def stress(pull):
+            about = np.cross(pin - centre, pull)  # the pull's moment at the section: about x it bends it up and down
+            return (
+                abs(pull[1]) / (cut.Volume() / 0.01)
+                + abs(about[0]) * tall / inertia[0, 0]
+                + abs(about[2]) * wide / inertia[2, 2]
+            )
+
+        assert mat["tensile_mpa"]["z"] / max(map(stress, pulls)) >= beams.MIN_SF, t
+
+
+@pytest.mark.model
+def test_the_tilt_lever_swings_beside_its_case_with_room():
+    """#1039: the lever's arm steps inboard round the horn's rim and rides beside the case's face, and its pin passes
+    the case's corner in mid-swing, which neither end of the range shows: at 21 poses through the tilt's sweep the
+    lever and its bar keep a moving part's clearance from the case, exactly (OCCT's distance, no sampled surface)."""
+    stage = stages.STAGES[DOC]
+    for deg in np.linspace(*stage.horns["tilt horn"].limits, 21):
+        mats = stages.pose(stage, "tilt horn", deg).parts
+        case, lever, bar = (
+            _shape(stage.parts[n]._replace(matrix=mats[n]))
+            for n in ("tilt servo:1", "tilt lever:1", "tilt reaction bar:1")
+        )
+        assert min(lever.distance(case), bar.distance(case)) >= LID_CLEAR_MM, deg
 
 
 @pytest.mark.model
