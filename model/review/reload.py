@@ -21,9 +21,7 @@ _seen = None
 
 def _open():
     """The generated file open in this Blender, if one is."""
-    # getattr: while startup scripts register, bpy.data is Blender's restricted stand-in, which has no filepath (#1045)
-    filepath = getattr(bpy.data, "filepath", "")
-    path = Path(filepath).resolve() if filepath else None
+    path = Path(bpy.data.filepath).resolve() if bpy.data.filepath else None
     return path if path in TARGETS else None
 
 
@@ -106,7 +104,8 @@ def _tick():
 
 
 def register():
-    _loaded(None)
+    # no look at the open file here: Blender registers its scripts, at its start and on a script reload, with bpy.data
+    # restricted (#1045); load_post sees each file it opens after
     if _loaded not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_loaded)
     if not bpy.app.timers.is_registered(_tick):
