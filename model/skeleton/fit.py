@@ -119,6 +119,18 @@ def stretch(f, caps):
     return s[:, 2], s[:, 0]
 
 
+def shear(basis, warped, faces):
+    """Each triangle's shear: its greatest over its least in-plane length factor from `basis` to `warped`, 1 where it
+    kept its shape (its aspect can change by no more); inf for one flattened to a line."""
+    gram = []
+    for v in (basis, warped):
+        e = np.stack([v[faces[:, 1]] - v[faces[:, 0]], v[faces[:, 2]] - v[faces[:, 0]]], 1)
+        gram.append(e @ e.transpose(0, 2, 1))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lam = np.sort(np.linalg.eigvals(np.linalg.solve(*gram)).real, axis=1)
+        return np.sqrt(lam[:, 1] / lam[:, 0])
+
+
 def canal(mesh, b=0.5):
     """(x, y) of a vertebra's canal: the largest hole in its plan view (its surface sampled, b mm bins)."""
     p = trimesh.sample.sample_surface(mesh, int(mesh.area / b**2 * 4), seed=0)[0][:, :2]

@@ -52,3 +52,11 @@ def test_the_neck_keeps_its_canals_on_the_path_and_its_spines_in_front_of_the_sk
         assert (fit.back(y) - y[:, 1]).min() >= fit.ROOM and y[:, 2].min() >= -146.5
     assert out["c7"][:, 1].max() > fit.canal_y(out["c7"][:, 2].mean()) + 25
     assert fit.LOW <= report["stretch"][0] and report["stretch"][1] <= 1.25 and report["skin_back_mm"] >= fit.ROOM
+
+
+def test_a_triangles_shear_is_its_greatest_over_its_least_length_factor():
+    """A right triangle pulled to twice its width has sheared by 2; one only turned, moved and grown has not."""
+    tri, faces = np.array(((0, 0, 0), (1, 0, 0), (0, 1, 0)), float), np.array(((0, 1, 2),))
+    assert fit.shear(tri, tri * (2, 1, 1), faces) == pytest.approx([2.0])
+    turned = trimesh.transform_points(tri * 3, trimesh.transformations.rotation_matrix(0.7, (1, 2, 3), (4, 5, 6)))
+    assert fit.shear(tri, turned, faces) == pytest.approx([1.0])
