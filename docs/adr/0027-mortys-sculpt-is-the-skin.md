@@ -24,7 +24,8 @@ skull was sized to a compact box that came from those Shells. So Morty's Skin is
 - **The seams are cut once, on the Sculpt** (#992): the same cuts colour the review and split the printed Shells,
   along the Motion regions (#969). The hairline follows the Sculpt's own hair boundary, the whole eye dome is the eye
   white, and the jaw's Shell is the chin and lower lip under the mouth line. Where the Sculpt shows a form, the Sculpt
-  sets the boundary; the model sheet supplies only what it does not show (pupils, the mouth line, the collar).
+  sets the boundary; the model sheet supplies only what it does not show. Morty's Sculpt shows every one: its pupils'
+  rings, its mouth and its collar are its own too (#992, inferred from Cansin's hairline and eye answers).
 - **The Sculpt is public.** Its licence allows sharing and adapting with credit, so it joins the repo ADR 0023's way:
   its own folder, `model/morty`, with a `LICENSE.md` naming the author, the page, the licence and our changes, and a
   line on docs/credits.md. CI builds the Shells from it, and the Site, the Web viewer and the pictures may show them.
