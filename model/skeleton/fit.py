@@ -51,9 +51,9 @@ FILL, MIDDLE, BASE_Z, CLEAR_MM = 2.0, (0.0, 80.0, 45.0), TILT[2] + 20.0, 1.6  # 
 VAULT, VAULT_EL = (*sorted(budget.CRANIAL), "frontal bone"), -20.0  # its bones; degrees up from MIDDLE
 POSES = [(t, p) for t in np.linspace(*neck.RANGES["tilt"], 9) for p in np.linspace(*neck.RANGES["pan"], 7)]
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
-# the regions' uniform resize (the neck's: neck_scale()): the skull's orbits then spread to Morty's eyes, 80.2 mm
-# apart where BodyParts3D's are 59.6, inside the face's 1.25
-SCALES = {"skull": 1.15, "mandible": 1.0}
+# the regions' uniform resize (the neck's: neck_scale()): the skull's back and crown then stand at Morty's own, and
+# its orbits (59.6 mm apart on the Basis) spread to his eyes (73.3) inside the face's 1.25
+SCALES = {"skull": 1.05, "mandible": 1.0}
 
 
 def lattice(points, lo, shape):

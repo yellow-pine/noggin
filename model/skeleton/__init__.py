@@ -29,12 +29,12 @@ FLOOR = 2.0  # #838's print rules: nothing thinner; the skull opened by half of 
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
 REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
 # #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each of Morty's eye centres
-# (envelope.EYES, where the Mech's eyes move to) in a shell of
-# radius up to LID_SHELL, and the yaw rails, the tie-bar's fingers and the pitch rods leave it through the belt behind
+# (envelope.EYES, where the Mech's eyes move to) in a shell of radius up to LID_SHELL (their band 36.3 to 37.5 mm and
+# 0.5 over it, #967's comment 7209215753), and the yaw rails, the tie-bar's fingers and the pitch rods leave it through the belt behind
 # the eye, between the stowed lids (their turn 174 to 214 deg). The skull keeps out of both before those parts exist
 # (then the Finish carves round them as round every part). BELT, about an eye centre: its half-width along the lids'
 # axis, and how far back it runs, to behind where the tie-bar and the bail's axis will stand (the paper sketch's, inferred)
-LID_SHELL, BELT = 39.6, (22.0, 48.0)
+LID_SHELL, BELT = 38.0, (22.0, 48.0)
 BELT_Z = tuple(round(float(LID_SHELL * np.sin(np.radians(a))), 1) for a in (214.0, 174.0))
 
 

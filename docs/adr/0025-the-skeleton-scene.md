@@ -114,8 +114,9 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
   his neck's skin.
 - BodyParts3D's decimated meshes hold slivers a smooth field folds; `slivers.py` turned their long edges once, moving
   no vertex. The Warp refuses a fold, a shear past 2.2 or a Jacobian under 0.5 at the eyes and nose (#991).
-- #967's re-laid lids stow in a shell of radius 39.6 mm round each eye centre and their drives leave it through a
-  belt behind each eye: both are openings of the skull's Finish before those parts exist.
+- The orbits sit on the Sculpt's own eyeballs' centres (`envelope.EYES`, #967's fit, 73.3 mm apart), where the
+  Mech's eyes move to. #967's re-laid lids stow in a shell of radius 38 mm round each and their drives leave it
+  through a belt behind each eye: both are openings of the skull's Finish before those parts exist.
 - The gates read the Sculpt: `test_skeleton.py` holds each finished bone 2.1 mm under it and to no box. Until #850
   commits the Sculpt (`model/morty`) they run where the local original is and skip elsewhere. `base.DOME` stays the
   mechanism's box until its gates read the Sculpt too.
