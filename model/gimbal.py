@@ -4,13 +4,13 @@ model/printed/gimbal.py draws the parts from them, model/stages.py places them),
 Frame (the eyes Sub-assembly's): x along the eye line (the L eye at +x), -y forward, z up, the origin midway
 between the eye centres. Each eyeball core pitches inside a yoke that yaws on a vertical axis through the eye centre
 (yaw on the outer ring). One servo yaws both yokes through a three-crank parallelogram: its horn and both yokes'
-cranks, equal, pinned to one tie-bar. One servo pitches both cores: its horn drives the bail (a rocker on an x axis
-up behind the eyes, over the lid servos, #967) through a bar, and each bail arm, hanging forward of that axis, pushes a
-rod that leans up to its ball end on the core's lever, up the yaw axis, so a yaw moves it only at second order: the
-Hooke form, sin(pitch) cos(yaw) (docs/research/2026-11-02-literature-mechanical.md 2). Each lid is a shell wedge about
-the up/down axis through its eye centre, on its own servo through a parallelogram. Angles are degrees: yaw positive
-toward +x, pitch and lid positive up. Every size is ours and inferred (no build settles one yet), each chosen against
-the gates in report()."""
+cranks, equal, pinned to one tie-bar, which reaches each yoke's by a finger through the belt behind its eye (#967).
+One servo pitches both cores: its horn drives the bail (a rocker on an x axis up behind the eyes, over the lid servos,
+#967) through a bar, and each bail arm, hanging forward of that axis, pushes a rod that leans up to its ball end on the
+core's lever, up the yaw axis, so a yaw moves it only at second order: the Hooke form, sin(pitch) cos(yaw)
+(docs/research/2026-11-02-literature-mechanical.md 2). Each lid is a shell wedge about the up/down axis through its
+eye centre, on its own servo through a parallelogram. Angles are degrees: yaw positive toward +x, pitch and lid
+positive up. Every size is ours and inferred (no build settles one yet), each chosen against the gates in report()."""
 
 import math
 
@@ -43,26 +43,32 @@ LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
 # its bed with (#967, model/printed/gimbal.py push_rod)
 ROD_R = BALL_R + 1.7
 YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from below, round the core
-# The yaw drive round the lids' shell (#967, the re-layout): what the hidden lids and their cap will sweep, a shell this
-# far from each eye's centre, nothing else may cross but in the belt behind the eye, between the two stowed lids (under
-# LIDS_BELT deg about the eye line from forward, down positive... the lower lid's back edge) and between the eyes. So
-# each yoke has no stem: its crank lies at its bottom bar's level, and it turns on a post (POST_R) on the yaw bearing's
-# rail, a strip of a sphere (RAIL_R) inside the shell, from under the yoke back and inboard to the belt, where it leaves
-# the shell RAIL_EXIT (deg inboard along the eye line, deg about it from forward) to a pylon on the plate. The tie-bar
-# has a finger from each yoke's crank pin, under the crank (FINGER_Z), back and up inside the shell and out through
-# the belt (FINGER: its (y, z) line, FINGER_X outboard of the pin) to a cross-bar behind the eyes (CROSS_Y, CROSS_Z),
-# and a tail down the midline to the yaw horn's pin, which stays in TIE_Z with the horn and its servo. Inferred, from the
-# rough CAD of the layout (#967, comment 7209502441)
+# The yaw drive round the lids' shell (#967, the re-layout). The hidden lids and their cap will sweep a shell
+# LIDS_SHELL from each eye's centre (the cap's 35.8, the lids' band 36.3 to 37.5, 0.5 clear), through LIDS_SWEEP deg
+# about the eye line (from forward, up positive: both lids as plain bands, open to shut), and nothing else may cross
+# it: only the belt behind the eye, between the two stowed lids' back edges, is a way out of the eye's sphere. So each
+# yoke has no stem: its crank lies at its bottom bar's level and it turns on a post (POST_R) on its yaw bearing, which
+# lies inside the shell (out to RAIL_R[1], the lids' band less its clearance: the cap never comes behind the yaw axis
+# inboard), runs back and inboard from under the yoke and leaves the shell RAIL_EXIT (deg inboard along the eye line,
+# deg about it) to a pylon on the plate (model/printed/gimbal.py rail). The tie-bar has a finger from each yoke's
+# crank pin, under the crank (FINGER_Z), back and up inside the shell and level out through the belt (FINGER: its
+# (y, z) line, FINGER_X outboard of the pin) to a cross-bar behind the eyes (CROSS_Y, CROSS_Z), and a tail down the
+# midline to the yaw horn's pin, which stays in TIE_Z with the horn and its servo. Inferred, from the rough CAD of the
+# layout (#967, comment 7209502441) and the exact solids since
 LIDS_SHELL = (35.8, 38.0)
+LIDS_SWEEP = (-144.0, 166.0)
 YAW_CRANK_Z = (-(YOKE["inner"] + YOKE["wall"]), -YOKE["inner"])  # the yokes' cranks, at their bottom bars' level
 FINGER_Z = (YAW_CRANK_Z[0] - 3.0, YAW_CRANK_Z[0])  # the tie-bar's fingers' pins, under the cranks
 TIE_Z = (-30.0, -27.0)  # the tie-bar's tail at the yaw horn's pin, the horn's outer face under it
 POST_R = 4.5
-RAIL_R = (LIDS_SHELL[0] - 2.0, LIDS_SHELL[0] - 0.5)
+RAIL_R = (LIDS_SHELL[0] - 2.0, LIDS_SHELL[0])
+# 25 deg inboard: past the tie-bar's fingers, which stand outboard of their pins, and 3 mm outboard of the lid bars
 RAIL_EXIT = (25.0, -150.0)
 FINGER_X = (0.0, 8.0)
+# the cross-bar: 2.8 mm behind the shut lower lids' hoops over the yaw, 4 mm in front of the lid servos' cases
 CROSS_Y, CROSS_Z = (38.5, 46.5), (-16.0, -12.0)
-# from its pin, at CRANK back of the eye's centre: level under the crank, up at 43 deg, level out through the belt
+# from its pin, at CRANK back of the eye's centre: level under the crank's head, up at 44 deg, level out through the
+# belt (so the stalled yaw servo twists it about a line 10 mm over its pin, not 18)
 FINGER = ((19.5, sum(FINGER_Z) / 2), (30.0, sum(CROSS_Z) / 2), (CROSS_Y[0] + 1.0, sum(CROSS_Z) / 2))
 # the yaw horn's axis behind the eyes' centres, so its servo's case and tabs lie behind them (#684) and behind the lower
 # lids' sweep (#901); near enough that the tie-bar from its pin to each yoke's leans 23.8 deg off x, so each crank meets
@@ -195,9 +201,8 @@ FOOT_Y = (14.0, 20.0)
 UPRIGHT_FLAT, UPRIGHT_EDGE, YOKE_CUT = 3.5, 2.0, 2.0
 # #967: a window through the plate either side of the yaw servo's collar, out to WINDOW_X and back to WINDOW_Y: the
 # realistic skull's maxillae rise through them from the palate to the cranium's base, behind the orbits' openings
-# (model/skeleton REACH), so the palate stays on the skull; a bar in front of each window, WINDOW_BAR deep, joins the
-# plate to its yoke's rail
-WINDOW_X, WINDOW_Y, WINDOW_BAR = 30.0, 21.0, 4.0
+# (model/skeleton REACH), so the palate stays on the skull; open in front since the yaw bearings left the plate's front
+WINDOW_X, WINDOW_Y = 30.0, 21.0
 # #967, #978: nodded, with the pan half a degree past either end (where its loaded servo sags to), the plate's back edge
 # passed 0.5 mm from the tilt servo's tab and 0.9 mm from the nod plate, less than their collision pieces stray: Linux's
 # sim read the frame 0.35 mm into each. A pocket in the edge at each, (x span, depth, how far its inboard end flares

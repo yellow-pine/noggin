@@ -54,7 +54,7 @@ STYLED = {
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
-    "tie-bar": "flat arms through the belt behind each eye, inside the lids' shell and the skull: none (#967)",
+    "tie-bar": "flat arms through the belt behind each eye since #967, printed on its cross-bar's edge: #1052",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
     **dict.fromkeys(
         (

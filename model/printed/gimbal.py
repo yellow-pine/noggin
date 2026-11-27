@@ -22,7 +22,7 @@ LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every print
 # inside its cups and within CUP_R of the line between the balls (the lids' clearance, gimbal.report, reads it so); the
 # lid drives' (#698) low enough to lie within their 3 mm slabs
 ROD_BONE, LID_BONE = ((3.6, 5.5), (2.4, 4.0)), ((4.0, 2.9), (3.0, 2.6))
-TIE_BOSS = 3.5  # the tie-bar's bosses' radius, round each pin's bore
+TIE_BOSS = ARM / 2  # the tie-bar's bosses' radius, round each pin's bore
 # (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending, its waist 0.5 mm over the slab so the
 # slab's top cuts it flat (a crown grazing it, 2.9, fused invalid on aarch64's OCCT, #890); the bail's rod flat-bottomed
 # with the shanks' bores at its middle height, each arm a strut round in section, the input arm's tip round the pitch
@@ -186,13 +186,17 @@ def tie_bar():
     wedge = [(-k, pin[0] + k), (0.0, pin[0] + 2 * k), (0.0, pin[0])]
     for s in (-1, 1):
         x = sorted((s * (c + gm.FINGER_X[0]), s * (c + gm.FINGER_X[1])))
-        out = out.union(lid_mechanical([pin, *gm.FINGER[:2]], x, t)).union(cyl("z", (s * c, pin[0], 0), TIE_BOSS, gm.FINGER_Z))
+        out = out.union(lid_mechanical([pin, *gm.FINGER[:2]], x, t)).union(
+            cyl("z", (s * c, pin[0], 0), TIE_BOSS, gm.FINGER_Z)
+        )
         out = out.union(lid_mechanical(gm.FINGER[1:], x, thick))  # out through the belt, as thick as the cross-bar
         gusset = [(s * (c + u), y) for u, y in wedge]
         out = out.union(cq.Workplane("XY", origin=(0, 0, gm.FINGER_Z[0])).polyline(gusset).close().extrude(t))
         out = out.cut(cyl("z", (s * c, pin[0], 0), gm.PIN_R, (gm.FINGER_Z[0] - 1, gm.FINGER_Z[1] + 1)))
     back = (gm.CROSS_Y[1] - t / 2, sum(gm.CROSS_Z) / 2)
-    out = out.union(lid_mechanical([horn, back], (-TIE_BOSS, TIE_BOSS), t)).union(cyl("z", (0, horn[0], 0), TIE_BOSS, gm.TIE_Z))
+    out = out.union(lid_mechanical([horn, back], (-TIE_BOSS, TIE_BOSS), t)).union(
+        cyl("z", (0, horn[0], 0), TIE_BOSS, gm.TIE_Z)
+    )
     drop = [(-k, horn[0] + k), (0.0, horn[0] + 2 * k), (k, horn[0] + k)]  # the horn's boss a teardrop on that bed
     out = out.union(cq.Workplane("XY", origin=(0, 0, gm.TIE_Z[0])).polyline(drop).close().extrude(t))
     return out.cut(cyl("z", (0, horn[0], 0), gm.PIN_R, (gm.TIE_Z[0] - 1, gm.TIE_Z[1] + 1)))
@@ -395,7 +399,7 @@ def lower_lid(side, mechanical=False):
 # 1.5 mm leaf: with the eye held and the pitch servo stalled its post would bend it at 120 MPa); the neck it leaves the
 # lids' shell by, RAIL_NECK deg on from the strip's end and out to RAIL_OUT mm; and the pylon under the neck's tip, its
 # sides from that tip in x and y, a buttress forward from PYLON_KNEE (z) down to PYLON_TOE (y from the tip) on the plate
-RAIL_LAT, WEB_LAT, PAD_LAT = (-5.0, 3.0), (-3.0, 1.0), (-12.0, 12.0)
+RAIL_LAT, WEB_LAT, PAD_LAT = (-5.0, 3.0), (-3.0, 1.0), (-16.0, 16.0)
 RAIL_WEB, RAIL_NECK, RAIL_OUT, RAIL_ROOM = 27.0, 16.0, 39.0, 2.0
 PYLON, PYLON_KNEE, PYLON_TOE = ((-5.0, 3.0), (-2.5, 2.5)), -23.0, -9.0
 
@@ -426,7 +430,8 @@ def rail():
     web = shell(RAIL_WEB, r1).intersect(fan(0.0, end + neck, WEB_LAT))
     # yawed, the tie-bar's boss sweeps under the crank's pin and the crank's head over it: the web keeps RAIL_ROOM
     # under and outside each, and under the boss's sweep a pad as wide as the sphere allows carries the post instead
-    boss, head = (gm.CRANK + r + RAIL_ROOM for r in (TIE_BOSS, CRANK_BONE[0][0]))
+    # (the boss's wedge on its bed reaches root 2 of its radius from the pin)
+    boss, head = (gm.CRANK + r + RAIL_ROOM for r in (TIE_BOSS * math.sqrt(2), CRANK_BONE[0][0]))
     under = gm.FINGER_Z[0] - RAIL_ROOM
     web = web.cut(cyl("z", (eye[0], 0, 0), boss, (under, 0.0)))
     out = out.union(web.cut(cyl("z", (eye[0], 0, 0), head, (gm.YAW_CRANK_Z[0] - RAIL_ROOM, 0.0))))
@@ -447,13 +452,13 @@ def rail():
 @bone.grown
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
-    (#838, model/gimbal.py PLATE_Z), with the yaw bearings reaching forward under the yokes' stems, the bail's and the
-    lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, its ends
+    (#838, model/gimbal.py PLATE_Z), with a yaw bearing under each yoke, on a pylon behind its eye (#967, rail), the
+    bail's and the lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep, #901, its ends
     and the feet inside Morty's cheeks, #967), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
     servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), a window
     either side of the yaw servo's for the realistic skull's maxillae (#967, model/gimbal.py WINDOW_X), and the holes
-    the head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each bearing a waisted strut, each upright and riser a
+    the head mount (model/printed/neck.py) is screwed up through. As Bones (#708): each upright and riser a
     waisted strut up from the plate in its slab to a round boss round the shank's bore; the mechanical frame takes them
     in (bone.grown: OCCT carved the Bones out of it empty or broken, #838)."""
     from model.printed.neck import TAP_R, strut  # here: model.printed.neck imports this module
