@@ -63,12 +63,14 @@ def _points(mesh, step):
     return np.vstack(out)
 
 
-def depth(mesh):
+def depth(mesh, part=None):
     """(points) -> mm each lies outside the closed mesh's outer surface (negative: inside; past FAR either way,
     FAR). His sculpt crosses itself (hair, lids, collar), so the room outside is flooded from a corner of his box
     through the PITCH voxels his surface does not cross: a point in a voxel the flood reached, or one his surface
     crosses, is outside, and his outer surface is the part of it beside the flood. The distance is to that surface's
-    points, exact to their spacing; the voxels only sort inside from outside and skip the deep points.
+    points, exact to their spacing; the voxels only sort inside from outside and skip the deep points. With `part`
+    ((points) -> which), the distance is to those of the outer surface's points alone (the head's skin,
+    model/review/test_nape.py); inside and outside stay the whole mesh's.
     shortcut: a groove narrower than about two voxels reads as filled, so a point just under its floor reads deeper
     than it is; halve PITCH (eight times the voxels) if a part ever lies under one (his cheeks and temples have none)."""
     v = _points(mesh, 0.4 * PITCH)  # within a quarter voxel of every point of the surface: no face-to-face leak
@@ -83,7 +85,8 @@ def depth(mesh):
     rooms, _ = ndimage.label(~wall)
     room = rooms == rooms[0, 0, 0]
     deep = ndimage.distance_transform_edt(~(wall | room)) * PITCH  # mm inside, to a voxel
-    outer = cKDTree(v[ndimage.binary_dilation(room, np.ones((3, 3, 3), bool))[cell(v)]])
+    outer = v[ndimage.binary_dilation(room, np.ones((3, 3, 3), bool))[cell(v)]]
+    outer = cKDTree(outer if part is None else outer[part(outer)])
 
     def mm(points):
         inside = ((points > lo) & (points < lo + shape * PITCH)).all(axis=1)
