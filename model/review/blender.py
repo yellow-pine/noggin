@@ -5,7 +5,8 @@
 assemble: on the Skeleton scene, the Scene Mech swapped for the document (model/skeleton/export.py swap), the finish's
 numbers set, the layers made (Mech, Skeleton, Skin and Morty, each in Skull, Mechanism and Pedestal; raw bones to
 helpers), coloured at their alpha: the Skin the Shells cut from the Sculpt and the eyeball caps, Morty the private
-reference, which the scenes step hides until it is switched on (it shares the Skin's surface). <bone stem>: that bone's finish baked into its mesh. scenes: the motion, then the
+reference, which the scenes step hides until it is switched on (it shares the Skin's surface). <bone stem>: that
+bone's finish baked into its mesh. scenes: the motion, then the
 Exploded, Print bed and (before) Before and after scenes, linked copies of the same meshes."""
 
 import json

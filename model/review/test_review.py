@@ -449,13 +449,14 @@ def test_exploded_and_print_bed_materials_are_opaque(blend):
 
 
 def test_every_printed_piece_lies_on_a_plate(blend):
-    """Each plate's pieces inside its BED square, on it (z 0 and up); every printed part placed once."""
+    """Each plate's pieces inside its BED square, on it (z 0 and up); every printed part placed once, the Shells the
+    review wears too."""
     n = 0
     for plate, (x0, y0, z0, x1, y1, count) in blend["plates"].items():
         assert -0.5 <= x0 and x1 <= review.BED + 0.5 and -0.5 <= y0 and y1 <= review.BED + 0.5, plate
         assert z0 >= -0.5, plate
         n += count
-    assert n == len(review.plates(STAGE))
+    assert n == len(review.plates(review.worn())) == len(review.plates(STAGE)) + len(SHELLS)
 
 
 NORMAL_REFERENCE = """
