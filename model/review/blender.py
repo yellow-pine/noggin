@@ -200,27 +200,15 @@ def cut(bm, poly, view, near=lambda c: True):
 
 
 def contoured(m, objects):
-    """#992: each reference surface cut along the model sheet's contours (the job's, the Shells' hair seam's too) and each
-    face given the Motion region and Colour group it falls in. On the moving surfaces, in front of the eyes: inside an
-    eye white its eye's (in its pupil pupils), the rest of an eye's dome round the white its upper or lower lid's, under
-    the mouth line the jaw's; the rest the head's, its hair above and behind the hairline. On the fixed body, the hair
-    above and behind the hairline, the shirt under the collar. A lid is a new surface carried by its lid."""
+    """#992: each reference surface cut along Morty's cuts on his sculpt (the job's: skin.cuts(), which split the printed
+    Shells too) and each face given the Motion region and Colour group it falls in. In front of the eyes, an eye's own
+    surface inside its eye white (its dome's foot) is the eye's, all eye white but its pupil, and what is under the mouth
+    line the jaw's; the rest of the moving surfaces is the head's, an eye's surface round its dome too (no lid's: the
+    lids are the mechanism's covers), its hair above and behind the hairline. On the fixed body, the shirt under the
+    collar, the hair above and behind the hairline elsewhere."""
     head, contours, carriers = Matrix(m["head"]), m["contours"], m["carriers"]
     moving = [o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith(" lid")]
-    # the sculpt's face front on its midline at the sheet's face front's height, which a side view's contour meets
-    (y, z), near = m["face"], 3.0
-    front = [
-        p.y
-        for o in moving
-        if o["reference_region"] == "head"
-        for p in (head @ v.co for v in o.data.vertices)
-        if abs(p.x) < near and abs(p.z - z) < near
-    ]
-    dy = min(front, default=y) - y
-    print(f"review: the side contours move {dy:.1f} mm along y to the sculpt's face front", flush=True)
-    for o in objects:
-        o["contour shift"] = dy  # mm along y in the head's frame, the side views' (the review's checks read it)
-    poly = {n: [(p[0] + dy * (v == "side"), p[1]) for p in o] for n, (v, o) in contours.items()}
+    poly = {n: o for n, (_, o) in contours.items()}
     if len({tuple(x.name for x in o.data.materials) for o in moving}) > 1:
         raise ValueError("review: Morty's moving surfaces need the same Colour group slots in the same order")
     shares = {}  # {moving surface: its bmesh, each face's region in the "region" layer, by MOTION order}
@@ -230,36 +218,28 @@ def contoured(m, objects):
         bm.from_mesh(o.data)
         bmesh.ops.transform(bm, matrix=head, verts=bm.verts)
         own, names = o["reference_region"], [x.name for x in o.data.materials]
+        mine = [f"{own[0]} eye white", f"{own[0]} pupil"] if own.endswith(" eye") else []  # an eye's, on its surface
         cut(bm, poly["hairline"], "side")
-        if o in moving:  # the head's, the jaw's and the eyes', which the contours share out
-            for n in (n for n, (v, _) in contours.items() if v == "front"):
+        if o in moving:  # the head's, the jaw's and the eyes', which the cuts share out
+            for n in (*mine, "mouth"):
                 cut(bm, poly[n], "front", ahead)
-            if own.endswith(" eye"):  # the lids part at the eye's height
-                z = m["eyes"][own[0]][2]
-                bmesh.ops.bisect_plane(
-                    bm, geom=[*bm.verts, *bm.edges, *bm.faces], plane_co=(0, 0, z), plane_no=(0, 0, 1)
-                )
         else:
             cut(bm, poly["collar"], "side")
         c = np.array([f.calc_center_median() for f in bm.faces]).reshape(-1, 3)
         xz, yz = c[:, [0, 2]], c[:, [1, 2]]
         hair = inside(yz, poly["hairline"])
         if o in moving:
-            eye = {s: (c[:, 1] < 0) & inside(xz, poly[f"{s} eye white"]) for s in "LR"}
-            pupil = {s: eye[s] & inside(xz, poly[f"{s} pupil"]) for s in "LR"}
             jaw = (c[:, 1] < 0) & inside(xz, poly["mouth"])
+            eye, pupil = ((c[:, 1] < 0) & inside(xz, poly[n]) for n in mine) if mine else (np.zeros(len(c), bool),) * 2
         else:
             shirt = inside(yz, poly["collar"])
         layer = bm.faces.layers.int.new("region")
         for k, f in enumerate(bm.faces):
             region, group = own, "hair" if hair[k] else "face"
             if o not in moving:
-                group = "hair" if hair[k] else "clothes" if shirt[k] else "face"
-            elif s := next((s for s in "LR" if eye[s][k]), None):
-                region, group = f"{s} eye", "pupils" if pupil[s][k] else "eye whites"
-            elif own.endswith(" eye"):
-                lid = "upper" if c[k, 2] > m["eyes"][own[0]][2] else "lower"
-                region, group = f"{own[0]} {lid} lid", "face"
+                group = "clothes" if shirt[k] else "hair" if hair[k] else "face"
+            elif eye[k]:
+                group = "pupils" if pupil[k] else "eye whites"
             elif jaw[k]:
                 region, group = "jaw", "face"
             else:
@@ -291,18 +271,9 @@ def contoured(m, objects):
             if region in by_region:
                 raise ValueError(f"review: no face of Morty's reference falls in its {region} region")
             continue
-        o = by_region.get(region)
-        if o is None:  # a lid: a new surface like its eye's, carried by its lid
-            if not region.endswith(" lid"):
-                raise ValueError(f"review: Morty's reference needs a {region} surface for the faces that fall in it")
-            eye = by_region[f"{region[0]} eye"]
-            o = eye.copy()
-            o.data = eye.data.copy()
-            o.name = f"Morty {region}"
-            for c in eye.users_collection:
-                c.objects.link(o)
-            o["reference_region"], o["carrier"] = region, carriers[region]
-        whole.to_mesh(o.data)
+        if region not in by_region:
+            raise ValueError(f"review: Morty's reference needs a {region} surface for the faces that fall in it")
+        whole.to_mesh(by_region[region].data)
         whole.free()
     for bm in shares.values():
         bm.free()
