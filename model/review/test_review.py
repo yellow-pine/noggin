@@ -120,7 +120,8 @@ def seams(objects):
             if len(e.link_faces) == 1 and region[2:] == "eye":
                 key = f"{region[0]} eye white"
             elif len(pair) == 2:
-                key = "hairline" if "hair" in pair else f"{region[0]} pupil" if "pupils" in pair else "collar"
+                # the shirt's edge is the collar's, against the hair too (the fixed body's shirt takes the hair's)
+                key = "collar" if "clothes" in pair else "hairline" if "hair" in pair else f"{region[0]} pupil"
             else:
                 continue
             view, poly = CONTOURS[key]
@@ -353,6 +354,7 @@ def test_each_cut_sits_on_its_own_motion_region(blend):
     assert where("pupils") == where("eye whites") == {"L eye", "R eye"}
     assert all(set(sections[f"{s} eye"]) == {"pupils", "eye whites"} for s in "LR")
     assert where("clothes") <= {"neck", "shoulders", "torso"}
+    assert set(sections["torso"]) == {"clothes"}  # under the collar the shirt, behind the hairline's end too
     assert set(sections["jaw"]) == {"face"}
 
 
