@@ -31,3 +31,24 @@ def test_a_vertebras_canal_is_its_plan_views_largest_hole():
 
 def test_the_canal_path_runs_from_its_foot_to_the_tilt_axis():
     assert fit.canal_y(-146.0) == pytest.approx(91.6) and fit.canal_y(-48.7) == pytest.approx(76.6)
+
+
+def test_the_neck_keeps_its_canals_on_the_path_and_its_spines_in_front_of_the_skins_back():
+    """Seven rings, their spines longer down the neck as C1 to C7's are, the lowest three past the Skin's neck back
+    before the fit: fitted, every canal on the cervical path, C1's round the pan axis, every vertex ROOM in front of
+    the back and over the path's foot, within the budget, each spine still a spine."""
+    ring = trimesh.creation.annulus(r_min=8, r_max=14, height=12).subdivide()
+    basis, faces = {}, {}
+    for i, n in enumerate(fit.NECK):
+        spine = trimesh.creation.box(extents=(6, 6 + 3 * i, 6)).subdivide().subdivide()
+        one = trimesh.util.concatenate([ring, spine.apply_translation((0, 17 + 1.5 * i, 0))])
+        basis[n], faces[n] = one.vertices + (0, 0, -14.0 * i), one.faces
+    out, report = fit.vertebrae(basis, faces)
+    for n in fit.NECK:
+        y = out[n]
+        z = (y[:, 2].min() + y[:, 2].max()) / 2
+        mid = fit.canal(trimesh.Trimesh(y, faces[n], process=False))
+        assert mid == pytest.approx((0, fit.PAN[1] if n == "atlas" else fit.canal_y(z)), abs=1.0)
+        assert (fit.back(y) - y[:, 1]).min() >= fit.ROOM and y[:, 2].min() >= -146.5
+    assert out["c7"][:, 1].max() > fit.canal_y(out["c7"][:, 2].mean()) + 25
+    assert fit.LOW <= report["stretch"][0] and report["stretch"][1] <= 1.25 and report["skin_back_mm"] >= fit.ROOM

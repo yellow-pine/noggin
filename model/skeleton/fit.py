@@ -12,10 +12,11 @@ import numpy as np
 import scipy.sparse as sp
 import trimesh
 from scipy import ndimage
+from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import minimize
 
 from model import geometry as g
-from model import gimbal, neck
+from model import gimbal, neck, skin
 from model.skeleton import budget
 
 LATTICE = 20.0  # the field's control spacing, mm
@@ -32,6 +33,16 @@ C0_BELOW = (
 LO, HI = np.array(((-80.0, -41.0, -93.5), (80.0, 134.9, 80.0)))
 GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulation (it has no teeth), kept
 SCALES = {"skull": 1.05, "mandible": 0.95}  # the regions' uniform resize (the neck's: neck_scale())
+# the Skin's neck back, the head's frame: its y (BACK_Y) at |x| (BACK_X) and z (BACK_Z), our own coarse measure of the
+# private Morty reference (docs/adr/0025: a coarse hull of our own, inferred), from his nape down to his shoulders; a
+# vertebra stays ROOM in front of it: the Skin's wall and the clearance behind it
+BACK_X, BACK_Z = (0.0, 20.0, 40.0), (-150.0, -140.0, -130.0, -120.0, -110.0, -100.0, -90.0)
+BACK_Y = (
+    (126.7, 125.4, 122.9, 118.0, 114.7, 128.9, 140.6),
+    (124.9, 123.6, 121.6, 117.6, 111.8, 126.8, 138.6),
+    (119.1, 118.9, 117.5, 114.6, 108.9, 117.1, 132.8),
+)
+ROOM, AIM = skin.WALL + 1.6, 1.0  # model/skeleton's CLEAR_MM; the solve's margin inside it, so the check passes
 
 
 def lattice(points, lo, shape):
@@ -143,6 +154,38 @@ def neck_scale(basis):
     return round((TILT[2] - C0_BELOW - 0.5 - neck.CERVICAL_PATH[2][1]) / span, 3)
 
 
+def back(p):
+    """The Skin's neck back behind each point of `p` (n, 3): its y (BACK_Y), level past the measure's ends."""
+    at = np.stack([np.clip(np.abs(p[:, 0]), BACK_X[0], BACK_X[-1]), np.clip(p[:, 2], BACK_Z[0], BACK_Z[-1])], 1)
+    return RegularGridInterpolator((BACK_X, BACK_Z), BACK_Y)(at)
+
+
+def vertebrae(basis, faces):
+    """({vertebra: fitted vertices}, the report): C1 to C7 resized uniformly about C1's top, under the occipital
+    condyles, each canal onto the path, C1's round the pan axis; then one field over them all that brings every spine
+    ROOM in front of the Skin's neck back, each canal and each body's front staying where they stand."""
+    s, top = neck_scale(basis), basis[NECK[0]][:, 2].max()
+    placed, pairs = [], []
+    for n in NECK:
+        v = basis[n]
+        c, zc = canal(trimesh.Trimesh(v, faces[n], process=False)), (v[:, 2].min() + v[:, 2].max()) / 2
+        z = TILT[2] - C0_BELOW - 0.5 + s * (zc - top)
+        at = (0.0, PAN[1] if n == NECK[0] else canal_y(z), z)
+        placed.append(s * (v - (*c, zc)) + at)
+        front = placed[-1][placed[-1][:, 1].argmin()]
+        pairs += [(at, at, (1, 1, 1)), (front, front, (1, 1, 1))]
+    x = np.vstack(placed)
+    hi = np.full_like(x, np.inf)
+    hi[:, 1] = back(x) - ROOM - AIM
+    caps = np.full(len(x), 1.25)
+    y, f, hit = solve(x, caps, pairs, 1.0, ((-np.inf, -np.inf, neck.CERVICAL_PATH[2][1]), hi))  # over the path's foot
+    room = float((back(y) - y[:, 1]).min())
+    if room < ROOM:
+        raise ValueError(f"the neck comes within {room:.2f} mm of the Skin's back, less than {ROOM}")
+    report = _region(f, caps, hit, pairs) | {"scale": s, "skin_back_mm": round(room, 2)}
+    return dict(zip(NECK, np.split(y, np.cumsum([len(v) for v in placed])[:-1]))), report
+
+
 def _region(f, caps, hit, pairs):
     lo, hi = stretch(f, caps)
     miss = np.abs(hit - np.array([p[1] for p in pairs])) * np.array([p[2] for p in pairs])
@@ -195,15 +238,9 @@ def warp(basis, faces, landmarks):
     out[JAW], f, hit = solve(m, caps, pairs, SCALES["mandible"], (LO, HI))
     report["mandible"] = _region(f, caps, hit, pairs)
 
-    # the neck: resized about C1's top, under the occipital condyles; each canal onto the path, C1's round the pan axis
-    s, top = neck_scale(basis), basis[NECK[0]][:, 2].max()
-    report["scales"]["neck"] = s
-    for n in NECK:
-        v = basis[n]
-        c, zc = canal(trimesh.Trimesh(v, faces[n], process=False)), (v[:, 2].min() + v[:, 2].max()) / 2
-        z = TILT[2] - C0_BELOW - 0.5 + s * (zc - top)
-        out[n] = s * (v - (*c, zc)) + (0.0, PAN[1] if n == NECK[0] else canal_y(z), z)
-    return out, report
+    fitted, report["neck"] = vertebrae(basis, faces)
+    report["scales"]["neck"] = report["neck"].pop("scale")
+    return out | fitted, report
 
 
 def rewarp(scene):
