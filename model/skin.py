@@ -106,8 +106,6 @@ def cuts():
     return {cut: (CONTOURS[n]["view"], outline(n)) for cut, n in names.items()}
 
 
-
-
 def frame(seat):
     """4x4 rows taking the Seat's frame to its carrier's: z out of the carrier's face along the normal, the origin on
     that face. Both halves are drawn in it, so the balls meet their grooves."""
@@ -133,9 +131,7 @@ SEATS = [
     # inside the cut corners; each on a boss in from the face's wall, FACE_BOSS at most and cut at the Sculpt's surface
     # (model/morty/shells.py). Its top is not held yet: the skull's Seats (#874)
     *[
-        Seat(
-            "morty face", "gimbal frame", (x, gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2), (0.0, -1.0, 0.0), 0.0, FACE_BOSS, 1
-        )
+        Seat("morty face", "gimbal frame", (x, gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2), (0.0, -1.0, 0.0), 0.0, FACE_BOSS, 1)
         for x in (-_BEAM_SEAT, _BEAM_SEAT)
     ],
 ]

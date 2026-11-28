@@ -20,7 +20,10 @@ DOC = next(d for d in g.MECH if d in g.SIMULATED)  # the whole Mech, mechanical:
 REAL = next(d for d in g.MECH if g.SKULL_SUB in g.MECH[d])  # the realistic one: the skull's bones on it
 
 
-@pytest.mark.parametrize("stem", sk.SHELLS)
+DRAWN = [s for s in sk.SHELLS if s in PARTS]  # the Shells drawn here; a Sculpt's are held in model/morty/test_shells.py
+
+
+@pytest.mark.parametrize("stem", DRAWN)
 def test_a_shell_is_one_valid_solid(stem):
     shape = PARTS[stem]().val()
     assert shape.isValid() and len(shape.Solids()) == 1
@@ -44,7 +47,7 @@ def test_a_seat_on_the_skeleton_is_flush_in_its_carriers_surface(seat):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("pair", sorted({(s.shell, s.carrier) for s in sk.SEATS}), ids=" on ".join)
+@pytest.mark.parametrize("pair", sorted({(s.shell, s.carrier) for s in sk.SEATS if s.shell in DRAWN}), ids=" on ".join)
 def test_a_shell_meets_what_carries_it_only_where_its_balls_touch(pair):
     """Drawn in the same frame, a Shell and its carrier share at most the balls' contacts in the grooves: no boss or wall
     of the Shell runs into the part it sits on (the clearance test skips that pair)."""
