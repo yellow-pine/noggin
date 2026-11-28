@@ -7,7 +7,8 @@ this Sculpt has a pocket, a slab of empty space deep in its head joined to its s
 pocket's walls is the Skin's. The inside is the surface skin.WALL under the outer skin, measured on a grid of PITCH:
 each point's distance to it, meshed where that is WALL (scikit-image's marching cubes), then made lighter within FLAT.
 The wall has no floor at the base. It is open inside each eye white's cut, the Sculpt's own dome's edge and no
-larger (#893): the eyeballs, the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
+larger (#893): the eyeballs, the mechanism's own, are the eye whites. Round each opening it is thinned from inside
+to the lids' shell (gimbal.LIDS_SHELL, docs/adr/0028: the eyes sink so that 0.4 mm of it reaches the outline). Then it is split along skin.cuts(): the shirt under the collar, the hair above
 and behind the hairline, the chin under the mouth line, each brow's ridge inside its outline, and the face. The hair
 is cut again, level, into its crown and its back (LEVEL). Solids are cut with manifold3d.
 
@@ -407,8 +408,10 @@ def shells():
     whole = outside()
     wall = (whole - under(whole, skin.WALL)).trim_by_plane((0, 0, 1), base())
     cuts = {name: _swept(*cut) for name, cut in skin.cuts().items() if "pupil" not in name}  # the caps carry those
-    for side in gm.EYE:
+    for side, eye in gm.EYE.items():
         wall -= cuts[f"{side} eye white"]
+        # thinned from inside to the lids' shell, so the face reaches the opening's own outline over the lids
+        wall -= m3.Manifold.sphere(gm.LIDS_SHELL[1], 360).translate(eye)
     # a seam's gap (SEAM): the face steps back from the hair and the chin, the shirt from the collar
 
     def grown(name, by):
