@@ -5,8 +5,9 @@ its drive, each at least a Shell's wall and its clearance under his outer surfac
 it. At rest against the whole Sculpt. Then, over each horn's range but the eyes', against each piece of his skin that
 moves against the part: the head's, and the jaw's, which the jaw carries (skin.MOTION, cut as skin.cuts() cuts the
 Shells). The tray and the boards ride the head, so only the jaw's skin moves against them.
-The shirt, which stands still, is left out: these parts ride the head or the jaw inside those two's skin, so what
-the shirt meets first is a Shell, and it gives way to that (model/morty/shells.py cleared(), #850)."""
+The shirt, which stands still, is left out: these parts ride the head or the jaw inside those two's skin, above the
+collar's cut, so what the shirt meets first is a Shell, and it gives way to that (model/morty/shells.py cleared(),
+#850). Nodding, his chin's own skin runs through his Sculpt's shirt, so no part under it could keep MARGIN from that."""
 
 import numpy as np
 import pytest
@@ -82,10 +83,12 @@ def test_his_skin_is_cut_into_the_pieces_that_move_against_each_other():
 @pytest.mark.parametrize("part", _known(REST))
 @pytest.mark.parametrize("doc", list(g.MECH))
 def test_each_part_of_the_cranium_and_the_jaw_lies_under_mortys_skin_at_rest(doc, part, whole):
-    """#1089: at rest every point of the part lies MARGIN inside his outer surface; one that comes nearer or pokes
-    through fails with its worst mm."""
-    worst = round(float(whole(_placed(stages.STAGES[doc], part)).max()), 2)
-    assert worst <= -MARGIN
+    """#1089: at rest every point of the part lies MARGIN inside his outer surface, above the collar's cut (under it
+    the shirt's skin would stand still round a part the head turns); one that comes nearer or pokes through fails with
+    its worst mm."""
+    cloud = _placed(stages.STAGES[doc], part)
+    assert "torso" not in _piece(cloud)
+    assert round(float(whole(cloud).max()), 2) <= -MARGIN
 
 
 @pytest.mark.model
