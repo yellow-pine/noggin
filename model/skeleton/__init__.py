@@ -56,6 +56,9 @@ BELT_Z = tuple(round(float(LID_SHELL * np.sin(np.radians(a))), 1) for a in (214.
 CAP, CAPPED = "calvaria", "skull"
 SEAM_Z = 54.0
 SEATS = ((0.0, 3.0), (76.0, 83.5), (-77.0, 83.5))
+# A Skin's Seat in bone (model/skin.py SEATS, #850) is a flat cut into the bone, the Seat's pad and this much wider
+# all round, so the Shell's boss stands in it clear of the bone beside it (inferred)
+SEAT_ROOM = 0.5
 
 
 def blender():
@@ -74,13 +77,25 @@ def poses(stage):
     return out
 
 
+def seat(s):
+    """A Skin's Seat in bone (model/skin.py SEATS, its carrier one of g.SKULL) as export.py cuts it: [its carrier's
+    two copies, the bare and the worn; its frame in the head's (4x4 rows, z out of the bone); its pad, a ball on its
+    axis (how far under the Seat's face its middle is, its radius)]. The pad makes the bone solid FLOOR round the
+    magnet's pocket at its floor, and behind the pocket's whole bore to `s.pad` under the face: the ball through
+    both rims, and half a voxel, which the Finish's grid may round off it."""
+    bore, d = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+    under = (bore**2 + s.pad**2 - (bore + FLOOR) ** 2 - d**2) / (2 * (s.pad - d))
+    radius = float(np.hypot(bore, s.pad - under)) + PITCH / 2
+    return [[s.carrier, g.WORN[s.carrier]], np.array(sk.frame(s)).tolist(), [under, radius]]
+
+
 def job():
     """What export.py needs, JSON-ready: the head's frame in the document; each cutting part's STL; for each bone, the
     places (4x4, the document's frame) of every part as the bone sees it over every pose, sorted into what rides it
     (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (head's
     frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box), its cap (CAP: which
-    Finish it is cut off, the seam, and each Seat's boss, pocket, balls and grooves, head's frame) and the finish's
-    numbers."""
+    Finish it is cut off, the seam, and each Seat's boss, pocket, balls and grooves, head's frame), the Skin's Seats
+    in bone (seat(), and their flats' radius) and the finish's numbers."""
     from model.skeleton import fit  # here: fit reads this module's numbers
 
     stage = stages.STAGES[DOC]
@@ -126,6 +141,10 @@ def job():
             "bore": [sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]],
             "ball": [sk.RING, sk.BALL_R],
             "groove": [sk.GROOVE, sk.GROOVE_D],
+        },
+        "seats": {
+            "at": [seat(s) for s in sk.SEATS if s.carrier in g.SKULL],
+            "flat": sk.PAD_R + SEAT_ROOM,
         },
         "vault": {"bones": sorted(fit.VAULT), "middle": list(fit.MIDDLE)},
         "numbers": {

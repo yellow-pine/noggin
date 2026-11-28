@@ -11,7 +11,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import mjcf, morty, review, skin, stages
+from model import mjcf, morty, review, skeleton, skin, stages
 from model.morty import shells
 from model.test_skin import _inside
 
@@ -318,26 +318,33 @@ def test_each_piece_of_the_hair_comes_off_straight(places, piece):
     """#893 (Cansin, 2026-11-28): the hair is cut in two on a level seam so that each piece comes off the head a
     straight way (skin.DIRECTIONS), the crown up and the back back, the other piece still on. Exact solids, a
     millimetre at a time until the piece is past everything: it never comes nearer a part than a worn Shell's room
-    (gm.LID_CLEAR_MM, so it touches nothing between two steps). Every part of the Skeleton, the worn skull and its
-    calvaria among them, at rest and wherever each servo's ends put it as the head sees it; every other Shell at
-    rest. Nor does a piece come nearer the worn skull or its calvaria on its way than where it rests."""
+    (gm.LID_CLEAR_MM, so it touches nothing between two steps). Every part of the Skeleton at rest and wherever each
+    servo's ends put it as the head sees it; every other Shell at rest. The bone its Seats are in it rests on, its
+    balls in their grooves; once off them, a millimetre on, it keeps its bosses' room in their flats from that bone
+    (skeleton.SEAT_ROOM, as two meshed rounds read it). And it comes no nearer the worn skull or its calvaria on its
+    way than where it rests."""
     way = np.array(skin.DIRECTIONS[piece])
+    carriers = {g.WORN[s.carrier] for s in skin.SEATS if s.shell == piece}
     (seated,) = places[piece]
     box = np.reshape(seated.bounding_box(), (2, 3))
     # a Shell at its first place, rest: the shirt stands in the back's way once the head is turned or nodded
     seen = {name: solids[:1] if name in NAMES else solids for name, solids in places.items() if name != piece}
     others = [(name, s, np.reshape(s.bounding_box(), (2, 3))) for name, solids in seen.items() for s in solids]
     far = max(b[1] @ way for _, _, b in others) - box[0] @ way  # until all of it is past all of them
-    near = {}
+    near, off = {}, {}  # {part: (its least gap, how far along)}; {carrier: its least gap once the piece is off it}
     for t in np.arange(0.0, far + 1.0, 1.0):
         moved, low, high = seated.translate(tuple(t * way)), box[0] + t * way, box[1] + t * way
         for name, solid, b in others:
             if (low < b[1] + 3.0).all() and (high > b[0] - 3.0).all():
-                near[name] = min(near.get(name, (3.0, t)), (moved.min_gap(solid, 3.0), t))
-    assert far > 90 and min(near.values())[0] > gm.LID_CLEAR_MM, sorted(near.items(), key=lambda kv: kv[1])[:5]
+                gap = moved.min_gap(solid, 3.0)
+                near[name] = min(near.get(name, (3.0, t)), (gap, t))
+                if t and name in carriers:
+                    off[name] = min(off.get(name, 3.0), gap)
+    free = {name: gap for name, gap in near.items() if name not in carriers}
+    assert far > 90 and min(free.values())[0] > gm.LID_CLEAR_MM, sorted(free.items(), key=lambda kv: kv[1])[:5]
+    assert carriers and min(off[name] for name in carriers) > skeleton.SEAT_ROOM - 0.1, off
     for bone in ("worn skull", "worn calvaria"):  # the skull as a Skin wears it, and its cap (#874)
-        at_rest = seated.min_gap(places[bone][0], 3.0)
-        assert near.get(bone, (3.0, 0.0)) == (pytest.approx(at_rest), 0.0), bone  # 3.0: it never comes near
+        assert near.get(bone, (3.0, 0.0))[1] == 0.0, (bone, near[bone])
 
 
 def test_each_brow_is_laid_on_the_face_which_runs_on_under_it(built, outer):
@@ -452,8 +459,9 @@ def test_the_shells_are_cut_where_the_cuts_are(built):
     under the mouth line in front of the eyes, each brow out of the face. Read at each Shell's box and weight (g,
     solid PLA Pure)."""
     grams = {n: m.volume / 1000 * g.MATERIALS["PLA Pure"]["density_g_cm3"] for n, m in built.items()}
-    # the face with its two bosses (2.4 g), running on under each brow, which is BROW thick
-    weighed = {"hair crown": 106, "hair back": 75, "L brow": 0.59, "R brow": 0.59, "face": 91.5, "chin": 4.1}
+    # each with its Seats' bosses: the face's three (3.3 g), the crown's (1.5 g) and the back's, its two low ones
+    # 13 mm long (5.9 g); the face runs on under each brow, which is BROW thick
+    weighed = {"hair crown": 107.2, "hair back": 80.6, "L brow": 0.59, "R brow": 0.59, "face": 92.4, "chin": 4.1}
     weighed |= {"shirt": 57}
     assert grams == pytest.approx({f"morty {n}": w for n, w in weighed.items()}, rel=0.05), grams
     collar = skin.contour("collar")[:, 1]

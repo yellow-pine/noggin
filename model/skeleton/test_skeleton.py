@@ -24,8 +24,6 @@ from model.skeleton import envelope, fit
 SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
 SKIN_TOL = 0.2  # a depth under Morty's skin is good to this (envelope.DENSITY), mm
-# strict, so #968's follow-up, which re-measures nk.MANDIBLE_CHAIN on the refitted mandible, drops the mark
-CHAIN = "#968: the jaw carrier's chain still follows the box-fitted mandible, not #874's refit inside Morty's skin"
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -61,6 +59,28 @@ def test_the_exporter_cuts_the_calvaria_off_each_skulls_own_finish():
     assert min(np.linalg.norm(a - b) for a, b in itertools.combinations(spots, 2)) > 100.0
     assert (cap["gap"], cap["boss"], cap["bore"]) == (sk.GAP, sk.PAD_R, [sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]])
     assert (cap["ball"], cap["groove"]) == ([sk.RING, sk.BALL_R], [sk.GROOVE, sk.GROOVE_D])
+
+
+SKIN_SEATS = [s for s in sk.SEATS if s.carrier in g.SKULL]  # the Seats a Skin has in bone (#850)
+
+
+def test_the_exporter_cuts_every_seat_a_skin_has_in_bone():
+    """#850: the exporter gets each Seat a Skin has in bone (model/skin.py SEATS, job()["seats"]): which two copies
+    of its carrier it is cut in, the bare and the worn; its frame in the head's, z out of the bone at the Seat's
+    place; and its pad, a ball on its axis that makes the bone solid the print floor round the magnet's pocket at
+    its floor and behind its whole bore (the ball through both rims, and half a voxel for the Finish's grid: 5.0 mm,
+    its middle 0.1 mm in front of the Seat's face, which the flat cuts back to).
+    Each flat is the Seat's pad and skeleton.SEAT_ROOM wider, so the Shell's boss stands in it free."""
+    seats = skeleton.job()["seats"]
+    assert seats["flat"] == sk.PAD_R + skeleton.SEAT_ROOM and len(seats["at"]) == len(SKIN_SEATS) == 7
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+    for s, (names, frame, (under, radius)) in zip(SKIN_SEATS, seats["at"], strict=True):
+        assert names == [s.carrier, g.WORN[s.carrier]] and set(names) <= {*CAPS[0], *CAPS[1]}
+        assert np.array(frame)[:3, 3] == pytest.approx(s.at) and np.array(frame)[:3, 2] == pytest.approx(s.normal)
+        assert (under, radius) == pytest.approx((-0.1, 5.0), abs=0.01)
+        reach = radius - skeleton.PITCH / 2
+        assert np.hypot(bore, depth + skeleton.FLOOR - under) == pytest.approx(reach)  # behind the pocket's bore
+        assert np.hypot(bore + skeleton.FLOOR, depth - under) == pytest.approx(reach)  # and round its floor
 
 
 @functools.cache
@@ -228,6 +248,39 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
 
 @pytest.mark.model
 @pytest.mark.bones
+@pytest.mark.parametrize("worn", [False, True], ids=["bare", "worn"])
+@pytest.mark.parametrize("seat", SKIN_SEATS, ids=lambda s: f"{s.shell} {s.at[0]:+.0f}")
+def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, worn, solids):
+    """#850: each Seat a Skin has in bone (model/skin.py SEATS), in the bare copy of its carrier and in the worn
+    one, read in the Seat's own frame, z out of the bone. No bone stands in front of the Seat's face as far round as
+    its flat, so the Shell's boss comes down onto it free. The face is bone: round the pocket, and between the
+    grooves out to their far ends. The magnet's pocket is open from the face, a magnet deep and its fit round, with
+    the print floor of bone (skeleton.FLOOR) round it under the grooves' depth and behind it. And a ball at each of
+    the Shell's three places meets no bone, while one 0.05 mm larger does: it rests in its groove's sides."""
+    bone = solids[g.WORN[seat.carrier] if worn else seat.carrier]
+    to = np.array(sk.frame(seat))[:3]
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+
+    def disc(r, z0, z1, at=(0.0, 0.0)):
+        return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((*at, z0)).transform(to)
+
+    assert _share(bone, disc(sk.PAD_R + skeleton.SEAT_ROOM - 0.05, 0.02, 9.0)) < 1e-4
+    assert _share(bone, disc(sk.RING - sk.GROOVE - 0.1, -0.3, -0.02) - disc(bore + 0.05, -1.0, 1.0)) > 0.99
+    for deg in (60, 180, 300):  # between the grooves
+        between = sk.RING * np.cos(np.radians(deg)), sk.RING * np.sin(np.radians(deg))
+        assert _share(bone, disc(sk.GROOVE, -0.3, -0.02, between)) > 0.99, deg
+    assert _share(bone, disc(sk.MAGNET[0] / 2, -depth, 1.0)) < 1e-3  # the magnet's room, flush
+    round_it = disc(bore + skeleton.FLOOR, -depth, -sk.GROOVE_D - 0.01) - disc(bore, -depth - 1.0, 1.0)
+    assert _share(bone, round_it) > 0.99
+    assert _share(bone, disc(bore, -depth - skeleton.FLOOR, -depth - 0.01)) > 0.99
+    for deg in (0, 120, 240):
+        at = sk.RING * np.cos(np.radians(deg)), sk.RING * np.sin(np.radians(deg)), sk.GAP
+        assert (bone ^ m3.Manifold.sphere(sk.BALL_R, 48).translate(at).transform(to)).volume() < 0.01, deg
+        assert (bone ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at).transform(to)).volume() > 0, deg
+
+
+@pytest.mark.model
+@pytest.mark.bones
 def test_the_seats_magnets_hold_the_calvaria_on_whichever_way_up_the_head_is():
     """#874: the three pairs, skin.GAP apart, pull the calvaria on with at least skin.SF times its printed weight
     (inferred, like every Seat's hold: no build settles one yet)."""
@@ -357,13 +410,13 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=CHAIN)
 def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
-    """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), straight
-    outboard of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
-    bone) and stands the print floor thick beyond it, to a voxel. Inboard the carrier may show: its post, and the
-    chain where the ramus is thinner than it. nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to
-    the bone (ADR 0011)."""
+    """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), outboard
+    of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
+    bone) and stands the print floor thick beyond it, to a voxel. Outboard is level and square to the span, away from
+    the head's middle: sideways down the ramus and the body, forward where the bar runs across at the chin. Inboard
+    the carrier may show: its post, the chain where the ramus is thinner than it, the bar behind the chin.
+    nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to the bone (ADR 0011)."""
     from model.printed import neck
 
     rng = np.random.default_rng(0)
@@ -374,12 +427,12 @@ def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
     sign = 1.0 if side == "L" else -1.0
     bare = []
     for a, b in itertools.pairwise(np.array(neck.jaw_chains()[side])):
+        out = sign * np.array([a[1] - b[1], b[0] - a[0], 0.0])
+        out /= np.linalg.norm(out)
         for t in (0.1, 0.3, 0.5, 0.7, 0.9):
             p = a + (b - a) * t
-            # each surface's points straight outboard of the chain here, mm from it
-            of_bone, of_jaw = (
-                sign * (s[np.linalg.norm(s[:, 1:] - p[1:], axis=1) < 1.0, 0] - p[0]) for s in (bone, jaw)
-            )
+            # each surface's points outboard of the chain here (within 1 mm of the line out from it), mm from it
+            of_bone, of_jaw = (((s - p) @ out)[np.linalg.norm(np.cross(s - p, out), axis=1) < 1.0] for s in (bone, jaw))
             face = of_jaw[
                 (of_jaw > 0) & (of_jaw < 6.0)
             ].max()  # the carrier's own outboard face (not the other chain's)

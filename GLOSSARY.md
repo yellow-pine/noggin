@@ -55,7 +55,7 @@ Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface
 hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair (in two pieces, its crown and
 its back), his face, each brow (its
 ridge, in the hair's filament, laid on the face and glued there), his chin (under the mouth line, on the jaw) and his shirt (under
-the collar, the whole fixed body). The face has its two lower Seats. *Upcoming (#850): the rest of the Seats of Morty's Shells.*
+the collar, the whole fixed body). The face and the hair's two pieces have their Seats. *Upcoming (#850): the chin's and the shirt's.*
 _Avoid_: cover, cosmetic
 
 **Seat**:

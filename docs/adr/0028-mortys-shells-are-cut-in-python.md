@@ -48,8 +48,16 @@ Shells there are.
   cap.
 - **An eye's opening is the Sculpt's own dome's edge, exactly** (Cansin): the face is open inside each eye white's
   cut and no further. So the lids cannot hide whole behind the rim: an open lid's edge rests at the rim and shows
-  there as a sliver (#967). The face's wall comes to 36.3 mm from each eye's centre at its nearest (38.0 before), and
-  what turns under the rim keeps a worn Shell's 0.5 mm inside that.
+  there as a sliver (#967).
+- **The eyes sink so that the face's wall reaches each opening** (Cansin, 2026-11-28, picked twice: spec #893's
+  fifth and seventh rounds, the second with a preview). At an opening's outline his skin is 37.1 to 37.3 mm from
+  the eye's centre, and the hidden lids on main sweep a shell out to 37.6 mm (`gimbal.LIDS_SHELL`), so no wall of
+  face fits there, all round both openings: none at all for 0.2 to 0.9 mm past the outline, and 0.4 mm of it only
+  from 0.6 to 1.3 mm out. Today the face's wall comes to 36.3 mm from each eye's centre, inside that shell. The
+  eyeball's cap and the lids move 0.9 mm in (the cap to 34.9 mm, 2.2 mm under his eye's own surface; the shell to
+  36.7 mm, #967), and the face's wall is thinned to that shell round each opening: 0.45 mm of it is left on the
+  outline at its thinnest. The openings stay the Sculpt's. The thinning is built once the sunk lids are on main
+  (#850).
 - **The collar is the head's lower seam** (confirmed by Cansin). On this Sculpt the head meets the shirt at the
   collar's crease, with no neck showing between. So everything above the collar turns with the head, the neck's skin
   too, sliding round the neck's bones, which never move; and the shirt is the whole fixed body.
@@ -80,3 +88,7 @@ Shells there are.
 - The face open to a 38.0 mm sphere about each eye's centre, so the lids stow hidden under its rim (#1037 to
   #1046): the opening stood 0.3 to 2.6 mm outside the dome's edge, and Cansin chose his eyes' own outline over
   hidden lids.
+- The face ending 0.6 to 1.3 mm short of each opening's outline, the lids' band showing in the ring in the face's
+  own filament: the openings would be larger than the Sculpt's, which Cansin had ruled out twice.
+- The face's wall thinned to a feather edge on the outline: a wall from 0 to 0.4 mm does not print.
+- Less than 0.5 mm between the lids and the face at the rim: it loosens the gate where two printed parts slide.

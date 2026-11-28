@@ -628,8 +628,11 @@ def frame(mechanical=False):
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
+    # each jaw pivot boss' notch in the plate, from its lug's face to as far past the boss as the boss stands off
+    # the lug (#968: the notch was the boss' own width, its walls on the boss' two faces)
+    notch = (neck.JAW_LUG_X[1], neck.JAW_X[1] + neck.JAW_X[0] - neck.JAW_LUG_X[1])
     for sign in (-1, 1):
-        out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in neck.JAW_X)))
+        out = out.cut(cyl("x", (0, jy, jz), neck.BOSS_R + 1.6, sorted(sign * x for x in notch)))
     drives = {label: gm.servo_matrix(face, shaft, tab) for label, (face, shaft, tab, _) in gm.drives().items()}
     lids = [m for label, m in drives.items() if label.endswith(" lid")]
     servos = [*drives.values(), gm.servo_matrix(*neck.drives()["mouth"][:3])]  # the mouth's, behind the jaw (#838)

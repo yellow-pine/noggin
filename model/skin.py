@@ -40,6 +40,9 @@ Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: th
 SKIN = 0.6  # the least of a Shell's own surface left over its magnet's pocket, mm: two 0.3 mm layers (inferred)
 FACE_BOSS = 12.0  # from the beam's front out past the face's wall, whose inside is 6 mm ahead of it there (measured)
 _BEAM_SEAT = gm.BEAM_X - gm.BEAM_CUT - PAD_R  # a beam Seat's |x|: its whole circle on the beam's flat front
+# A Seat in bone (#874): the skull's wall is 3.6 to 6 mm, so the bone is made solid behind the magnet's pocket to its
+# print floor, 2 mm (model/skeleton FLOOR, which model/test_skin.py holds this to): a Seat's pad, a ball there
+BONE_PAD = MAGNET[1] + 2.0
 
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
@@ -123,6 +126,8 @@ def frame(seat):
 
 
 # The eyeball caps on the cores' seat faces, along the gaze: every Character's (#665)
+_CROWN = ((0.0, 50.0, 109.9), (15.0, 92.0, 106.4), (-15.0, 92.0, 106.4))
+_BACK = ((0.0, 170.2, 2.0), (15.0, 166.6, -8.0), (-15.0, 166.6, -8.0))
 SEATS = [
     *[
         Seat(
@@ -138,11 +143,23 @@ SEATS = [
     ],
     # Morty's face (#850), forward off the front of the gimbal frame's beam under his eyes, mid height, on its flat
     # inside the cut corners; each on a boss in from the face's wall, FACE_BOSS at most and cut at the Sculpt's surface
-    # (model/morty/shells.py). Its top is not held yet: the skull's Seats (#874)
+    # (model/morty/shells.py)
     *[
         Seat("morty face", "gimbal frame", (x, gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2), (0.0, -1.0, 0.0), 0.0, FACE_BOSS, 1)
         for x in (-_BEAM_SEAT, _BEAM_SEAT)
     ],
+    # Morty's Seats in bone (#850, #874), in the head's frame, where a bone lies at rest. Each is a flat cut into the
+    # bone at the lowest of its surface under the Seat's disc, so nothing stands proud on the bare skull (measured on
+    # the finished skull, 2026-11-28; model/skeleton cuts them, in the bare copy and the worn one). They keep near
+    # the midline: further out the vault and the occiput fall away under a flat that faces the Shell's way off, which
+    # then cuts through the wall (at x 25 it cuts 4 mm into a 4 mm wall).
+    # The face's top one, forward off the forehead under the cap's seam: its weight turns its top back onto it
+    Seat("morty face", "skull", (0.0, -6.8, 46.0), (0.0, -1.0, 0.0), BONE_PAD, FACE_BOSS, 1),
+    # the hair's crown (Cansin, 2026-11-28: the hair in two pieces), up off the skull's cap, which lifts off the
+    # same way on three pairs of its own: a pull on the crown may bring the cap with it, and they part by hand
+    *[Seat("morty hair crown", "calvaria", at, (0.0, 0.0, 1.0), BONE_PAD, 8.0, 1) for at in _CROWN],
+    # the hair's back, back off the occiput under the hair's level seam: it hangs below them, so two are low
+    *[Seat("morty hair back", "skull", at, (0.0, 1.0, 0.0), BONE_PAD, 16.0, 1) for at in _BACK],
 ]
 
 # {Shell: the Shell it is glued to}, keyed there by its own outline and never off it (#51: not held by magnets
@@ -150,11 +167,7 @@ SEATS = [
 # model/morty/shells.py). A brow is 8 mm across and a Seat 14
 GLUED = {f"morty {s} brow": "morty face" for s in "LR"}
 SHELLS = list(dict.fromkeys(s.shell for s in SEATS))
-# Each Shell's Assembly direction, in its carrier's frame: its Seats' normal. Morty's hair comes off in two pieces
-# (Cansin, 2026-11-28, #893), its crown straight up and its back straight back: their Seats, in bone, are not built
-# yet (#874's cap) and will face these ways
-DIRECTIONS = {"morty hair crown": (0.0, 0.0, 1.0), "morty hair back": (0.0, 1.0, 0.0)}
-DIRECTIONS |= {s.shell: s.normal for s in SEATS}
+DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly direction, in its carrier's frame
 # A Skin's Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so
 # the servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py). None until a

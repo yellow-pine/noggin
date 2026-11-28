@@ -32,7 +32,7 @@ def test_a_shell_is_one_valid_solid(stem):
 @pytest.mark.model
 @pytest.mark.parametrize(
     "seat",
-    [s for s in sk.SEATS if s.carrier not in sk.SHELLS],
+    [s for s in sk.SEATS if s.carrier in PARTS and s.carrier not in sk.SHELLS],  # a Seat in bone: model/skeleton's
     ids=lambda s: f"{s.shell} on {s.carrier} {s.at[0]:+.0f}",
 )
 def test_a_seat_on_the_skeleton_is_flush_in_its_carriers_surface(seat):

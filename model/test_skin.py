@@ -42,7 +42,8 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     only Shells a document wears; Morty's, cut from his Sculpt (g.SHELLS), are printed in PLA Pure, each in its Colour
     group, and worn by no document until the gates on a worn Shell pass (g.SKINS)."""
     groups = {group for palette in g.THEMES["Skin palette"].values() for group in palette}
-    assert set(skin.SHELLS) == {*(f"{s} eyeball cap" for s in "LR"), "morty face"}  # the Shells on Seats so far
+    seated = {"morty face", "morty hair crown", "morty hair back"}  # Morty's Shells on Seats so far
+    assert set(skin.SHELLS) == {*(f"{s} eyeball cap" for s in "LR"), *seated}
     assert skin.DRAWN == [] and g.SKINS == {}
     assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
         "hair crown": ("hair", "PLA Pure"),
@@ -61,8 +62,8 @@ def test_the_face_sits_on_the_gimbal_frames_beam_and_comes_off_forward():
     """#850: the face's two lower Seats are in the front of the gimbal frame's beam, under the eyes, one each side,
     facing forward: the pocket and the grooves fit the beam's front whole (its flat, clear of its cut corners), and the
     Seat stands on a boss in from the face's wall. Neither is an L/R pair's: both show N."""
-    seats = [s for s in skin.SEATS if s.shell == "morty face"]
-    assert {(s.carrier, s.normal, s.polarity, s.pad) for s in seats} == {("gimbal frame", (0.0, -1.0, 0.0), 1, 0.0)}
+    seats = [s for s in skin.SEATS if s.shell == "morty face" and s.carrier == "gimbal frame"]
+    assert {(s.normal, s.polarity, s.pad) for s in seats} == {((0.0, -1.0, 0.0), 1, 0.0)}
     assert sorted(s.at[0] for s in seats) == [-42.0, 42.0]
     reach = skin.RING + skin.GROOVE  # the grooves' far ends
     for s in seats:
@@ -88,11 +89,43 @@ def test_a_shell_comes_off_along_its_seats_normal():
 
 def test_mortys_hair_comes_off_in_two_pieces_the_crown_up_and_the_back_back():
     """#893 (Cansin, 2026-11-28): no straight way takes the hair off the skull in one piece, so it is two Shells: the
-    crown lifts straight up and the back slides straight back, in the head's frame. Their Seats, in bone, are not
-    built yet (#874's cap)."""
+    crown lifts straight up and the back slides straight back, in the head's frame."""
     assert skin.DIRECTIONS["morty hair crown"] == (0.0, 0.0, 1.0)
     assert skin.DIRECTIONS["morty hair back"] == (0.0, 1.0, 0.0)
     assert {"hair crown", "hair back"} <= g.SHELLS["morty"].keys() and "hair" not in g.SHELLS["morty"]
+
+
+def test_mortys_seats_in_bone_are_three_for_each_piece_of_the_hair_and_the_faces_top_one():
+    """#850, #874: the Seats the skull carries, in the head's frame (a bone lies in it at rest). The crown's three
+    face up on the calvaria, the skull's cap, one in front and two behind it either side of the midline; the back's
+    three face back on the occiput, under the hair's level seam, one above and two below it; the face's top one
+    faces forward on the forehead's midline, under the cap's seam, 100 mm above its two in the beam. Each Seat's
+    whole disc lies on one bone, clear of the cap's seam, and a Seat of the back's lies under the hair's own seam.
+    Each has the bone made solid behind its magnet's pocket to the print floor (pad: skeleton.FLOOR under the
+    magnet). None is an L/R pair's: all show N."""
+    from model import skeleton  # here: the skull's cap and its seam
+    from model.morty import shells
+
+    bone = {s for s in skin.SEATS if s.carrier in g.SKULL}
+    assert {(s.shell, s.carrier, s.normal) for s in bone} == {
+        ("morty hair crown", "calvaria", (0.0, 0.0, 1.0)),
+        ("morty hair back", "skull", (0.0, 1.0, 0.0)),
+        ("morty face", "skull", (0.0, -1.0, 0.0)),
+    }
+    by = {shell: sorted(s.at for s in bone if s.shell == shell) for shell in skin.SHELLS}
+    assert [len(by[shell]) for shell in ("morty hair crown", "morty hair back", "morty face")] == [3, 3, 1]
+    assert [x for x, _, _ in by["morty hair crown"]] == [-15.0, 0.0, 15.0] == [x for x, _, _ in by["morty hair back"]]
+    (face,) = by["morty face"]
+    assert face[0] == 0.0 and face[2] - sum(gm.BEAM_Z) / 2 > 100.0
+    for s in bone:
+        assert (s.polarity, s.pad) == (1, skin.MAGNET[1] + skeleton.FLOOR), s
+        z = s.at[2] if s.normal[2] == 0 else None  # a Seat that faces up lies level: its disc has one height
+        if s.carrier == skeleton.CAP:
+            assert s.at[2] > skeleton.SEAM_Z + skin.PAD_R
+        else:
+            assert z + skin.PAD_R < skeleton.SEAM_Z
+        if s.shell == "morty hair back":
+            assert z + skin.PAD_R < shells.LEVEL - shells.SEAM / 2
 
 
 def test_every_shell_belongs_to_one_motion_region():
