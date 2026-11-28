@@ -186,10 +186,10 @@ MANDIBLE_CHAIN = {
         (-13.5, -3.0, -78.0),
     ),
 }
-# the middle of the bar across between the two chains' last joints, in the mandible's symphysis: level, 2 mm of bone
-# in front of it (the symphysis is 6.5 to 7.5 mm thick there, so the bar stands 2 mm out of its back face), and so
-# 6 mm or more under his chin's skin and from the skin under his chin as the jaw opens (model/review/test_head.py;
-# #976's chains met 1.9 mm under it and swung through it)
+# where the bar across between the two chains' last joints crosses the head's middle, in the mandible's symphysis:
+# level, 2 mm of bone in front of it (the symphysis is 6.5 to 7.5 mm thick there, so the bar stands 3 mm out of its
+# back face), and so 6 mm or more under his chin's skin and from the skin under his chin as the jaw opens
+# (model/review/test_head.py; #976's chains met 1.9 mm under it and swung through it)
 JAW_CHIN = (0.0, *MANDIBLE_CHAIN["L"][-1][1:])
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,

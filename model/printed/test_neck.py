@@ -458,12 +458,13 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
 
 
 @pytest.mark.model
-def test_the_jaw_carriers_chains_meet_at_the_chin_without_a_sliver():
-    """#850: the two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a
-    document's STEP as an invalid jaw (model/test_ours.py), once nothing fused onto the chin covered it. No edge of the
-    Bone jaw within 9 mm of the chin is that marginal."""
-    chin = np.array(nk.JAW_CHIN)
-    edges = [e for e in _built("jaw").Edges() if np.linalg.norm(np.array(e.Center().toTuple()) - chin) < 9.0]
+@pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
+def test_the_jaw_carriers_bar_meets_each_chain_without_a_sliver(side):
+    """#850: two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a
+    document's STEP as an invalid jaw (model/test_ours.py), once nothing fused onto the chin covered it. One bar runs
+    across there now (#968), and no edge of the Bone jaw within 9 mm of where it meets a chain is that marginal."""
+    end = np.array(nk.MANDIBLE_CHAIN[side][-1])
+    edges = [e for e in _built("jaw").Edges() if np.linalg.norm(np.array(e.Center().toTuple()) - end) < 9.0]
     assert edges and min(e.Length() for e in edges) > 0.5
 
 
