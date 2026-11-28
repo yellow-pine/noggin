@@ -355,18 +355,18 @@ def capped(job):
                 L.new(cutter, cut.inputs["Mesh 2"])
             for socket in readers:
                 L.new(cut.outputs["Mesh"], socket)
-        twin = bpy.data.objects.get(f"finished {cap}")
-        if not twin:
-            twin = o.copy()
-            twin.data = o.data.copy()  # its own mesh: the review bakes each Finish into its object's
-            twin.name = twin.data.name = f"finished {cap}"
+        lid = bpy.data.objects.get(f"finished {cap}")
+        if not lid:
+            lid = o.copy()
+            lid.data = o.data.copy()  # its own mesh: the review bakes each Finish into its object's
+            lid.name = lid.data.name = f"finished {cap}"
             for c in o.users_collection:
-                c.objects.link(twin)
-            twin.hide_set(o.hide_get())
-            mine = twin.modifiers["Finish"].node_group = group.copy()
+                c.objects.link(lid)
+            lid.hide_set(o.hide_get())
+            mine = lid.modifiers["Finish"].node_group = group.copy()
             mine.name = f"Finish {cap}"
             mine.links.new(_all(mine, bpy.data.collections[GROOVES]), mine.nodes["Cut"].inputs["Mesh 2"])
-        for piece, cutter in zip((o, twin), SEAM, strict=True):  # swap() made the cutters anew
+        for piece, cutter in zip((o, lid), SEAM, strict=True):  # swap() made the cutters anew
             piece.modifiers["Finish"].node_group.nodes["Seam"].inputs["Object"].default_value = bpy.data.objects[cutter]
 
 

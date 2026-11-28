@@ -182,7 +182,7 @@ spines would have to close up to its floor); a factor that changes with height (
 > Decided on ticket #874 (made while away; Cansin to confirm): the seam's height, its shape, what holds the cap and the
 > gap. Each is inferred: no build settles one yet.
 
-The skull's calvaria is its own bone (`calvaria` in `geometry.SKULL`, with its worn twin), so the head's mechanism can
+The skull's calvaria is its own bone (`calvaria` in `geometry.SKULL`, with its worn copy), so the head's mechanism can
 be reached: it lifts straight up off the skull, over the Shields' tops.
 
 - **The cut lives in the skull's Finish** (`export.capped`), not in Python on the exported bones: the review finishes
@@ -192,7 +192,7 @@ be reached: it lifts straight up off the skull, over the Shields' tops.
   export, as it gets its rounding.
 - **The seam is level, at z 54 in the head's frame.** The finished skull is open in front under z 50 (the lids' shell
   and the rounding over it); from there up it is one whole ring, 3.7 mm wide at its thinnest and 5.1 at the median.
-  z 54 is the lowest seam that leaves the print floor of bone over the lids' shell (3.8 mm at the least). The Shields
+  z 54 is the lowest seam that leaves twice the print floor of bone over each orbit's opening (4.8 mm at the least). The Shields
   under it top out at z 54.5, so the Cores and the hub are at the opening.
 - **Flat, located by Seats.** A flat cut is a teaching skull's, and the cap prints lying on its rim. A flat seam
   alone lets the cap slide until its magnets catch (about half a mm either way), and the hair's crown will sit on
