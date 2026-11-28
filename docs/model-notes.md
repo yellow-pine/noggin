@@ -188,7 +188,22 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 55 deg or more). All
   four lids turn on one shank along the eye line, in a wall of the frame on the midline, each on a sleeve between
   the eyes; a spoke runs from each sleeve back to a tail of its lid's band, behind everything the cap's shell sweeps
-  as its eye yaws in. No lid has a bearing at its outer end. The pitch push-rod's Hooke coupling is undone by the command map
+  as its eye yaws in. No lid has a bearing at its outer end. Each eyeball cap is a 1.6 mm shell of its eye's
+  sphere on a stem 20 deg wide about the gaze, which stands on the core's seat and holds the pupil's, and it is grown
+  round that sphere as far as nothing comes within 0.5 mm of it at any yaw, pitch and lid angle (#967, Cansin,
+  2026-11-28: a turned eye showed the dark inside the head beside it): to 114 deg from the gaze outward and over its
+  top, toward the other eye over and under the lids' hubs (it stays 59.7 deg on the eye line's height, where their
+  sleeves are), and down to the yaw bearing's sweep (`gimbal.CAP_OUT`, `CAP_HUBS`, `CAP_SIDE`). Inside it an eye
+  liner, white as the cap, is fixed to the frame: a 0.8 mm shell 0.55 mm under the cap's, in front of the eye wherever
+  nothing turns, open where the cap's stem sweeps and where the lids' cranks and the lid bar do (`gimbal.LINER_R`,
+  `LINER_HUBS`), so the front sees white 2.6 mm behind the cap where the cap has turned away. Its foot is a collar
+  round the yaw bearing's post, between the pad's top and the yoke's bar, cut back under the pad's top to the pad's
+  front face so it cannot turn; its jaws reach 25 deg past the post's middle either side, so it snaps on along the
+  bearing's own way, from the front and the outside, after the yoke and the core and before the cap (`gimbal.CLIP`,
+  inferred: no print has tried the snap). Seen from the front, the dark left in an opening of 3,650 mm2 is 3 mm2 or
+  less at rest, 90 with the eye yawed 25 deg out (550 before: the slit between the cap's edge at the lids' hubs and
+  the liner's window, and a little along the rim where the lid bar sweeps), 1 yawed in, 2 pitched up 15 deg and 1
+  pitched down (`model/printed/test_gimbal.py`). The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
   as Bones (GLOSSARY; model/printed/bone.py), and Back is built in each (`mech-back`,

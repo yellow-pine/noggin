@@ -131,7 +131,7 @@ def _boards(stem, placed):
 
 def eyes_sub():
     """eyes: the Mech's eye gimbal (#630, model/gimbal.py) at rest, in its own frame: per eye the core, its
-    cap, yoke, push-rod, upper and lower lid, lid bar and link; the tie-bar, the bail, the pitch bar and the frame; the
+    cap, its liner, yoke, push-rod, upper and lower lid, lid bar and link; the tie-bar, the bail, the pitch bar and the frame; the
     eyes Core's servos with their horns on the drives, each a hinge MuJoCo drives (#663): each eye's two lids (the upper
     by its bar, the lower by its link off the same horn's inner hole, #967) and the pitch horn's bail through their
     four-bars, both yokes off the yaw horn's tie-bar, and each core pitched on its yoke by its push-rod off the bail (a
@@ -143,6 +143,7 @@ def eyes_sub():
         for name, stem, m in (
             ("eyeball core", "eyeball core", at),
             ("eyeball cap", f"{s} eyeball cap", at),
+            ("eye liner", f"{s} eye liner", at),  # on the frame, inside the cap's shell: no horn moves it (#967)
             ("yaw yoke", "yaw yoke", at),
             ("push-rod", "push-rod", translate((cx, 0, 0))),
             ("upper lid", f"{s} upper lid", at),
