@@ -13,8 +13,9 @@ is cut again, level, into its crown and its back (LEVEL). Solids are cut with ma
 
 Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair and the chin, the shirt from
 the collar, and the hair's two pieces half of it each from their level; and where Shells move against each other the one that stands still gives way (cleared()):
-the shirt to the head through tilt, pan and the jaw's range together, the face to the opening chin. A brow is glued
-in the face (skin.GLUED): keyed by its own outline, FIT off the face, on a tab of face behind a stretch of each end.
+the shirt to the head through tilt, pan and the jaw's range together, the face to the opening chin. A brow is laid
+on the face and glued there (skin.GLUED): BROW thick, keyed by its own outline, FIT off the face, in a bed cut into
+the outside of the face's wall, which runs on under it.
 
 Last, each Shell gets its half of its Seats (seated(), model/skin.py SEATS)."""
 
@@ -52,19 +53,16 @@ SEAM = 0.8
 # back comes no nearer the worn skull on its way off than where it rests (2.5 mm; at 20 it passes 0.4 mm from it:
 # measured, model/morty/test_shells.py holds it)
 LEVEL = 10.0
-# A brow is glued in the face (skin.GLUED), so it takes no seam's gap: its outline locates it, FIT off the face all
-# round (inferred, as a pupil's play in its cap). The face runs on behind its ends as a tab TAB thick, GLUE under the
-# brow (the glue's room, and what two surfaces meshed on a PITCH grid can misread: at 0.2 they met in places). A tab
-# lies in the depth of the face's own wall beside the brow, which stands proud of it, and meets that wall edge on
-# across the fit, BITE into it: the wall is thickened nowhere, since the skull stands 1.5 mm behind it there. A tab
-# lies behind a stretch of each end of the brow, TABS: (from, to) mm in from its nose end and from its temple end,
-# as its view sees it, where there is room both ways (measured): none under the nose end's first 4.4 mm, where the
-# skull stands 1.5 to 2.6 mm behind a brow too, nor between the two, where the lids stow 1.1 mm behind it (#967)
-FIT, GLUE, TAB, BITE = 0.2, 0.4, 1.0, 0.2
-TABS = ((4.4, 11.9), (0.0, 12.0))
-# the box a brow and its tabs are measured in: both brows and 12 mm round; and how far in from its faces the measure
-# is the Sculpt's (where the box cuts through the head, its face is no skin)
-BROWS, EDGE = ((-90.0, -30.0, 15.0), (90.0, 30.0, 65.0)), 6.0
+# A brow is laid on the face and glued there (skin.GLUED; Cansin, 2026-11-28, #893), so it takes no seam's gap: its
+# outline locates it, FIT off the face all round (inferred, as a pupil's play in its cap). It is BROW thick, the
+# Sculpt's own surface outside, and lies in a bed cut into the outside of the face's wall, GLUE under it (the glue's
+# room, and what two surfaces meshed on a PITCH grid can misread: at 0.2 they met in places). BROW, GLUE and the face
+# left under the bed make skin.WALL, so the face's inside under a brow is its wall's own and a brow asks nothing of
+# what stands behind it: the lids stow under it over the eye (#967) and the skull stands 1.5 mm behind the wall at
+# its nose end (#874)
+FIT, GLUE, BROW = 0.2, 0.4, 0.6
+FINE = 0.4  # the grid a brow's and its bed's depths are measured on, mm: at PITCH a 0.6 mm brow thinned to 0.3
+BROWS = ((-90.0, -30.0, 15.0), (90.0, 30.0, 65.0))  # the box a brow's depths are measured in: both brows, 12 mm round
 REACH, PAD = 0.5, 4.0  # the grid a Shell's reach into another is measured on, and how far from it, mm
 TURN = 0.1  # the jaw and the tilt are sampled every so many degrees of what they turn
 LIFT = (
@@ -110,12 +108,12 @@ def _points(triangles, spacing):
     return np.vstack(out)
 
 
-def _spaces(surface):
-    """(the low corner of a grid of PITCH round a surface's points, the grid): 0 where a point falls, and elsewhere
+def _spaces(surface, pitch=PITCH):
+    """(the low corner of a grid of `pitch` round a surface's points, the grid): 0 where a point falls, and elsewhere
     each empty space's number, one space where a step along the grid joins two cells. The corner's is the open air."""
-    low, high = surface.min(axis=0) - 3 * PITCH, surface.max(axis=0) + 3 * PITCH
-    empty = np.ones(np.ceil((high - low) / PITCH).astype(int) + 1, bool)
-    empty[tuple(np.round((surface - low) / PITCH).astype(int).T)] = False
+    low, high = surface.min(axis=0) - 3 * pitch, surface.max(axis=0) + 3 * pitch
+    empty = np.ones(np.ceil((high - low) / pitch).astype(int) + 1, bool)
+    empty[tuple(np.round((surface - low) / pitch).astype(int).T)] = False
     return low, ndimage.label(empty)[0]
 
 
@@ -187,38 +185,29 @@ def outer(solid):
     return _whole("the outer skin", capped)
 
 
-def under(solid, level):
-    """The solid `level` mm under the surface of `solid` (manifold3d, with no pocket: outer()), closed."""
-    surface = _points(_mesh(solid).triangles, 0.7 * PITCH)
-    low, space = _spaces(surface)
+def under(solid, level, pitch=PITCH):
+    """The solid `level` mm under the surface of `solid` (manifold3d, with no pocket: outer()), closed, measured on a
+    grid of `pitch`."""
+    surface = _points(_mesh(solid).triangles, 0.7 * pitch)
+    low, space = _spaces(surface, pitch)
     air = space == space[0, 0, 0]
-    cap = level + 3 * PITCH
-    near = np.argwhere(~air & (ndimage.distance_transform_edt(space > 0) <= cap / PITCH + 1))
+    cap = level + 3 * pitch
+    near = np.argwhere(~air & (ndimage.distance_transform_edt(space > 0) <= cap / pitch + 1))
     field = np.where(air, 0.0, -cap).astype(np.float32)
-    field[tuple(near.T)] = -np.minimum(cKDTree(surface).query(near * PITCH + low, workers=-1)[0], cap)
-    v, f, _, _ = measure.marching_cubes(field, level=-level, spacing=(PITCH,) * 3)
+    field[tuple(near.T)] = -np.minimum(cKDTree(surface).query(near * pitch + low, workers=-1)[0], cap)
+    v, f, _, _ = measure.marching_cubes(field, level=-level, spacing=(pitch,) * 3)
     out = _solid(v + low, f)
     assert out.volume() > 0  # the field falls inward, so marching cubes winds its faces outward
     return out.simplify(FLAT)
 
 
-def _swept(view, region, grow=0.0, ends=None):
+def _swept(view, region, grow=0.0):
     """The region a cut bounds (skin.cuts()), swept through the head along its view's axis: a side view's along x; a
     front view's from the eyes' plane forward, as the review's ahead(), turned about z with its view (skin.TURNED).
-    `grow` mm larger all round (smaller, negative): a seam's gap. `ends`, ((from, to), (from, to)): only those
-    stretches of it, grown, across a front view: mm in from the region's end nearer the midline and from its far
-    end."""
+    `grow` mm larger all round (smaller, negative): a seam's gap."""
     section, far = m3.CrossSection([np.asarray(region)], m3.FillRule.EvenOdd), skin.FAR
     if grow:
         section = section.offset(grow, m3.JoinType.Round)
-    if ends:
-        across = np.abs(np.asarray(region)[:, 0])
-        (a0, a1), (b0, b1) = ends
-        kept = m3.CrossSection()
-        for low, high in ((across.min() + a0, across.min() + a1), (across.max() - b1, across.max() - b0)):
-            stretch = m3.CrossSection.square((high - low, 2 * far)).translate((low, -far))
-            kept += stretch + stretch.mirror((1, 0))
-        section ^= kept
     if view == "side":  # (y, z), swept along x
         return m3.Manifold.extrude(section, 2 * far).transform([[0, 0, 1, -far], [1, 0, 0, 0], [0, 1, 0, 0]])
     ahead = m3.Manifold.extrude(section, far).transform([[1, 0, 0, 0], [0, 0, -1, grow], [0, 1, 0, 0]])  # (x, z), -y
@@ -416,19 +405,14 @@ def shells():
         "chin": skinned ^ cuts["mouth"],
         "face": skinned - grown("mouth", SEAM),
     }
-    # each brow keyed in the face (FIT) on a tab behind a stretch of each end (TABS), measured round the brows alone
+    # each brow laid on the face, BROW thick, in a bed GLUE under it, keyed by its outline (FIT): the depths are
+    # measured round the brows alone
     low, high = np.array(BROWS)
     near = whole ^ m3.Manifold.cube(high - low).translate(low)
-    inner = m3.Manifold.cube(high - low - 2 * EDGE).translate(low + EDGE)
-    under_a_brow = under(near, skin.WALL + GLUE)  # what lies GLUE under the wall there
-    floor = (near - under(near, skin.WALL + GLUE + TAB)) ^ inner  # the Sculpt there, down to a tab's under side
+    under_a_brow, under_its_bed = under(near, BROW, FINE), under(near, BROW + GLUE, FINE)
     for brow in (f"{side} brow" for side in gm.EYE):
-        tab = (_swept(*skin.cuts()[brow], grow=FIT + BITE, ends=TABS) ^ floor) - hairs
-        for eye in gm.EYE:  # no tab in an eye's opening
-            tab -= cuts[f"{eye} eye white"]
-        out[brow] = skinned ^ cuts[brow]
-        # cut through from outside, as a seam is: a cut that ends on the Sculpt's own surface leaves slivers of it
-        out["face"] = out["face"] + tab - (grown(brow, FIT) - under_a_brow)
+        out[brow] = (skinned ^ cuts[brow]) - under_a_brow
+        out["face"] -= grown(brow, FIT) - under_its_bed
     out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), hair, out["chin"])
     assert set(out) == set(g.SHELLS["morty"]), sorted(out)
     return {f"morty {name}": _mesh(_whole(name, seated(f"morty {name}", solid, whole))) for name, solid in out.items()}
