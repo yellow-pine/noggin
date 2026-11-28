@@ -30,7 +30,8 @@ SPACING = 73.3  # eye centres apart: his Sculpt's eyeballs', each fitted to its 
 # the eye's growth, x1.3, from the 27 mm cap the gimbal was first drawn round (#630): the core, its seat and the yoke
 # are sized to his eyeball cap's radius (CAP_R, 34.9; x1.4 to his eyeball's own 37.1 before the eyes sank, x1.5 to the
 # 40.4 mm cap's before #967), so the yoke's crank and the tie-bar's fingers under it stand 1.4 mm higher and leave the
-# yaw bearing's pad its depth inside the lids' shell (3.3 mm under the fingers' pins, 1.9 at x1.4: SF 1.0 at stall)
+# yaw bearing's pad its depth inside the lids' shell (3.3 mm where the web gives way under the fingers' bosses; 1.9
+# at x1.4, SF 1.0 at the eyes' servos' stall)
 K = 1.3
 EYE = {"L": (SPACING / 2, 0.0, 0.0), "R": (-SPACING / 2, 0.0, 0.0)}
 SERVO_DEG = 90.0  # a servo's travel either side of its centre

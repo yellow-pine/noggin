@@ -166,7 +166,9 @@ SEATS = [
 # alone, as a pupil in its cap): each of Morty's brows laid on his face, in a bed in its wall (Cansin, 2026-11-28;
 # model/morty/shells.py). A brow is 8 mm across and a Seat 14
 GLUED = {f"morty {s} brow": "morty face" for s in "LR"}
-SHELLS = list(dict.fromkeys(s.shell for s in SEATS))
+# Every Shell: the eyeball caps and each Skin's (g.SHELLS), whether Seats hold it, glue does or nothing yet. A
+# document's parts are sorted by it (the bones' finish, the bare pictures, the gates on a worn Shell)
+SHELLS = list(dict.fromkeys([*(s.shell for s in SEATS), *(f"{k} {n}" for k, names in g.SHELLS.items() for n in names)]))
 DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly direction, in its carrier's frame
 # A Skin's Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so
 # the servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
