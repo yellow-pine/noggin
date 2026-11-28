@@ -47,7 +47,7 @@ His Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surf
 base, the wall grown inward, open underneath (docs/adr/0027, 0028). Seven Shells, split along his cuts: the hair, above
 and behind his hairline, in two pieces on a level seam 10 mm above his eyes' centres, a crown that lifts straight up
 and a back that slides straight back; the face, with his nose and ears; each brow, its ridge over the eye, in the hair's filament,
-glued in the face on a tab behind each end;
+laid on the face, which runs on under it, and glued there;
 the chin, under the mouth line, which opens with the jaw; and the shirt, under the collar, the whole fixed body. The face is open inside each eye's own outline, where the
 eyeball is the eye white; an open lid's edge shows at the rim. Every seam is a 0.8 mm gap, and the shirt and the
 face give way where the head and the jaw move against them (docs/adr/0029). *Upcoming (#850): the rest of their
@@ -74,9 +74,9 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   same sizes on its skull's rim, each on a boss inside the wall, the balls on the skull and the grooves in the cap
   (model/skeleton, #874). *Upcoming (#850): the rest of Morty's Seats: the face's top
   and the hair on the skull, the chin on the jaw and the shirt on the Torso (#879).*
-- A brow has no Seat (`skin.GLUED`): it is 8 mm across, a Seat 14, and the lids stow 1.1 mm behind it over the eye.
-  It drops into its opening in the face, its own outline its key with 0.2 mm of play a side, onto two 1 mm tabs
-  of face, one behind it near its nose end and one behind its temple end, and is glued there. It comes off with
+- A brow has no Seat (`skin.GLUED`): it is 8 mm across and a Seat 14. It is 0.6 mm thick and is laid on the face,
+  in a bed 1 mm deep in the outside of the face's wall, its own outline its key with 0.2 mm of play a side, and
+  glued there. The face runs on under it, 0.6 mm thick, its inside where the wall's always is. It comes off with
   the face.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (the caps), so
   a Shell on the other side's Seat is pushed off. Glue the discs in that way round.

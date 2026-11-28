@@ -145,9 +145,9 @@ SEATS = [
     ],
 ]
 
-# {Shell: the Shell it is glued in}, keyed there by its own outline and never off it (#51: not held by magnets
-# alone, as a pupil in its cap): each of Morty's brows in his face, on a tab behind each end (model/morty/shells.py).
-# A brow is 8 mm across, a Seat 14, and the lids stow 1.1 mm behind it over the eye (#850)
+# {Shell: the Shell it is glued to}, keyed there by its own outline and never off it (#51: not held by magnets
+# alone, as a pupil in its cap): each of Morty's brows laid on his face, in a bed in its wall (Cansin, 2026-11-28;
+# model/morty/shells.py). A brow is 8 mm across and a Seat 14
 GLUED = {f"morty {s} brow": "morty face" for s in "LR"}
 SHELLS = list(dict.fromkeys(s.shell for s in SEATS))
 # Each Shell's Assembly direction, in its carrier's frame: its Seats' normal. Morty's hair comes off in two pieces
