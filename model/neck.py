@@ -197,8 +197,9 @@ JAW_CHIN = (0.0, *MANDIBLE_CHAIN["L"][-1][1:])
 # each pair's faces meet: on the bar's front, which is this far ahead of JAW_CHIN's line, either side of the chin
 # Shell's Seat (model/skin.py), as far out as a pocket stays clear of the ends of the chains' last spans in the bar
 # (at 6.5 mm it cuts through them and leaves edges of 0.01 to 0.3 mm, which Linux's OCCT has read as an invalid jaw).
-# A flush pocket each side and no balls: the bone's grooves locate it on the carrier, the magnets only hold it there. Glue one pair N toward the bone and the other
-# reversed, so the two cancel at the Seat's magnet between them (inferred)
+# A flush pocket each side and no balls: the bone's grooves locate it on the carrier, the magnets only hold it there.
+# Glue one pair N toward the bone and the other reversed, so the two cancel at the Seat's magnet between them
+# (inferred)
 JAW_HOLD = tuple((x, JAW_CHIN[1] - 2.6, JAW_CHIN[2]) for x in (6.0, -6.0))
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
