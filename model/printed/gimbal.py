@@ -315,13 +315,14 @@ def lid_mechanical(points, x, w=ARM):
     return out
 
 
-def lid_bone(points, x, sizes=LID_BONE):
+def lid_bone(points, x, sizes=LID_BONE, tall=False):
     """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
     face, its joints' pins along x, as low as the slab (unclipped: OCCT's clip of one came out empty one way round): the
     lid drives' bars, links and spokes. Every other span's heads, from the first, are 5% smaller, inside its neighbours'
     where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way.
-    A span longer than LID_SPAN is drawn as two Bones, each half as long."""
-    assert sizes[0][1] < x[1] - x[0]
+    A span longer than LID_SPAN is drawn as two Bones, each half as long. `tall`: higher than the slab, for a caller
+    that cuts them flat at its upper face."""
+    assert tall or sizes[0][1] < x[1] - x[0]
     halved = [points[0]]
     for a, b in zip(points, points[1:]):
         halved += [tuple(np.add(a, b) / 2)] * (math.dist(a, b) > LID_SPAN) + [b]
@@ -343,29 +344,40 @@ def pitch_bar(mechanical=False):
 # down), which keeps it LID_CLEAR_MM off the other's boss as the horn's arm swings between them
 LID_ARM, LID_BOSS = 5.0, 2.5
 BAR_JOG, LINK_JOG = (-8.0, 4.5), (-8.0, -2.5)  # (y, z) from each one's pin on the horn to its bend
+# Their Bones (#1097), the bar's and the link's alike: along the long span, from the lid's pin to the bend, wider than
+# the arm and higher than its slab, so the arm's sides and the slab's upper face cut them (a flat 2.6 mm wide along the
+# waist, the shoulders rounded down to 1.5 mm at the sides); the jog by the horn, 9 mm between two bosses, stays flat.
+# Fuller than LID_BONE's: the link carries 1.9 times the horn's stall force over 49 mm, and a Bone as low as its slab
+# buckled out of it at SF 1.2 (this one 2.3, the bar's 4.5). Of the sizes tried, these alone built both ways round
+ARM_BONE = ((3.2, 3.8), (2.8, 3.4))
 
 
-def _bar(points, bosses):
+def _bar(points, bosses, mechanical):
     """A lid drive's arm through the (y, z) `points` in turn, centred on x 0 in its slab, a pin's boss `bosses` in
-    radius at its first point and at its last."""
+    radius at its first point and at its last: mechanical, or its long first span as Bones (ARM_BONE)."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
-    out = lid_mechanical(points, (-w, w), LID_ARM)
+    out = lid_mechanical(points if mechanical else points[1:], (-w, w), LID_ARM)
+    if not mechanical:
+        out = lid_bone(points[:2], (-w, w), ARM_BONE, tall=True).union(out)
     for pin, r in zip((points[0], points[-1]), bosses, strict=True):
         out = holes(out, [pin], (-w, w), r)
     return out
 
 
-def lid_bar():
+@bone.carved
+def lid_bar(mechanical=False):
     """One upper lid's bar (drawn centred on x 0): its crank's pin back to the lid horn's, with the horn's arm a
-    parallelogram (#698); bent up by the horn, over the link's pin on it (#967)."""
+    parallelogram (#698); bent up by the horn, over the link's pin on it (#967). Mechanical or as Bones (#1097)."""
     horn = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
-    return _bar([gm.LID_PIN, tuple(np.add(horn, BAR_JOG)), horn], (ARM / 2, LID_BOSS))
+    return _bar([gm.LID_PIN, tuple(np.add(horn, BAR_JOG)), horn], (ARM / 2, LID_BOSS), mechanical)
 
 
-def lid_link():
+@bone.carved
+def lid_link(mechanical=False):
     """One lower lid's link (drawn centred on x 0): its crank's pin, under the eye line, back to the lid horn's inner
-    hole (#967); bent down by the horn, under the bar's pin on it."""
-    return _bar([gm.LOWER_PIN, tuple(np.add(gm.LINK_PIN, LINK_JOG)), gm.LINK_PIN], (LID_BOSS, LID_BOSS))
+    hole (#967); bent down by the horn, under the bar's pin on it. Mechanical or as Bones (#1097)."""
+    points = [gm.LOWER_PIN, tuple(np.add(gm.LINK_PIN, LINK_JOG)), gm.LINK_PIN]
+    return _bar(points, (LID_BOSS, LID_BOSS), mechanical)
 
 
 @functools.cache
