@@ -63,6 +63,28 @@ def test_the_exporter_cuts_the_calvaria_off_each_skulls_own_finish():
     assert (cap["ball"], cap["groove"]) == ([sk.RING, sk.BALL_R], [sk.GROOVE, sk.GROOVE_D])
 
 
+SKIN_SEATS = [s for s in sk.SEATS if s.carrier in g.SKULL]  # the Seats a Skin has in bone (#850)
+
+
+def test_the_exporter_cuts_every_seat_a_skin_has_in_bone():
+    """#850: the exporter gets each Seat a Skin has in bone (model/skin.py SEATS, job()["seats"]): which two copies
+    of its carrier it is cut in, the bare and the worn; its frame in the head's, z out of the bone at the Seat's
+    place; and its pad, a ball on its axis that makes the bone solid the print floor round the magnet's pocket at
+    its floor and behind its whole bore (the ball through both rims, and half a voxel for the Finish's grid: 5.0 mm,
+    its middle 0.1 mm in front of the Seat's face, which the flat cuts back to).
+    Each flat is the Seat's pad and skeleton.SEAT_ROOM wider, so the Shell's boss stands in it free."""
+    seats = skeleton.job()["seats"]
+    assert seats["flat"] == sk.PAD_R + skeleton.SEAT_ROOM and len(seats["at"]) == len(SKIN_SEATS) == 7
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+    for s, (names, frame, (under, radius)) in zip(SKIN_SEATS, seats["at"], strict=True):
+        assert names == [s.carrier, g.WORN[s.carrier]] and set(names) <= {*CAPS[0], *CAPS[1]}
+        assert np.array(frame)[:3, 3] == pytest.approx(s.at) and np.array(frame)[:3, 2] == pytest.approx(s.normal)
+        assert (under, radius) == pytest.approx((-0.1, 5.0), abs=0.01)
+        reach = radius - skeleton.PITCH / 2
+        assert np.hypot(bore, depth + skeleton.FLOOR - under) == pytest.approx(reach)  # behind the pocket's bore
+        assert np.hypot(bore + skeleton.FLOOR, depth - under) == pytest.approx(reach)  # and round its floor
+
+
 @functools.cache
 def _bones():
     return {stem: trimesh.load(stages.stl(stem), force="mesh") for stem in g.BONES}
@@ -224,6 +246,39 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
         above = m3.Manifold.sphere(sk.BALL_R, 48).translate(at).trim_by_plane((0, 0, 1), at[2] + 0.01)
         assert _share(solids[skull], above) > 0.99
         assert (solids[cap] ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at)).volume() > 0
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("worn", [False, True], ids=["bare", "worn"])
+@pytest.mark.parametrize("seat", SKIN_SEATS, ids=lambda s: f"{s.shell} {s.at[0]:+.0f}")
+def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, worn, solids):
+    """#850: each Seat a Skin has in bone (model/skin.py SEATS), in the bare copy of its carrier and in the worn
+    one, read in the Seat's own frame, z out of the bone. No bone stands in front of the Seat's face as far round as
+    its flat, so the Shell's boss comes down onto it free. The face is bone: round the pocket, and between the
+    grooves out to their far ends. The magnet's pocket is open from the face, a magnet deep and its fit round, with
+    the print floor of bone (skeleton.FLOOR) round it under the grooves' depth and behind it. And a ball at each of
+    the Shell's three places meets no bone, while one 0.05 mm larger does: it rests in its groove's sides."""
+    bone = solids[g.WORN[seat.carrier] if worn else seat.carrier]
+    to = np.array(sk.frame(seat))[:3]
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+
+    def disc(r, z0, z1, at=(0.0, 0.0)):
+        return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((*at, z0)).transform(to)
+
+    assert _share(bone, disc(sk.PAD_R + skeleton.SEAT_ROOM - 0.05, 0.02, 9.0)) < 1e-4
+    assert _share(bone, disc(sk.RING - sk.GROOVE - 0.1, -0.3, -0.02) - disc(bore + 0.05, -1.0, 1.0)) > 0.99
+    for deg in (60, 180, 300):  # between the grooves
+        between = sk.RING * np.cos(np.radians(deg)), sk.RING * np.sin(np.radians(deg))
+        assert _share(bone, disc(sk.GROOVE, -0.3, -0.02, between)) > 0.99, deg
+    assert _share(bone, disc(sk.MAGNET[0] / 2, -depth, 1.0)) < 1e-3  # the magnet's room, flush
+    round_it = disc(bore + skeleton.FLOOR, -depth, -sk.GROOVE_D - 0.01) - disc(bore, -depth - 1.0, 1.0)
+    assert _share(bone, round_it) > 0.99
+    assert _share(bone, disc(bore, -depth - skeleton.FLOOR, -depth - 0.01)) > 0.99
+    for deg in (0, 120, 240):
+        at = sk.RING * np.cos(np.radians(deg)), sk.RING * np.sin(np.radians(deg)), sk.GAP
+        assert (bone ^ m3.Manifold.sphere(sk.BALL_R, 48).translate(at).transform(to)).volume() < 0.01, deg
+        assert (bone ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at).transform(to)).volume() > 0, deg
 
 
 @pytest.mark.model

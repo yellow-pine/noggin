@@ -219,3 +219,28 @@ be reached: it lifts straight up off the skull, over the Shields' tops.
 **Considered:** a conical or stepped seam (it keys the cap, but its rim no longer lies on the bed, and a rabbet
 halves a 4 mm wall under the print floor); the magnets standing proud as pins (a voxel's chamfer at the pocket's
 mouth is as deep as the pin); a bare flat seam with magnets in 5 mm bosses (the smallest, built first: it slides).
+
+## 2026-11-28 the Skin's Seats in bone (#850)
+
+> Decided on ticket #850 (made while away; Cansin to confirm), with the cap's implementer on #874. Each size is
+> inferred: no build settles one yet.
+
+Seven of Morty's Seats are in bone (`model/skin.py` `SEATS`, carriers `skull` and `calvaria`): three for the hair's
+crown, facing up on the cap; three for the hair's back, facing back on the occiput; the face's top one, facing
+forward on the forehead under the cap's seam.
+
+- **Cut at export, like the cap's own** (`export.seated`): the pocket and three V-grooves from the mesh, exactly, in
+  the bare copy and the worn one. `model/skeleton` `job()` passes every Seat whose carrier is a bone.
+- **A Seat is a flat cut into the bone**, at the lowest point of the bone's surface under its 14 mm disc and 0.5 mm
+  wider all round, so nothing stands proud on the bare skull and the Shell's boss comes down onto it free. The bone
+  is curved, so the flat is a notch at its high side: 0.8 to 2.6 mm deep for the crown's, 1.4 to 4.2 mm for the
+  back's, 5.1 mm for the face's, on the forehead's slope.
+- **Near the midline.** A Seat faces its Shell's way off, so its flat is level for the crown and upright for the
+  back. Further out the vault and the occiput fall away under such a flat: at x 25 it cuts 4 mm into a 4 mm wall.
+- **The bone is made solid behind each magnet's pocket**: a ball on the Seat's axis, united with the bone before the
+  mechanism is carved, like the cap's bosses. It leaves the print floor (2 mm) round the pocket and behind it,
+  where the wall alone left 0.1 to 1.5 mm at five of the seven.
+- **The crown and the cap hold equally, and that stands.** Three pairs each, 13.7 N. Lifted steadily and upright, the
+  crown parts first by the cap's own weight (0.85 N); lifted by one edge it may bring the cap with it. Both lift
+  straight up and part by hand, and each lands where it was on its own Seats. Fewer pairs on the crown would let
+  it rock (two hold 41 N·mm against a 1 g sideways shake's 42); a fourth on the cap has no room at the back.
