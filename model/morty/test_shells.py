@@ -292,7 +292,8 @@ def test_shells_that_ride_together_keep_the_seams_gap(built):
 def places():
     """{part: [its solid, in the head's frame, at each place the head sees it in]}: every part of the document the
     review wears the Shells on, at rest and with each servo at either end, the head held still. Each part's mesh is
-    closed as physics closes it (mjcf._mesh): Linux's OCCT leaves slivers on a few seams, and a solid needs none."""
+    closed as physics closes it (mjcf._mesh): Linux's OCCT leaves slivers on a few seams, and a solid needs none. A
+    part still open after that stands in as its convex hull."""
     stage, eyes = review.worn(), stages.align(*stages.DOCS[morty.DOC]["eyes"])
     rest = {n: p.matrix for n, p in stage.parts.items()}
     head = f"{skin.MOTION['head']}:1"
@@ -300,7 +301,8 @@ def places():
     out = {}
     for name, part in stage.parts.items():
         mesh = mjcf._mesh(part.file, None)
-        assert mesh.is_volume, name
+        if not mesh.is_volume:  # Linux's OCCT leaves a part physics never reads open (the Bones' L upper lid, #1095)
+            mesh = mesh.convex_hull  # all of it lies in its hull: what is clear of the hull is clear of the part
         solid, seen = shells._solid(mesh.vertices, mesh.faces), []
         for pose in poses:
             at = np.linalg.inv(eyes) @ rest[head] @ np.linalg.inv(pose[head]) @ pose[name]
