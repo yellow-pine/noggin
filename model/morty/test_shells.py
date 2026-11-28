@@ -335,7 +335,7 @@ def test_each_piece_of_the_hair_comes_off_straight(places, piece):
     assert far > 90 and min(near.values())[0] > gm.LID_CLEAR_MM, sorted(near.items(), key=lambda kv: kv[1])[:5]
     for bone in ("worn skull", "worn calvaria"):  # the skull as a Skin wears it, and its cap (#874)
         at_rest = seated.min_gap(places[bone][0], 3.0)
-        assert near[bone] == (pytest.approx(at_rest), 0.0), (bone, near[bone])
+        assert near.get(bone, (3.0, 0.0)) == (pytest.approx(at_rest), 0.0), bone  # 3.0: it never comes near
 
 
 def test_each_brow_is_laid_on_the_face_which_runs_on_under_it(built, outer):
