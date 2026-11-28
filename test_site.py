@@ -192,7 +192,7 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
         # Morty's Shells, cut from his Sculpt (#850)
-        "| Skin | morty | hair | morty hair | PLA Basic Cocoa Brown (10802) | #6F5034 |",
+        "| Skin | morty | hair | morty hair, morty L brow, morty R brow | PLA Basic Cocoa Brown (10802) | #6F5034 |",
         "| Skin | default | face | morty face, morty chin | PLA Pure Milky Pink (17200) | #F7CED7 |",
         "| Skin | default | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
     ]:

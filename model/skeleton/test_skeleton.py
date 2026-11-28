@@ -21,6 +21,12 @@ CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without M
 SKIN_TOL = 0.2  # a depth under Morty's skin is good to this (envelope.DENSITY), mm
 # strict, so #968's follow-up, which re-measures nk.MANDIBLE_CHAIN on the refitted mandible, drops the mark
 CHAIN = "#968: the jaw carrier's chain still follows the box-fitted mandible, not #874's refit inside Morty's skin"
+# the bones the mechanism cuts in two, strict so the fixing PR drops its mark
+SEVERED = {
+    "c3": "#1060: the cervical carrier's R rail, as thick as the tilt servo's stall takes, runs through C3's R lateral "
+    "mass and cuts its transverse process off (206 mm3); #874 fits C3 round the rail, or #1060's metal tube takes the "
+    "rail out of it, and drops this mark",
+}
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -105,6 +111,24 @@ def test_the_vertebrae_ring_the_pan_axis_under_the_tilt_axis():
 
 @pytest.mark.model
 @pytest.mark.bones
+def test_the_vault_is_closed_from_the_sides_the_back_and_above():
+    """Seen from the head's middle at the eyes' height, the finished skull shows bone in every direction (2 deg a
+    bin) level with the eyes and above, but in front, where the face opens round the lids. Two holes stood open at
+    the temples (the R about 19 x 10 mm) where the parietal bones are 0.8 to 2.2 mm thick, under the print floor,
+    and the Finish rounded them away: it now thickens the vault's bones inward first (skeleton.THICK; Cansin,
+    2026-11-27, #893)."""
+    rng = np.random.default_rng(0)
+    p = np.asarray(trimesh.sample.sample_surface(_bones()["skull"], 2_000_000, seed=rng)[0]) - (0.0, 70.0, 0.0)
+    az = np.degrees(np.arctan2(p[:, 0], p[:, 1]))  # 0 behind, 90 at his left
+    el = np.degrees(np.arcsin(p[:, 2] / np.linalg.norm(p, axis=1)))
+    seen = np.zeros((120, 45), bool)  # az -120 to 120, el 0 to 90
+    at = (np.abs(az) < 120) & (el >= 0)
+    seen[((az[at] + 120) // 2).astype(int), (el[at] // 2).astype(int)] = True
+    assert [(int(a) * 2 - 119, int(e) * 2 + 1) for a, e in np.argwhere(~seen)] == []
+
+
+@pytest.mark.model
+@pytest.mark.bones
 def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
     """#967: the skull's one piece (the test below) reaches under the gimbal frame's plate in front of it, between its
     windows: the palate, which the plate cut off before the maxillae rose through them (a piece that small is still
@@ -116,7 +140,15 @@ def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
 
 @pytest.mark.model
 @pytest.mark.bones
-@pytest.mark.parametrize("stem", g.BONES)
+@pytest.mark.parametrize(
+    "stem",
+    [
+        pytest.param(s, marks=pytest.mark.xfail(strict=True, raises=AssertionError, reason=SEVERED[s]))
+        if s in SEVERED
+        else s
+        for s in g.BONES
+    ],
+)
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
     """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid. The skull's
     palate holds on behind the R maxilla, between the gimbal frame's plate and the tie-bar's sweep, where the Finish

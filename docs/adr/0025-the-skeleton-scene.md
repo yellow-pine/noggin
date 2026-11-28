@@ -132,5 +132,10 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
   Sealed, it held on both: a neck of 22 mm2 then, 29.5 now (about 10 mm wide and 3.4 tall). So the seal is what keeps
   the palate from hanging on that chance, and `test_skeleton.py`'s one-piece check holds it only on a fit where the
   two bones miss. The L side has no bridge while today's lower lids sweep the L maxilla away under the plate.
+- The skull's Finish first thickens the vault's bones (the fit's `VAULT`: the growth zone's six and the frontal) inward,
+  toward the cranium's middle, to at least 2.4 mm (`skeleton.THICK`: the 2 mm print floor and half the voxel), their
+  outer side staying where it is. Stretched over Morty's wide head the parietal bones are 0.8 to 2.2 mm thick at the
+  temples; the rounding took what was under the floor away and left two holes there (the R about 19 x 10 mm).
+  Cansin, 2026-11-27 (#893's second round): close them with bone at the print minimum.
 - The gates read the Sculpt (`model/morty`, ADR 0027): `test_skeleton.py` holds each finished bone 2.1 mm under it
   and to no box. `base.DOME` stays the mechanism's box until its gates read the Sculpt too.

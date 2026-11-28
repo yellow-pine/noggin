@@ -75,9 +75,13 @@ def _off(points, polygon):
 
 def _at_a_seam(points, room=0.05):
     """Which points lie in a seam's gap: within shells.SEAM of the hairline's or the collar's cut, or of the mouth's
-    in front of the eyes, or behind the chin by it."""
+    in front of the eyes, or behind the chin by it, or of a brow's as its view sees it."""
     cuts, gap = skin.cuts(), shells.SEAM + room
     out = (_off(points[:, [1, 2]], cuts["hairline"][1]) < gap) | (_off(points[:, [1, 2]], cuts["collar"][1]) < gap)
+    for side in gm.EYE:
+        view, brow = cuts[f"{side} brow"]
+        seen = skin.facing(points, view)
+        out |= (seen[:, 1] < gap) & (_off(seen[:, [0, 2]], brow) < gap)
     mouth, xz = cuts["mouth"][1], points[:, [0, 2]]
     return out | ((points[:, 1] < gap) & ((_off(xz, mouth) < gap) | (_inside(xz, mouth) & (points[:, 1] > -room))))
 
@@ -130,20 +134,29 @@ def test_no_shell_holds_surface_buried_under_the_outer_skin(built, sculpt, outer
 
 def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
     """docs/adr/0027: the wall grows skin.WALL inward. Each Shell's faces are the outer skin's own, a seam's (flat
-    along its cut's sweep, x or y), the base's, or the inside, which lies within 0.15 mm of WALL under the outer skin
-    for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone may begin (WALL and 0.5 mm
-    of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the wall."""
+    along its cut's sweep: x, or y as a front view turns it), the base's, or the inside, which lies within 0.15 mm of
+    WALL under the outer skin for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone
+    may begin (WALL and 0.5 mm of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the
+    wall. A brow is 8 mm across, all of it within 3 mm of its own seam, and a slab with a step each side: its whole
+    inside is held to the bounds, and 90% of it to WALL."""
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     gave = cKDTree(shells._points(sculpt.triangles[gone[sculpt.faces].any(axis=1)], 0.5))
+    sweeps = [
+        (1.0, 0.0, 0.0),
+        *(skin.facing(np.eye(3), view)[:, 1] for view in skin.TURNED),
+    ]  # each in the head's frame
     for name, mesh in built.items():
-        seam = (np.abs(mesh.face_normals[:, :2]) < 1e-3).any(axis=1) | (mesh.face_normals[:, 2] < -0.9999)
+        seam = (np.abs(mesh.face_normals @ np.transpose(sweeps)) < 1e-3).any(axis=1)
+        seam |= mesh.face_normals[:, 2] < -0.9999
         points = mesh.triangles_center[~seam & (mesh.area_faces > 0.02)]  # a sliver's normal is noise
-        points = points[gave.query(points)[0] > 3.0]
+        brow = "brow" in name
+        if not brow:
+            points = points[gave.query(points)[0] > 3.0]
         under = surface.query(points, workers=-1)[0]
         inside = under[under > 0.25]  # the rest are the Sculpt's own
         assert len(inside) > 1000, name
         assert inside.min() > 1.4 and inside.max() < 1.9, (name, inside.min(), inside.max())
-        assert (np.abs(inside - skin.WALL) < 0.15).mean() > 0.98, name
+        assert (np.abs(inside - skin.WALL) < 0.15).mean() > (0.9 if brow else 0.98), name
 
 
 def test_the_skin_is_open_round_each_eye(built):
@@ -182,11 +195,13 @@ def _solids(built):
 
 
 def test_shells_that_ride_together_keep_the_seams_gap(built):
-    """#850: the hair and the face, both on the head, are never nearer than the room a worn Shell keeps from a part it
-    does not sit on (model/printed/test_skin.py CLEAR_MM), nor further apart at their seam than SEAM and a bit."""
+    """#850: the hair, each brow and the face, all on the head, are never nearer than the room a worn Shell keeps from
+    a part it does not sit on (model/printed/test_skin.py CLEAR_MM), nor further apart at their seam than SEAM and a
+    bit."""
     solid = _solids(built)
-    gap = solid["morty hair"].min_gap(solid["morty face"], 5.0)
-    assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, gap
+    for other in ("morty hair", *(f"morty {side} brow" for side in gm.EYE)):
+        gap = solid[other].min_gap(solid["morty face"], 5.0)
+        assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, (other, gap)
 
 
 @pytest.mark.parametrize("jaw", [0.0, 0.07, 0.5, 1.0])
@@ -242,13 +257,30 @@ def test_each_shell_fits_the_bed_whole(built):
         assert (mesh.bounds[1] - mesh.bounds[0]).max() <= g.BED, name
 
 
+def test_each_brow_is_cut_along_its_ridges_foot(built, outer):
+    """#850 (Cansin, 2026-11-27: the brows are dark): a brow's Shell is the Sculpt's own ridge, a slab standing proud
+    of the forehead, cut along the slab's outline as its view sees it: its foot, or its top's own edge where that
+    hides the foot. Every 2 mm round its cut the outer skin has a crease (two faces meeting by over 10 deg, either
+    way) within 0.6 mm, so no stretch of the cut runs over smooth skin. The Shell runs from 18.5 mm off the midline,
+    over the eye, round the temple to 78 mm off it and 10 mm behind the eyes' plane."""
+    sharp = outer.face_adjacency_angles > np.radians(10)
+    crease = outer.vertices[outer.face_adjacency_edges[sharp]].mean(axis=1)
+    for side in gm.EYE:
+        view, cut = skin.cuts()[f"{side} brow"]
+        seen = skin.facing(crease, view)
+        assert cKDTree(seen[seen[:, 1] < 0][:, [0, 2]]).query(cut)[0].max() < 0.6, side
+        (x0, y0, z0), (x1, y1, z1) = built[f"morty {side} brow"].bounds
+        assert sorted((abs(x0), abs(x1))) == pytest.approx((18.5, 78.1), abs=0.5), side
+        assert (y0, y1, z0, z1) == pytest.approx((-13.9, 10.3, 27.3, 51.1), abs=0.5), side
+
+
 def test_the_shells_are_cut_where_the_cuts_are(built):
     """skin.cuts(): the shirt under the collar and the rest above it, the hair above and behind the hairline, the chin
-    under the mouth line in front of the eyes. Read at each Shell's box and weight (g, solid PLA Pure)."""
+    under the mouth line in front of the eyes, each brow out of the face. Read at each Shell's box and weight (g,
+    solid PLA Pure)."""
     grams = {n: m.volume / 1000 * g.MATERIALS["PLA Pure"]["density_g_cm3"] for n, m in built.items()}
-    assert grams == pytest.approx(
-        {"morty hair": 181, "morty face": 90, "morty chin": 4.1, "morty shirt": 57}, rel=0.05
-    ), grams
+    weighed = {"hair": 181, "L brow": 1.54, "R brow": 1.53, "face": 87.6, "chin": 4.1, "shirt": 57}
+    assert grams == pytest.approx({f"morty {n}": w for n, w in weighed.items()}, rel=0.05), grams
     collar = skin.contour("collar")[:, 1]
     assert collar.max() - 10.0 < built["morty shirt"].bounds[1][2] < collar.max()  # its top gave way to the head
     assert built["morty hair"].bounds[1][2] > 110 and built["morty hair"].bounds[0][1] > -1.0  # the crown; none ahead

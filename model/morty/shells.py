@@ -8,11 +8,12 @@ pocket's walls is the Skin's. The inside is the surface skin.WALL under the oute
 each point's distance to it, meshed where that is WALL (scikit-image's marching cubes), then made lighter within FLAT.
 The wall has no floor at the base. It is open inside each eye white's cut, the Sculpt's own dome's edge and no
 larger (#893): the eyeballs, the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
-and behind the hairline, the chin under the mouth line, and the face. Solids are cut with manifold3d.
+and behind the hairline, the chin under the mouth line, each brow's ridge inside its outline, and the face. Solids
+are cut with manifold3d.
 
-Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair and the chin, and the shirt from
-the collar; and where Shells move against each other the one that stands still gives way (cleared()): the shirt to the
-head through tilt, pan and the jaw's range together, the face to the opening chin."""
+Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair, the chin and each brow, and
+the shirt from the collar; and where Shells move against each other the one that stands still gives way (cleared()):
+the shirt to the head through tilt, pan and the jaw's range together, the face to the opening chin."""
 
 import os
 
@@ -39,7 +40,7 @@ DEEP, FRONT = 5.0, (1.0, 1.5, 2.0, 2.5)
 KEEP = 0.01  # a crumb a cut leaves, of its Shell's volume, under which it is dropped
 # The gap at a seam, mm (inferred): two Shells never nearer than the room a worn Shell keeps from any part it does not
 # sit on (gm.LID_CLEAR_MM, model/printed/test_skin.py), with what that gate's sampling can misread. At rest the face
-# steps back this far from the hair and the chin, and the shirt from the collar; where the head's Shells turn into the
+# steps back this far from the hair, the chin and each brow, and the shirt from the collar; where the head's Shells turn into the
 # shirt, the shirt gives way (cleared())
 SEAM = 0.8
 REACH, PAD = 0.5, 4.0  # the grid a Shell's reach into another is measured on, and how far from it, mm
@@ -181,14 +182,15 @@ def under(solid, level):
 
 def _swept(view, region, grow=0.0):
     """The region a cut bounds (skin.cuts()), swept through the head along its view's axis: a side view's along x; a
-    front view's from the eyes' plane forward, as the review's ahead(). `grow` mm larger all round (smaller, negative):
-    a seam's gap."""
+    front view's from the eyes' plane forward, as the review's ahead(), turned about z with its view (skin.TURNED).
+    `grow` mm larger all round (smaller, negative): a seam's gap."""
     section, far = m3.CrossSection([np.asarray(region)], m3.FillRule.EvenOdd), skin.FAR
     if grow:
         section = section.offset(grow, m3.JoinType.Round)
-    if view == "front":  # (x, z), swept along -y
-        return m3.Manifold.extrude(section, far).transform([[1, 0, 0, 0], [0, 0, -1, grow], [0, 1, 0, 0]])
-    return m3.Manifold.extrude(section, 2 * far).transform([[0, 0, 1, -far], [1, 0, 0, 0], [0, 1, 0, 0]])
+    if view == "side":  # (y, z), swept along x
+        return m3.Manifold.extrude(section, 2 * far).transform([[0, 0, 1, -far], [1, 0, 0, 0], [0, 1, 0, 0]])
+    ahead = m3.Manifold.extrude(section, far).transform([[1, 0, 0, 0], [0, 0, -1, grow], [0, 1, 0, 0]])  # (x, z), -y
+    return ahead.rotate((0.0, 0.0, skin.TURNED[view]))
 
 
 def _angle(a, b):
@@ -342,7 +344,7 @@ def shells():
     cuts = {name: _swept(*cut) for name, cut in skin.cuts().items() if "pupil" not in name}  # the caps carry those
     for side in gm.EYE:
         wall -= cuts[f"{side} eye white"]
-    # a seam's gap (SEAM): the face steps back from the hair and from the chin, the shirt from the collar
+    # a seam's gap (SEAM): the face steps back from the hair, the chin and each brow, the shirt from the collar
 
     def grown(name, by):
         return _swept(*skin.cuts()[name], grow=by)
@@ -350,6 +352,8 @@ def shells():
     moving = wall - cuts["collar"]
     skinned = moving - grown("hairline", SEAM)
     out = {"hair": moving ^ cuts["hairline"], "chin": skinned ^ cuts["mouth"], "face": skinned - grown("mouth", SEAM)}
+    for brow in (f"{side} brow" for side in gm.EYE):
+        out[brow], out["face"] = skinned ^ cuts[brow], out["face"] - grown(brow, SEAM)
     out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), out["hair"], out["chin"])
     assert set(out) == set(g.SHELLS["morty"]), sorted(out)
     return {f"morty {name}": _mesh(_whole(name, solid)) for name, solid in out.items()}

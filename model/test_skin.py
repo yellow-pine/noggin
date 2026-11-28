@@ -45,6 +45,8 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     assert set(skin.SHELLS) == {f"{s} eyeball cap" for s in "LR"} and skin.DRAWN == [] and g.SKINS == {}
     assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
         "hair": ("hair", "PLA Pure"),
+        "L brow": ("hair", "PLA Pure"),
+        "R brow": ("hair", "PLA Pure"),
         "face": ("face", "PLA Pure"),
         "chin": ("face", "PLA Pure"),
         "shirt": ("clothes", "PLA Pure"),
@@ -59,14 +61,16 @@ def test_a_shell_comes_off_along_its_seats_normal():
 
 
 def test_every_shell_belongs_to_one_motion_region():
-    """#969: each Shell moves with the Motion region its name shows: the head's on the head, the chin on the jaw, a lid
-    cover on its lid, a cap or pupil on its eye, the shirt on the fixed torso; the neck, shoulders and torso have no
-    carrier."""
+    """#969: each Shell moves with the Motion region its name shows: the head's on the head (a brow rides the face), the
+    chin on the jaw, a lid cover on its lid, a cap or pupil on its eye, the shirt on the fixed torso. The neck's skin
+    rides the head, down to the collar (Cansin, 2026-11-27, docs/adr/0030); the shoulders and torso have no carrier."""
     assert {skin.region(s) for s in skin.SHELLS} <= skin.MOTION.keys()
-    assert skin.MOTION["neck"] is skin.MOTION["shoulders"] is skin.MOTION["torso"] is None
+    assert skin.MOTION["shoulders"] is skin.MOTION["torso"] is None
+    assert skin.MOTION["neck"] == skin.MOTION["head"] == "gimbal frame"
     for shell, region in {
         "morty face": "head",
         "morty hair": "head",
+        "morty L brow": "head",
         "morty chin": "jaw",
         "morty L upper lid cover": "L upper lid",
         "morty R lower lid cover": "R lower lid",
@@ -88,11 +92,22 @@ def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
     collar; each eye white its whole dome, 34 mm round a centre 3 mm outward of its eyeball's (gm.EYE, the Sculpt's
     eyes on ours: the dome faces outward), and its pupil the Sculpt's ring on it, 14 mm across; the mouth line the
     middle of the lips' ridge, corner to corner; the collar where the head meets the shirt, highest under the ears.
-    No lid has a cut."""
+    Each brow is its ridge's outline (Cansin, 2026-11-27: the brows are dark), seen from the front turned skin.TURNED
+    toward its side, since it rounds the temple: 55 mm long there and 8.5 mm across, from 9 mm off that view's middle
+    up over its eye and down to the temple. No lid has a cut."""
     cuts = skin.cuts()
     whites, pupils = [f"{s} eye white" for s in "LR"], [f"{s} pupil" for s in "LR"]
-    assert set(cuts) == {"hairline", *whites, *pupils, "mouth", "collar"}
+    brows = {"L brow": "front left", "R brow": "front right"}
+    assert set(cuts) == {"hairline", *whites, *pupils, *brows, "mouth", "collar"}
     assert {n for n, (view, _) in cuts.items() if view == "side"} == {"hairline", "collar"}
+    assert {n: view for n, (view, _) in cuts.items() if view in brows.values()} == brows
+    assert skin.TURNED == {"front": 0.0, "front left": 40.0, "front right": -40.0}
+    for s, out in (("L", 1), ("R", -1)):
+        brow = cuts[f"{s} brow"][1] * (out, 1)
+        low, high = brow.min(axis=0), brow.max(axis=0)
+        assert low == pytest.approx((8.6, 27.2), abs=0.3) and high == pytest.approx((64.0, 51.1), abs=0.3)
+        (a, b), (c, d) = brow.T, np.roll(brow, -1, axis=0).T
+        assert abs((a * d - b * c).sum()) / 2 / (high[0] - low[0]) == pytest.approx(8.5, abs=0.2)  # across, on average
     line = skin.contour("sculpt hairline")
     assert line[0] == pytest.approx((1.5, 73.2), abs=0.2) and line[-1] == pytest.approx((85.7, -95.7), abs=0.2)
     # (y, z): hair on the crown, at the nape and all the way down behind the ears; none on the forehead, an ear, the chin
@@ -160,20 +175,35 @@ def test_the_mechs_eyes_sit_on_the_sculpts_own_each_ball_fitted_to_its_dome():
 
 def test_each_cut_lies_on_its_form_on_the_sculpt_git_holds():
     """docs/adr/0011, 0027: the cuts' points are measurements of the Sculpt, so each is held to it. A form's foot is a
-    concave crease (two faces meeting inward by over 10 deg): every point of the hairline, an eye white, a pupil or the
-    collar lies within 1 mm of one, in its view. The mouth line is the middle of the lips' ridge: its corners on the
-    ridge's ends, its middle 2.5 to 4.5 mm from either foot."""
+    concave crease (two faces meeting inward by over 10 deg): every point of the hairline, an eye white, a pupil or
+    the collar lies within 1 mm of one, in its view. A brow is a slab standing proud, and its outline is what its
+    view sees of it: its foot, or its top's own edge (a crease the other way) where that hides the foot under it; every
+    point of it lies within 0.6 mm of one or the other. The mouth line is the middle of the lips' ridge: its corners on
+    the ridge's ends, its middle 2.5 to 4.5 mm from either foot."""
     mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False)
     eyes = {s: np.array(e) for s, e in review.MORTY_EYES.items()}  # the Sculpt's, which sit on ours
     scale = gm.SPACING / np.linalg.norm(eyes["L"] - eyes["R"])
     mesh = trimesh.Trimesh((mesh.vertices - (eyes["L"] + eyes["R"]) / 2) * scale, mesh.faces, process=False)
-    sharp = ~mesh.face_adjacency_convex & (mesh.face_adjacency_angles > np.radians(10))
-    crease = mesh.vertices[mesh.face_adjacency_edges[sharp]].mean(axis=1)
-    views = {"side": cKDTree(crease[:, [1, 2]]), "front": cKDTree(crease[crease[:, 1] < 0][:, [0, 2]])}
+    edge = mesh.vertices[mesh.face_adjacency_edges].mean(axis=1)
+    sharp = mesh.face_adjacency_angles > np.radians(10)
+    crease = edge[sharp & ~mesh.face_adjacency_convex]
+    views = {"side": cKDTree(crease[:, [1, 2]])}
+
+    def ahead(points, view):
+        """A front view sees what is ahead of the eyes' plane, turned with it."""
+        seen = skin.facing(points, view)
+        return cKDTree(seen[seen[:, 1] < 0][:, [0, 2]])
+
+    views |= {view: ahead(crease, view) for view in skin.TURNED}
     for cut, (view, _) in skin.cuts().items():
         name = "sculpt hairline" if cut == "hairline" else cut
-        off, _ = views[view].query(np.array(skin.CONTOURS[name]["points"]) * gm.SPACING)
+        points = np.array(skin.CONTOURS[name]["points"]) * gm.SPACING
+        off, _ = views[view].query(points)
         if cut == "mouth":
             assert off[[0, -1]].max() < 1.0 and 2.5 < off[2:-2].min() <= off[2:-2].max() < 4.5, off
+        elif cut.endswith("brow"):
+            assert ahead(edge[sharp], view).query(points)[0].max() < 0.6, (cut, off)
+            # its foot, where the view sees it: the lower edge and the temple
+            assert (off < 1.0).mean() > 0.5, (cut, off)
         else:
             assert off.max() < 1.0, (cut, off)

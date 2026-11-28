@@ -3,12 +3,12 @@
 > Decided on 2026-11-27, ticket #850 (made while away), and confirmed by Cansin the same day: the shirt gives way,
 > its collar cut lower and scooped under the chin (spec #893). Builds on ADR 0028.
 
-ADR 0028 cuts Morty's four Shells with no room between them. A worn Shell must keep 0.5 mm from every part it does not
+ADR 0028 cuts Morty's Shells with no room between them. A worn Shell must keep 0.5 mm from every part it does not
 sit on, another Shell included, in every pose (`model/printed/test_skin.py`). This is the room each seam gets
 (`model/morty/shells.py`: `SEAM`, `cleared()`).
 
-- **At rest, 0.8 mm at every seam.** The face steps back that far from the hair and from the chin, and the shirt from
-  the collar. The hair and the chin keep the Sculpt's own boundary. 0.8 mm is the gate's 0.5 mm and what its sampling
+- **At rest, 0.8 mm at every seam.** The face steps back that far from the hair, from the chin and from each brow
+  (ADR 0028), and the shirt from the collar. The hair, the chin and the brows keep the Sculpt's own boundary. 0.8 mm is the gate's 0.5 mm and what its sampling
   can misread (inferred).
 - **Where two Shells move against each other, the one that stands still gives way.** The head keeps Morty's shape
   through tilt ±20°, pan ±45° and the jaw's 25°, all at once. The shirt is cut back wherever the hair, the face or the

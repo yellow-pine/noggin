@@ -5,7 +5,7 @@
 assemble: on the Skeleton scene, the Scene Mech swapped for the document (model/skeleton/export.py swap), the finish's
 numbers set, the layers made (Mech, Skeleton, Skin and Morty, each in Skull, Mechanism and Pedestal; raw bones to
 helpers), coloured at their alpha: the Skin the Shells cut from the Sculpt and the eyeball caps, Morty the private
-reference, which the scenes step hides until it is switched on (it shares the Skin's surface). <bone stem>: that
+reference, which the scenes step puts out of view among the helpers (the Skin shows his surface). <bone stem>: that
 bone's finish baked into its mesh. scenes: the motion, then the
 Exploded, Print bed and (before) Before and after scenes, linked copies of the same meshes."""
 
@@ -61,7 +61,8 @@ def place(o, part, region, layer):
 
 
 def morty(m):
-    """Private semantic surfaces, painted by Colour group and carried by live parts; fixed body surfaces never key.
+    """Private semantic surfaces, painted by Colour group and carried by live parts (the neck's by the head's); fixed
+    body surfaces never key.
     The editable source stays local and is read without being rewritten."""
     with bpy.data.libraries.load(m["blend"]) as (src, dst):
         if "Morty reference" not in src.collections:
@@ -207,9 +208,14 @@ def contoured(m, objects):
     surface inside its eye white (its dome's foot) is the eye's, all eye white but its pupil, and what is under the mouth
     line the jaw's; the rest of the moving surfaces is the head's, an eye's surface round its dome too (no lid's: the
     lids are the mechanism's covers), its hair above and behind the hairline. On the fixed body, the shirt under the
-    collar, the hair above and behind the hairline elsewhere."""
+    collar, the hair above and behind the hairline elsewhere; and so on the neck's surface, which keeps its own faces
+    and rides the head as one (skin.MOTION)."""
     head, contours, carriers = Matrix(m["head"]), m["contours"], m["carriers"]
-    moving = [o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith(" lid")]
+    # shortcut: the neck's surface rides the head whole, its faces under the collar too (the Shells cut the shirt
+    # there, model/morty/shells.py); share them out to the torso once this hidden layer is looked at again
+    moving = [
+        o for o in objects if carriers[o["reference_region"]] and not o["reference_region"].endswith((" lid", "neck"))
+    ]
     poly = {n: o for n, (_, o) in contours.items()}
     if len({tuple(x.name for x in o.data.materials) for o in moving}) > 1:
         raise ValueError("review: Morty's moving surfaces need the same Colour group slots in the same order")
@@ -450,8 +456,10 @@ def scenes():
         bpy.data.collections.remove(before)
     for s in bpy.data.scenes:  # each scene's matrix_world, else stale until it is shown
         s.view_layers[0].update()
-    # the private reference: a toggle, off while the Skin's Shells show the same surface
-    main.view_layers[0].layer_collection.children["Morty"].hide_viewport = True
+    # the private reference: out of view among the helpers (Cansin, 2026-11-27: the Skin's Shells show his surface),
+    # where the motion checks still read its regions and witnesses
+    main.collection.children.unlink(bpy.data.collections["Morty"])
+    bpy.data.collections["helpers"].children.link(bpy.data.collections["Morty"])
     for w in bpy.context.window_manager.windows:
         w.scene = main
     bounds = [

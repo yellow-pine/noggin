@@ -20,6 +20,14 @@ KNOWN_PAIRS = {
     " fill the cup (model/test_mjcf.py TOUCH), so they read 0.43 mm deeper as the rod turns on the ball; the exact solids"
     " share no volume at pitch -15, 0 and 15 (#663)"
     for s in "LR"
+} | {
+    frozenset((f"{s} push-rod:1", f"{s} eyeball core:1")): "the push-rod's cup round the core's lever ball, the same"
+    " joint's other end: the convex pieces fill the cup and bridge the lever's neck (a bridged hollow is not bounded,"
+    " #1036), so they read each other 1.0 mm in at rest and 0.054 mm deeper with the yaw at an end on Linux (#1074),"
+    " and past the gate in the attention motion on macOS; the exact solids share no volume and each cup keeps gimbal.LID_CLEAR_MM from its"
+    " ball's neck over pitch x yaw (model/printed/test_gimbal.py"
+    " test_each_push_rod_turns_on_its_balls_clear_of_its_core_and_the_bail)"
+    for s in "LR"
 }
 
 
