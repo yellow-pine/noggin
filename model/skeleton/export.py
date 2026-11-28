@@ -19,6 +19,7 @@ MECH, CARVE, OPENINGS, FINISHED, VAULT = "Mech", "Carve", "Openings", "Finished"
 CAP, BOSSES, POCKETS, BALLS, GROOVES = "Cap", "Cap bosses", "Cap pockets", "Cap balls", "Cap grooves"  # #874
 SEAM = ("seam above", "seam below")  # the seam's cutters: what the skull loses, what its cap loses
 FLATS, CARRIED = "Seat flats", "Seat grooves"  # a Skin's Seats in bone (#850): what each cuts beside its pocket
+SPARED = "Seat discs"  # and what each keeps of its bone, whatever the worn copy's carve round the Shells would take
 
 
 def collection(name, parent=None):
@@ -116,7 +117,9 @@ def _seats(job, frame):
     document's, #850), each the carrier's half as model/printed/skin.py draws it, in the Seat's own frame, z out of
     the bone: its pad, where it has one, a ball among the cap's bosses, united with the bone before the carve; a
     flat, a disc from the Seat's face out past whatever bone stands proud of it; the magnet's pocket among its
-    bone's; and three V-grooves down into the face, opening outward. And each bone's plain pockets (job["pockets"],
+    bone's; three V-grooves down into the face, opening outward; and its own disc, the flat's on through the face
+    and job["seats"]["back"] into the bone, which the worn copy's carve round the Shells leaves alone (spared()).
+    And each bone's plain pockets (job["pockets"],
     #968), a magnet's pocket alone, its mouth at its frame's origin, with a flat from there out over its partner
     magnet's place. A collection's own pieces never meet: the cut takes each as one mesh."""
     if not (job["seats"]["at"] or job["pockets"]):
@@ -136,6 +139,11 @@ def _seats(job, frame):
         flat = _disc(job["seats"]["flat"], out)
         flat.matrix_world = seat @ Matrix.Translation((0, 0, out / 2))
         _into(flat, _cutters(job, FLATS, names[0]))
+        # out as far as the flat's own cutter: a disc that ended at the face left it a voxel's rounding (measured)
+        back = job["seats"]["back"]
+        own = _disc(job["seats"]["flat"], out + back)
+        own.matrix_world = seat @ Matrix.Translation((0, 0, (out - back) / 2))
+        _into(own, _cutters(job, SPARED, names[0]))
         # shortcut: only a capped skull's Finish unites its bosses with the bone (capped()); unite another bone's
         # too when one of its Seats has a pad
         if pad:
@@ -459,12 +467,43 @@ def seated(job):
                     group.links.new(_all(group, c), _cut(group).inputs["Mesh 2"])
 
 
+def spared(job):
+    """Each worn bone that carries a Skin's Seat (job["seats"], #850) keeps the Seat's own disc (_seats()) from its
+    carve round the Shells: the Shell's boss stands skin.GAP over the Seat's face, and that carve, the room of a
+    part that moves, would take the face from under it, with the grooves and most of the pocket; and another
+    Shell's (the face's edge under the jaw, round the chin's Seat) stops at the disc. The disc is taken out of the
+    Shells' grid, grown by the clearance, before the bone loses it; seated() then cuts the flat from the mesh as in
+    the bare copy. A capped skull's cap is a copy of its group, with a carve of its own to spare."""
+    for names, *_ in job["seats"]["at"]:
+        group = bpy.data.objects[f"finished {names[1]}"].modifiers["Finish"].node_group
+        N, L = group.nodes, group.links
+        if "Spared" in N:
+            continue
+        (node,) = (
+            n
+            for n in N
+            if n.bl_idname == "GeometryNodeCollectionInfo"
+            and n.inputs["Collection"].default_value.name.endswith(" skins")
+        )
+        for _ in range(3):  # the Shells, realized, their grid, and that grown by the clearance
+            node = node.outputs[0].links[0].to_node
+        (carve,) = node.outputs[0].links  # into the boolean that takes it from the bone
+        into = carve.to_socket
+        L.remove(carve)  # a boolean's Grid 2 takes many: a new link would join the old one
+        less = N.new("GeometryNodeSDFGridBoolean")
+        less.name, less.operation = "Spared", "DIFFERENCE"
+        L.new(node.outputs[0], less.inputs["Grid 1"])
+        L.new(_grid(group, _all(group, _cutters(job, SPARED, names[0]))), less.inputs["Grid 2"])
+        L.new(less.outputs[0], into)
+
+
 def numbers(job):
     """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Thick, Seal and Round) on
     every finish, the skull's cap's among them (capped()), with the Skin's Seats cut in those that carry one
-    (seated())."""
+    (seated()) and kept from the worn ones' carve round the Shells (spared())."""
     capped(job)
     seated(job)
+    spared(job)
     middle = Vector(job["frame"]) + Vector(job["vault"]["middle"])  # the job's is in the head's frame
     for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
         mod = o.modifiers["Finish"]

@@ -279,3 +279,33 @@ forward on the forehead under the cap's seam.
 **Considered:** a third pair at the middle (the bar is 0.6 mm off the bone there, right behind the chin's Seat); a
 flat on the bar's front for each magnet (its plane lies along the bar's own front line, which left slivers); the
 hold as Seats with balls (the bone would then sit on two locations at once).
+
+## 2026-11-28 the carve round the Shells stops at each Seat (#850)
+
+> Decided on ticket #850 (made while away; Cansin to confirm). Hidden engineering: nothing of it shows from outside.
+> Measured on a build of the bones for a document that wears Morty's Shells; none wears them yet.
+
+A worn bone is carved a moving part's room (1.6 mm) clear of every Shell. A Shell's own boss stands a Seat's gap
+(0.21 mm) over its Seat's face, so that carve took the face from under it at all eight Seats in bone, with the
+grooves and 40 to 83% of the bone round the pocket.
+
+- **Each Seat keeps its own disc** (`export.spared`): the flat's radius, from the print floor behind the magnet's
+  pocket (4 mm into the bone) out as far as the flat's own cutter. The disc is taken out of the Shells' grid, grown
+  by the clearance, before the bone loses it; the flat, the pocket and the grooves are then cut from the mesh as in
+  the bare copy. Inside the disc the worn bone is the bare one.
+- **The disc runs out in front of the face, not from the face back.** One that ended at the boss's face left the
+  face to the grid's rounding: at four of the eight Seats the bone between the grooves was 3 to 84% gone, and the
+  worn calvaria came out in two pieces.
+- **A boss keeps the flat's own room beside it** (0.5 mm, `skeleton.SEAT_ROOM`), not the carve's 1.6: it sits on
+  its bone and does not move against it. The grid cannot hold the 1.1 mm ring between the disc and the carve round
+  the boss, so bone that stands proud beside a flat stays, as on the bare skull. Off its Seats' discs each Shell is
+  1.4 mm or more from the bone it sits on.
+- **The face's edge under the jaw stops at the chin's Seat.** Carved round the caps alone, the worn mandible ran
+  into that edge from about 19° of the jaw's 25° (42.7 mm³ shared wide open). Carved round the Shells it shares
+  nothing and keeps 1.1 mm wide open, at the lower rim of the chin's disc (1.6 mm without the Seat), against the
+  0.5 mm a worn Shell must keep.
+- **The Seats are tested on such a build** (`model/skeleton/test_skeleton.py`, its `wearing` fixture: one more
+  Blender run, 50 s), until a document wears the Shells and `just ours` builds it.
+
+**Considered:** the disc from the face back, or to the boss's face (the rounding above); a disc as wide as the
+carve round the boss (no ring, but it spares bone from the Shell's wall too, beyond the Seat).

@@ -104,8 +104,9 @@ def seat(s):
     return [[s.carrier, g.WORN[s.carrier]], np.array(sk.frame(s)).tolist(), pad]
 
 
-def job():
-    """What export.py needs, JSON-ready: the head's frame in the document; each cutting part's STL; for each bone, the
+def job(stage=None):
+    """What export.py needs, JSON-ready, for `stage` (DOC's own unless given: a document that wears more, as
+    review.worn() wears every Shell): the head's frame in the document; each cutting part's STL; for each bone, the
     places (4x4, the document's frame) of every part as the bone sees it over every pose, sorted into what rides it
     (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (head's
     frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box), its cap (CAP: which
@@ -114,7 +115,7 @@ def job():
     frame in the head's, z out of the bone at its mouth]) and the finish's numbers."""
     from model.skeleton import fit  # here: fit reads this module's numbers
 
-    stage = stages.STAGES[DOC]
+    stage = stage or stages.STAGES[DOC]
     rest = {n: p.matrix for n, p in stage.parts.items()}
     files = {n: p.file for n, p in stage.parts.items() if stages.stem(p.file) not in g.BONES}
     shells = {n for n in files if stages.stem(files[n]) in sk.SHELLS}
@@ -166,6 +167,7 @@ def job():
         "seats": {
             "at": [seat(s) for s in sk.SEATS if s.carrier in g.SKULL],
             "flat": sk.PAD_R + SEAT_ROOM,
+            "back": sk.MAGNET[1] + FLOOR,
         },
         "pockets": [
             [[bone, g.WORN[bone]], np.array(g.align_rows(at, (1, 0, 0), out)).tolist()]
@@ -185,12 +187,13 @@ def job():
     }
 
 
-def finish(out=stages.OURS):
-    """Each of g.BONES as an STL in `out`, the head's frame at rest, from the scene and the parts already in `out`."""
+def finish(out=stages.OURS, stage=None):
+    """Each of g.BONES as an STL in `out`, the head's frame at rest, from the scene and job(stage)'s parts, built
+    already."""
     os.makedirs(out, exist_ok=True)
     path = os.path.join(out, "skeleton-job.json")
     with open(path, "w") as f:
-        json.dump(job() | {"out": out}, f)
+        json.dump(job(stage) | {"out": out}, f)
     blend, script = (os.path.join(stages.REPO, p) for p in (SCENE, EXPORT))
     r = subprocess.run(
         [BLENDER, "-b", "--factory-startup", blend, "-P", script, "--", path], capture_output=True, text=True
