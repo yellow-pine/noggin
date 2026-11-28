@@ -197,7 +197,7 @@ BAIL_INPUT_X = (PITCH_BAR_X[0] - 4.0, PITCH_BAR_X[0])  # face-to-face with the b
 # it: the lower lid's spoke, back and down to its band; its crank, far enough from the midline that the cap's shell is
 # 12 mm from the eye line there, its pin's boss out to the link; the bar and the link, side by side on the horn's
 # face (the bar above, the link under it), 3 mm for the link's buckling; and the upper lid's crank and spoke, short of
-# the yawing yoke (22.95), 0.2 mm off the link, which passes beside the spoke: the 1.25 mm the lid servo leaves them
+# the yawing yoke (22.95 when they were laid out; 21.6 since it shrank with the sunk eye), 0.2 mm off the link, which passes beside the spoke: the 1.25 mm the lid servo leaves them
 # (0.15 mm further in than it stood: further, and the bail's input arm comes under 1.9 mm from its tab). No lid has a guide at its outer end (comment 7209505450); a
 # sleeve is 5.4 to 5.8 mm long where that layout had lands 11 mm apart, which two lids a side do not fit: about
 # 0.5 mm of tilt at the band's middle (inferred), all of the band's room, until a build shows it
