@@ -180,7 +180,8 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
     lies within 0.15 mm of WALL under the outer skin for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone
     may begin (WALL and 0.5 mm of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the
     wall, from its Seats' bosses, from the face under each brow, whose outside is the brow's bed, and from round each
-    eye opening, where the face's wall is thinned to the lids' shell (RIM_OUT). A brow is laid on
+    eye opening (RIM_OUT), where the face's wall is thinned from inside to the lids' shell (Cansin's way C,
+    2026-11-28) and is RIM thick or more, on the outline too. A brow is laid on
     the face (#893): shells.BROW thick, not a wall, 8 mm across, all of it within 3 mm of its own seam, and a slab
     with a step each side. Its whole inside is held within 0.25 mm of BROW, and 90% of it within 0.15."""
     surface = cKDTree(shells._points(outer.triangles, 0.3))
@@ -195,12 +196,15 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
         seam |= (name == HAIR[1]) & (mesh.face_normals[:, 2] > 0.9999)  # the back's at that seam
         points = mesh.triangles_center[~seam & (mesh.area_faces > 0.02)]  # a sliver's normal is noise
         points = points[~_on_a_seat(name, points) & ~_under_a_brow(name, points)]
-        points = points[~_in_an_eye_opening(points, RIM_OUT)]  # thinned to the lids' shell there
         brow = "brow" in name
         if not brow:
             points = points[gave.query(points)[0] > 3.0]
         under = surface.query(points, workers=-1)[0]
-        inside = under[under > 0.25]  # the rest are the Sculpt's own
+        rim = _in_an_eye_opening(points, RIM_OUT)  # thinned to the lids' shell there
+        if name == "morty face":
+            thinned = under[rim & (under > 0.25)]
+            assert len(thinned) > 1000 and thinned.min() >= RIM and thinned.max() < 1.9, (thinned.min(), thinned.max())
+        inside = under[~rim & (under > 0.25)]  # the rest are the Sculpt's own
         assert len(inside) > 800, name  # the chin's fewest, its boss's column left out: 993
         thick = shells.BROW if brow else skin.WALL
         low, high = (thick - 0.25, thick + 0.25) if brow else (1.4, 1.9)
@@ -213,19 +217,16 @@ def test_the_skin_is_open_round_each_eye(built):
     wall in front of the eyes inside it (to 1% of its size, its rim's own vertices), where the eyeball is the eye
     white; and the face comes up to it all round: its rim is within 0.05 mm of the cut at every point of it.
     Round each opening the wall is thinned from inside to the lids' shell (gm.LIDS_SHELL, Cansin's way C, 2026-11-28:
-    the eyes sink so that it reaches the outline): the face comes no nearer the eye's centre than that shell, and
-    on the outline itself the wall left over it is RIM thick or more, all round."""
+    the eyes sink so that it reaches the outline): the face comes no nearer the eye's centre than that shell and
+    what two meshed rounds can read short (shells.ROUND)."""
     for name, mesh in built.items():
         ahead = mesh.vertices[mesh.vertices[:, 1] < 0]
         for side, eye in gm.EYE.items():
             white = skin.cuts()[f"{side} eye white"][1]
             if name == "morty face":
                 assert cKDTree(ahead[:, [0, 2]]).query(white)[0].max() < 0.05, side
-                far = np.linalg.norm(ahead - eye, axis=1)
-                assert far.min() == pytest.approx(gm.LIDS_SHELL[1], abs=0.02), side
-                rim = cKDTree(ahead[:, [0, 2]]).query_ball_point(white, 0.3)  # the rim's vertices by each point
-                thick = np.array([far[i].max() - far[i].min() for i in rim])
-                assert thick.min() >= RIM and thick.max() < 0.9, (side, thick.min(), thick.max())
+                nearest = np.linalg.norm(mesh.vertices - eye, axis=1).min()
+                assert nearest == pytest.approx(gm.LIDS_SHELL[1] + shells.ROUND, abs=0.01), side
             centre = white.mean(axis=0)
             assert not _inside(ahead[:, [0, 2]], centre + 0.99 * (white - centre)).any(), name
 

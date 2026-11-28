@@ -64,6 +64,9 @@ LEVEL = 10.0
 FIT, GLUE, BROW = 0.2, 0.4, 0.6
 FINE = 0.4  # the grid a brow's and its bed's depths are measured on, mm: at PITCH a 0.6 mm brow thinned to 0.3
 BROWS = ((-90.0, -30.0, 15.0), (90.0, 30.0, 65.0))  # the box a brow's depths are measured in: both brows, 12 mm round
+# Round an eye opening the face's wall is cut back to the lids' shell (gm.LIDS_SHELL) and this much more, mm: what two
+# rounds meshed to 0.02 mm (model/ours.py) can read short of the lids' clearance (0.496 mm at the shell itself)
+ROUND = 0.02
 REACH, PAD = 0.5, 4.0  # the grid a Shell's reach into another is measured on, and how far from it, mm
 TURN = 0.1  # the jaw and the tilt are sampled every so many degrees of what they turn
 LIFT = (
@@ -411,7 +414,7 @@ def shells():
     for side, eye in gm.EYE.items():
         wall -= cuts[f"{side} eye white"]
         # thinned from inside to the lids' shell, so the face reaches the opening's own outline over the lids
-        wall -= m3.Manifold.sphere(gm.LIDS_SHELL[1], 360).translate(eye)
+        wall -= m3.Manifold.sphere(gm.LIDS_SHELL[1] + ROUND, 360).translate(eye)
     # a seam's gap (SEAM): the face steps back from the hair and the chin, the shirt from the collar
 
     def grown(name, by):
