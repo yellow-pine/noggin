@@ -24,8 +24,6 @@ from model.skeleton import envelope, fit
 SCENE = os.path.join(stages.REPO, skeleton.SCENE)
 CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without Morty (no LFS: docs/adr/0025)
 SKIN_TOL = 0.2  # a depth under Morty's skin is good to this (envelope.DENSITY), mm
-# strict, so #968's follow-up, which re-measures nk.MANDIBLE_CHAIN on the refitted mandible, drops the mark
-CHAIN = "#968: the jaw carrier's chain still follows the box-fitted mandible, not #874's refit inside Morty's skin"
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -357,13 +355,13 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=CHAIN)
 def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
-    """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), straight
-    outboard of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
-    bone) and stands the print floor thick beyond it, to a voxel. Inboard the carrier may show: its post, and the
-    chain where the ramus is thinner than it. nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to
-    the bone (ADR 0011)."""
+    """#968: along each of the jaw's chains (model/printed/neck.py jaw_chains(), the condyle to the chin), outboard
+    of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
+    bone) and stands the print floor thick beyond it, to a voxel. Outboard is level and square to the span, away from
+    the head's middle: sideways down the ramus and the body, forward where the bar runs across at the chin. Inboard
+    the carrier may show: its post, the chain where the ramus is thinner than it, the bar behind the chin.
+    nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to the bone (ADR 0011)."""
     from model.printed import neck
 
     rng = np.random.default_rng(0)
@@ -374,12 +372,12 @@ def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
     sign = 1.0 if side == "L" else -1.0
     bare = []
     for a, b in itertools.pairwise(np.array(neck.jaw_chains()[side])):
+        out = sign * np.array([a[1] - b[1], b[0] - a[0], 0.0])
+        out /= np.linalg.norm(out)
         for t in (0.1, 0.3, 0.5, 0.7, 0.9):
             p = a + (b - a) * t
-            # each surface's points straight outboard of the chain here, mm from it
-            of_bone, of_jaw = (
-                sign * (s[np.linalg.norm(s[:, 1:] - p[1:], axis=1) < 1.0, 0] - p[0]) for s in (bone, jaw)
-            )
+            # each surface's points outboard of the chain here (within 1 mm of the line out from it), mm from it
+            of_bone, of_jaw = (((s - p) @ out)[np.linalg.norm(np.cross(s - p, out), axis=1) < 1.0] for s in (bone, jaw))
             face = of_jaw[
                 (of_jaw > 0) & (of_jaw < 6.0)
             ].max()  # the carrier's own outboard face (not the other chain's)

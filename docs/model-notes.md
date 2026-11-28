@@ -219,9 +219,10 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gestures' gaze is level, so the tilt carries none.
   Its neck and jaw are in (#641, model/neck.py, the parts in model/printed/neck.py), drawn in the head's frame under the
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
-  tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, x1.08
-  about that hinge since #901 (its drive its size), its servo hanging under the frame's plate behind it; since #968
-  its carrier a chain of Bones inside the mandible, its bar, horn and servo inboard of the left ramus), each servo
+  tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, its servo
+  hanging under the frame's plate behind it; since #968
+  its carrier a chain of Bones inside the mandible, measured on the bone, its bar, horn and servo inboard of the left
+  ramus), each servo
   drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
   report under "neck" (each bar's transmission angle and servo range, the tilt servo's hold for the head the MJCF
@@ -263,8 +264,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   against the head's skin and the jaw's as the jaw opens. The compact head's box (160 x 176 x 175 mm, `gimbal.HEAD_MM`,
   with `base.DOME` and `base.EYES_UP`) measured it before and is gone, with the report's head box and eye height and
   the gimbal's bounding box. Where a part does not fit under his skin the mechanism moves, never the skin; the jaw
-  carrier's chin end is 1.88 mm under it at rest and swings into the skin under his chin as the jaw opens, a strict
-  expected failure until #968 moves it. `just sim` ranks the variants into model/build/reports/mech-ranking.json
+  carrier's chin end did (#968: its chains met 1.88 mm under his chin's skin and swung through the skin under it as
+  the jaw opened; now a bar across behind the symphysis' front wall, 6 mm or more from both). `just sim` ranks the variants into model/build/reports/mech-ranking.json
   (base.rank: the clearance and four-bar gates, #51's marks, then its criteria in order, each variant's `fails`
   named), which orders and marks the Viewer's buttons ("Back: clearance"). A variant whose four-bar opens stays in the
   model, ranked last; the report's gate then holds only the leading variant to it, and fails on anything else, or on

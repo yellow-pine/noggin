@@ -150,16 +150,6 @@ PAN_LEVER, PAN_BAR, PAN_Z = 15.0, 30.0, (-87.0, -84.0)  # the yoke's lever back 
 # as the head tilts (#838)
 TILT_LEVER, TILT_BAR, TILT_BAR_X = 28.0, 26.0, (1.5, 4.5)
 JAW = HEAD_AXES["jaw"][0][1:]
-# the jaw x1.08 about its hinge across and fore-aft (#901, #872: its arms inside Morty's life-size mandible), its floor
-# where it was, over the Torso as the head tilts; its drive keeps its size
-JAW_K = 1.08
-
-
-def jaw_y(y):
-    """y of the jaw at y as first drawn, grown JAW_K about its hinge."""
-    return JAW[0] + (y - JAW[0]) * JAW_K
-
-
 # #968: the jaw's crank forward along its L ramus to its pin (its chain's third joint), the bar down from it to the mouth
 # Horn's pin, the Horn pointing back, its servo hanging under the frame's plate inside the mandible's U, in front of the
 # neck's cheeks however the head tilts (#838): the bar and the Horn inboard of the ramus' inner face, so the mandible is
@@ -170,32 +160,37 @@ JAW_PIN = (35.5, -48.0)  # in the ramus' plate, under the notch (inferred)
 # the mouth horn's (y, z): its collar 1 mm behind the yaw servo's case, which it now stands behind (#1005, #978,
 # inferred); the bar's slab, the horn's face on its inside, the pin's post from its outside out to the chain
 MOUTH_HORN, JAW_BAR_X = (31.0, -70.0), (24.4, 27.4)
-# #968: the carrier's chain of joints down each side of #976's mandible (the Skeleton scene's, warped: docs/adr/0025),
-# measured on it: the pivot, the condyle's neck, the pin, then down the ramus' plate and the body toward the chin, each
-# mid-wall or 4.9 mm in from the bone's outer face where it is thinner (model/skeleton/test_skeleton.py holds the chain
-# to the finished bone, ADR 0011); their (y, z) path is inferred
+# #968: the carrier's chain of joints down each side of the mandible (the Skeleton scene's, as #1032 refitted it inside
+# Morty's skin: docs/adr/0025), measured on it: the pivot, the condyle's neck, the pin, then down the ramus' plate and
+# along the body's deepest line to where the arch turns across. From the third joint on, each x is mid-wall there
+# (model/skeleton/test_skeleton.py holds the chain to the finished bone, ADR 0011); the condyle's neck and the pin's
+# joint stay at the ramus' inner face, 7.4 to 7.7 mm in from its outer one, so the pin's post is no longer and the bone
+# keeps 4.5 mm outboard of them. Their (y, z) path is inferred
 MANDIBLE_CHAIN = {
     "L": (
         (40.5, *JAW),
         (43.3, 50.5, -47.5),
         (39.6, *JAW_PIN),
-        (36.8, 26.0, -54.2),
-        (29.8, 16.5, -61.1),
-        (25.0, 6.5, -68.3),
-        (18.5, -3.5, -75.6),
+        (38.8, 27.0, -57.0),
+        (30.9, 18.0, -67.0),
+        (26.1, 8.0, -72.5),
+        (12.0, -3.0, -78.0),
     ),
     "R": (
         (-40.5, *JAW),
         (-42.8, 50.5, -47.5),
         (-40.1, *JAW_PIN),
-        (-37.5, 26.0, -54.2),
-        (-30.2, 16.5, -61.1),
-        (-25.2, 6.5, -68.3),
-        (-18.8, -3.5, -75.6),
+        (-39.3, 27.0, -57.0),
+        (-31.4, 18.0, -67.0),
+        (-26.4, 8.0, -72.5),
+        (-13.5, -3.0, -78.0),
     ),
 }
-JAW_CHIN = (0.0, -13.0, -82.5)  # where the two chains meet, in the mandible's symphysis
-JAW_BODY = ((27.0 * JAW_K, jaw_y(0.0)), (14.0 * JAW_K, jaw_y(-20.0)))  # (x, y) its body forward round to the chin
+# the middle of the bar across between the two chains' last joints, in the mandible's symphysis: level, 2 mm of bone
+# in front of it (the symphysis is 6.5 to 7.5 mm thick there, so the bar stands 2 mm out of its back face), and so
+# 6 mm or more under his chin's skin and from the skin under his chin as the jaw opens (model/review/test_head.py;
+# #976's chains met 1.9 mm under it and swung through it)
+JAW_CHIN = (0.0, *MANDIBLE_CHAIN["L"][-1][1:])
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,
 # docs/research/2026-11-03-usb-c-power.md 7)
