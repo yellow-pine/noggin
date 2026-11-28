@@ -44,26 +44,37 @@ def test_no_two_parts_overlap_at_rest(shapes):
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("stem", ("cervical carrier", "nod plate", "head mount"))
+@pytest.mark.parametrize("stem", ("cervical carrier", "neck socket", "nod plate", "head mount"))
 def test_each_head_carrier_is_one_valid_solid(stem):
     shape = _built(stem)
     assert shape.isValid() and len(shape.Solids()) == 1
 
 
 @pytest.mark.model
-def test_the_fixed_cervical_support_clears_the_pack_and_lid_and_bolts_to_the_floor():
+def test_the_neck_stands_in_the_torso_clear_of_the_pack_and_lid_and_bolts_to_the_floor():
+    """#1075, #1062: the neck socket, its tube and the carrier overlap nothing of the base and pass the lid's slot;
+    the tube fits each printed bore without overlap; each of the socket's four M3 has its hole through the flange and
+    the Torso's floor, its head's countersink under the floor and a flat on the flange for its nut."""
     from model.printed import base
 
-    carrier = _built("cervical carrier")
-    parts = stages.base_sub().parts
-    shapes = {"carrier": carrier, **{n: _shape(p) for n, p in parts.items()}}
-    overlaps = _overlaps(shapes, [("carrier", n) for n in parts])
+    neck_parts, parts = stages.neck_sub().parts, stages.base_sub().parts
+    fixed = {n: _shape(neck_parts[n]) for n in ("neck socket:1", "neck tube:1", "cervical carrier:1")}
+    shapes = fixed | {n: _shape(p) for n, p in parts.items()}
+    overlaps = _overlaps(shapes, [*itertools.product(fixed, parts), *itertools.combinations(fixed, 2)])
     assert overlaps == [], "\n".join(overlaps)
+    socket, tube = fixed["neck socket:1"], fixed["neck tube:1"]
     lid, torso = base.lid(mechanical=True).val(), base.torso(mechanical=True).val()
-    assert carrier.intersect(lid).Volume() < 0.01
-    for x, y in nk.CARRIER_FEET:
-        assert not carrier.isInside(cq.Vector(x, y, sum(nk.MOUNT_Z) / 2))
-        assert not torso.isInside(cq.Vector(x, y, nk.MOUNT_Z[0] - 1))
+    assert max(part.intersect(lid).Volume() for part in fixed.values()) < 0.01
+    assert tube.distance(socket) == pytest.approx(neck.FIT, abs=0.01)
+    assert tube.distance(fixed["cervical carrier:1"]) == pytest.approx(neck.FIT, abs=0.01)
+    floor, under, t = nk.MOUNT_Z[0], base.nb.TORSO[2][0], nk.SOCKET_FLANGE[2]
+    for x, y in nk.SOCKET_SCREWS:
+        assert not socket.isInside(cq.Vector(x, y, floor + t / 2)) and not torso.isInside(cq.Vector(x, y, floor - 1))
+        for dx, dy in ((2.6, 0), (-2.6, 0), (0, 2.6), (0, -2.6)):
+            assert not torso.isInside(cq.Vector(x + dx, y + dy, under + 0.3))  # the head's countersink
+            assert torso.isInside(cq.Vector(x + dx, y + dy, floor - 0.3))
+            assert socket.isInside(cq.Vector(x + dx, y + dy, floor + t - 0.2))  # the nut's seat
+            assert not socket.isInside(cq.Vector(x + 1.2 * dx, y + 1.2 * dy, floor + t + 0.5))
 
 
 @pytest.mark.model
@@ -146,18 +157,17 @@ def _bar_pulls():
 
 @pytest.mark.model
 def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
-    """#1039: the carrier's strut from its R rail straight back to the reduction's anchor, longer since the rails run
-    straight: SF 2 in PETG across its layers on its actual sections. The bar's worst force (the bar's own test's) acts
-    at the bar's middle on the anchor's pin, along the bar wherever the sweep leans it: it pulls the strut, and bends
-    it by the bar's lean and by the bar's place inboard of it. The rails it hangs on have their own test, below."""
+    """#1039: the carrier's strut straight back to the reduction's anchor: SF 2 in PETG across its layers on its actual
+    sections. The bar's worst force (the bar's own test's) acts at the bar's middle on the anchor's pin, along the bar
+    wherever the sweep leans it: it pulls the strut, and bends it by the bar's lean and by the bar's place inboard of
+    it. The run across from the tube that it hangs on has its own test, below."""
     solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
     _, ay, az = nk.TILT_ANCHOR
-    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
-    rail = y0 + (az - z0) / (z1 - z0) * (y1 - y0)  # the rail's middle at the anchor's height
+    _, rail, low = nk.tube_at(nk.TUBE_SCREWS[1])  # the strut's corner, level with its root on the tube
     x, pin = nk.REACTION_TAP_X[1] - 5.0, np.array((sum(nk.REACTION_BAR_X) / 2, ay, az))  # x: the strut's middle, about
     pulls = _bar_pulls()
-    for t in (0.15, 0.3, 0.5, 0.7, 0.85):
-        cut = _section(solid, (x, rail + (ay - rail) * t, az), (0, 1, 0), (1, 0, 0), (13, 13))
+    for t in (0.45, 0.55, 0.7, 0.85):  # behind the run across, which has its own test below
+        cut = _section(solid, (x, rail + (ay - rail) * t, low), (0, 1, 0), (1, 0, 0), (13, 14))
         box, centre = cut.BoundingBox(), np.array(cut.Center().toTuple())
         inertia = np.asarray(cq.Shape.matrixOfInertia(cut)) / 0.01
         wide, tall = (
@@ -175,42 +185,191 @@ def test_the_reaction_anchor_holds_the_actual_standard_servo_at_stall():
         assert mat["tensile_mpa"]["z"] / max(map(stress, pulls)) >= beams.MIN_SF, t
 
 
+LUG = 15.4  # the nod plate's lug's middle on its shank, from the midline
+
+
+def _stall(case):
+    """{where: (its point, its force over the tilt's sweep, N)} on the fixed neck at a head servo's stall, the head
+    blocked by a couple, as the other stall tests take it. Tilt: the bar's worst force pulls the anchor's pin, and the
+    nod plate pushes back on its two shanks, by its own balance across (the bar between the lugs) 0.89 of it on R.
+    Pan (#1063): its case rides the nod plate, which gets the head's torque back about the pan axis (a parallelogram,
+    ratio 1) and passes it to the shanks as a couple fore and aft, the pan axis leaning with the tilt."""
+    axis = np.array(nk.HEAD_AXES["tilt"][0])
+    shank = {side: axis + (sign * LUG, 0, 0) for side, sign in (("R", -1), ("L", 1))}
+    if case == "tilt":
+        bar, pulls = sum(nk.REACTION_BAR_X) / 2, np.array(_bar_pulls())
+        share = {"R": (LUG - bar) / (2 * LUG), "L": (LUG + bar) / (2 * LUG)}
+        pin = {"pin": (np.array((bar, *nk.TILT_ANCHOR[1:])), pulls)}
+        return pin | {side: (shank[side], -share[side] * pulls) for side in shank}
+    force = sim.limits("pan horn")["stall_kgf_cm"] * beams.G * 10 / (2 * LUG)
+    tilts = np.radians(np.linspace(*nk.RANGES["tilt"], 41))
+    fore = np.c_[np.zeros(41), np.cos(tilts), np.sin(tilts)] * force
+    return {"R": (shank["R"], -fore), "L": (shank["L"], fore)}
+
+
+def _held(solid, at, along, loads, window=(26, 26), on_tube=False):
+    """The SF in PETG across its layers of `solid`'s section at `at`, square to `along`, under the `loads` beyond it
+    (_stall's): its pull, its bending both ways and its twist (an ellipse's or a thin slab's shear, T c / 2 I),
+    together as von Mises, at the worst pose. `on_tube`: a sleeve on the neck tube bends and twists with it, so it
+    takes its share of the moment by stiffness, E I of the two."""
+    at, along = np.asarray(at, float), np.asarray(along, float) / np.linalg.norm(along)
+    u = np.cross(along, g.Y if abs(along[0]) > 0.9 else g.X)
+    u /= np.linalg.norm(u)
+    v = np.cross(along, u)
+    pieces = _section(solid, tuple(at), tuple(along), tuple(v), window).Solids()
+    cut = min(pieces, key=lambda piece: np.linalg.norm(np.array(piece.Center().toTuple()) - at))
+    area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
+    inertia = np.asarray(cq.Shape.matrixOfInertia(cut)) / 0.01
+    fibres = np.abs((np.array([p.toTuple() for p in cut.tessellate(0.05)[0]]) - centre) @ np.array((u, v)).T)
+    (cu, cv), iu, iv = fibres.max(axis=0), v @ inertia @ v, u @ inertia @ u
+    force = sum(f for _, f in loads)
+    moment = sum(np.cross(p - centre, f) for p, f in loads)
+    if on_tube:
+        own = g.MATERIALS["PETG HF"]["E_mpa"]["z"] * max(iu, iv)
+        moment = moment * own / (own + nk.TUBE_E_MPA * math.pi / 4 * (nk.TUBE[0] ** 4 - nk.TUBE[1] ** 4))
+    normal = np.abs(force @ along) / area + np.abs(moment @ v) * cu / iu + np.abs(moment @ u) * cv / iv
+    twist = np.abs(moment @ along) * min(cu, cv) / (2 * min(iu, iv))
+    return float(g.MATERIALS["PETG HF"]["tensile_mpa"]["z"] / np.hypot(normal, math.sqrt(3) * twist).max())
+
+
+def _carrier_cuts():
+    """[(member, where, square to, the loads beyond it)]: the carrier's sections, each wing and its riser by its own
+    shank, the strut's run across by the anchor's pin, the sleeve between them by both shanks."""
+    _, y, _ = nk.HEAD_AXES["tilt"][0]
+    _, ty, tz = nk.tube_at(nk.TUBE_SCREWS[1])
+    wy, (z0, _, z2) = sum(neck.WING_Y) / 2, neck.WING_Z
+    cuts = []
+    for side, sign in (("R", -1), ("L", 1)):
+        x = sign * sum(neck.RISER_X) / 2
+        cuts += [(f"{side} riser", (x, (y + wy) / 2, z), g.Z, (side,)) for z in (-52.0, -54.5, -57.0)]
+        cuts += [(f"{side} wing", (sign * x, wy, (z0 + z2) / 2), (sign, 0, 0), (side,)) for x in (9.0, 12.0, 15.0)]
+    cuts += [("strut across", (x, ty, tz), (-1, 0, 0), ("pin",)) for x in (-9.0, -12.0, -14.0)]
+    return cuts + [("sleeve", nk.tube_at(s), nk.TUBE_AXIS, ("R", "L")) for s in (74.0, 78.0)]
+
+
 @pytest.mark.model
-@pytest.mark.parametrize("side", ("R", "L"))
-def test_each_cervical_rail_holds_the_actual_standard_servo_at_stall(side):
-    """#1060: SF 2 in PETG across its layers on each rail's actual sections, foot to trunnion. A rail is a cantilever
-    from the foot plate: nothing joins the two above it, and the nod plate's shanks pass force, no moment. The bar's
-    worst force pulls the anchor, on the R rail alone, and the nod plate pushes back on the two shanks (the head
-    blocked by a couple): by its own balance across, the bar between the lugs, 0.89 of it on the R shank. So the
-    head's torque goes down the R rail as bending, and the rails do not share it. Each section takes what acts above
-    it: its pull, its bending both ways, and its twist (an ellipse's or a thin slab's shear, T c / 2 I), together as
-    von Mises. A push on the head itself is no stall test's."""
-    solid, mat = _built("cervical carrier"), g.MATERIALS[g.PRINTED["cervical carrier"][1]]
-    sign, lug = 1 if side == "L" else -1, 15.4  # the nod plate's lug's middle on its shank
-    bar = sum(nk.REACTION_BAR_X) / 2
-    share = (lug + sign * bar) / (2 * lug)
-    pin, shank = np.array((bar, *nk.TILT_ANCHOR[1:])), np.array((sign * lug, *nk.HEAD_AXES["tilt"][0][1:]))
-    pulls, weak = np.array(_bar_pulls()), []
-    for a, b in itertools.pairwise(np.array([(sign * x, *p) for x, p in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)])):
-        along = (b - a) / np.linalg.norm(b - a)
-        u = np.cross(along, g.X) / np.linalg.norm(np.cross(along, g.X))  # fore and aft, square to the span
-        v = np.cross(along, u)
-        for t in (0.1, 0.3, 0.5, 0.7, 0.9):
-            at = a + (b - a) * t
-            pieces = _section(solid, tuple(at), tuple(along), tuple(v), (26, 26)).Solids()
-            cut = min(pieces, key=lambda piece: np.linalg.norm(np.array(piece.Center().toTuple()) - at))
-            area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
-            inertia = np.asarray(cq.Shape.matrixOfInertia(cut)) / 0.01
-            fibres = np.abs((np.array([p.toTuple() for p in cut.tessellate(0.05)[0]]) - centre) @ np.array((u, v)).T)
-            (cu, cv), iu, iv = fibres.max(axis=0), v @ inertia @ v, u @ inertia @ u
-            pull = pulls * (side == "R" and at[2] < pin[2])  # under the anchor's strut: the bar's pull too
-            force = pull - share * pulls
-            moment = np.cross(pin - centre, pull) - share * np.cross(shank - centre, pulls)
-            normal = np.abs(force @ along) / area + np.abs(moment @ v) * cu / iu + np.abs(moment @ u) * cv / iv
-            twist = np.abs(moment @ along) * min(cu, cv) / (2 * min(iu, iv))
-            if (sf := mat["tensile_mpa"]["z"] / np.hypot(normal, math.sqrt(3) * twist).max()) < beams.MIN_SF:
-                weak.append((at.round(1).tolist(), round(float(sf), 2)))
+@pytest.mark.parametrize("case", ("tilt", "pan"))
+def test_the_cervical_carrier_holds_each_head_servo_at_stall(case):
+    """#1075, #1063: SF 2 in PETG across its layers on the carrier's actual sections, at the tilt servo's stall and at
+    the pan servo's. The tilt's loop closes inside the carrier: the bar pulls the anchor's pin, the nod plate pushes
+    back on the two shanks, 0.89 of it on R. The pan's stall loads the two wings alike, one forward and one back,
+    and twists the sleeve. The strut's run back to the anchor has its own test above."""
+    solid, loads, weak = _built("cervical carrier"), _stall(case), []
+    for member, at, along, beyond in _carrier_cuts():
+        acting = [loads[n] for n in beyond if n in loads]
+        if acting and (sf := _held(solid, at, along, acting, on_tube=member == "sleeve")) < beams.MIN_SF:
+            weak.append((member, np.round(at, 1).tolist(), round(sf, 2)))
     assert weak == []
+
+
+def _on_the_tube(case):
+    """(bending about x, bending about the fore-and-aft axis, twist), N.mm, the worst of each over the sweep: what
+    the stall's loads (a couple: no net force) put on the neck tube under the carrier."""
+    loads, axis = list(_stall(case).values()), np.array(nk.TUBE_AXIS)
+    assert np.abs(sum(f for _, f in loads)).max() < 1e-9
+    moment = sum(np.cross(p, f) for p, f in loads)
+    return tuple(float(np.abs(moment @ way).max()) for way in (g.X, np.cross(axis, g.X), axis))
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("cases", (("tilt",), ("pan",), ("tilt", "pan")))
+def test_the_neck_tube_holds_the_head_servos_at_stall(cases):
+    """#1075: SF 2 on the tube's lowest cited proof stress (nk.TUBE_PROOF_MPA: any 6060, 6063 or 6061 tube in T6 or
+    T66), on its net section at a cross screw's hole, at each servo's stall and at both at once. The tilt's stall
+    bends it about x, the hole's own axis, where the hole costs it 2 %; the pan's twists it and, as the pan axis leans
+    with the tilt, bends it a little the other way, where the hole costs 40 %. Bending both ways at the worst fibre
+    and the twist together as von Mises; no stress concentration is counted."""
+    (r, bore, _), hole = nk.TUBE, nk.TUBE_HOLE_R
+    w, x = np.meshgrid(*[np.arange(-r, r, 0.01) + 0.005] * 2, indexing="ij")
+    ring = (np.hypot(w, x) <= r) & (np.hypot(w, x) >= bore) & (np.abs(w) >= hole)  # the hole runs along x
+    about_x, about_w = (float((c[ring] ** 2).sum() * 1e-4) for c in (w, x))
+    bend_x, bend_w, twist = (sum(c) for c in zip(*map(_on_the_tube, cases)))
+    fibre = np.radians(np.arange(0, 91))
+    normal = (bend_x * r * np.sin(fibre) / about_x + bend_w * r * np.cos(fibre) / about_w).max()
+    shear = twist * r / (about_x + about_w)
+    assert nk.TUBE_PROOF_MPA / math.hypot(normal, math.sqrt(3) * shear) >= beams.MIN_SF
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("stem", ("neck socket", "cervical carrier"))
+def test_each_screw_across_the_tube_holds_the_pan_servos_stall(stem):
+    """#1075, #1063: one M3 across the tube and each printed part on it holds the part against the pan servo's stall,
+    which twists the tube (the tilt's twists nothing: its loop closes in the carrier). SF 2 on the screw's bearing in
+    the print each side of the tube, on its bearing in the tube's 1 mm wall (a pin's, 1.5 d t fo: EN 1999-1-1 8.5.14)
+    and on its two shear planes (0.5 of its tensile strength on its stress area, its Table 8.5); and each part has the
+    screw's clearance hole to the tube's middle, its tapping hole beyond and a seat for its head."""
+    twist, (tip, seat), r = _on_the_tube("pan")[2], nk.SCREW_X, nk.TUBE[0]
+    held = (seat - r - neck.FIT, -r - neck.FIT - tip)  # the print's length on the screw, L and R of the tube
+    arm = (seat + r + neck.FIT) / 2 - (tip - r - neck.FIT) / 2
+    strength = g.MATERIALS[g.PRINTED[stem][1]]["tensile_mpa"]["z"]
+    assert strength / (twist / arm / (3.0 * min(held))) >= beams.MIN_SF
+    wall = twist / (r + nk.TUBE[1]) / (3.0 * (r - nk.TUBE[1]))  # MPa, on each wall, the walls' middles apart
+    assert 1.5 * nk.TUBE_PROOF_MPA / wall >= beams.MIN_SF
+    assert 0.5 * nk.M3["tensile_mpa"] * nk.M3["stress_mm2"] / (twist / (2 * r)) >= beams.MIN_SF
+    solid, (_, y, z) = _built(stem), nk.tube_at(nk.TUBE_SCREWS[stem == "cervical carrier"])
+    for x, clear in ((seat - 1.0, True), (-r - 1.5, False)):  # 1.4 mm off the screw's axis, as the shanks' test
+        assert solid.isInside(cq.Vector(x, y, z + 1.4)) != clear and solid.isInside(cq.Vector(x, y, z + 2.5))
+    assert not solid.isInside(cq.Vector(seat + 1.0, y, z + 2.5))  # the head's room
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("case", ("tilt", "pan"))
+def test_the_neck_socket_and_its_fixing_to_the_torso_hold_each_head_servo_at_stall(case):
+    """#1075, #1062: SF 2 at each servo's stall, in PETG across its layers but where a screw is named. The stall
+    reaches the foot as a couple (the head's torque, no net force). The grip: the tube pushes the tower's top one way
+    and its foot the other, 6 M / D L^2 on the bore, which the tower's sides hold as hoop tension. The tower under the
+    tube's foot, open to L for the leads, on its actual sections. The fixing: the flange rocks on its edge, fore and
+    aft or across, each M3 pulling by its lever from that edge; that pull on the nut's seat on the flange, on the
+    flange's sections beside the tower, on the floor under the head's countersink (bearing on the cone, and the ring
+    of floor that would shear out round it), and on the screw itself (A2-70's proof stress on its stress area)."""
+    from model.printed import base
+
+    solid, loads = _built("neck socket"), list(_stall(case).values())
+    strength, axis = g.MATERIALS[g.PRINTED["neck socket"][1]]["tensile_mpa"]["z"], np.array(nk.TUBE_AXIS)
+    bend_x, bend_w, _ = _on_the_tube(case)
+    floor, (xs, ys, t), (r, _, _) = nk.MOUNT_Z[0], nk.SOCKET_FLANGE, nk.TUBE
+    grip = (nk.SOCKET_TOP_Z - nk.TUBE_FOOT[2]) / axis[2]
+    push = 6 * math.hypot(bend_x, bend_w) / (2 * r * grip**2)
+    hoop = push * 2 * r / (2 * (neck.TOWER[0] - r - neck.FIT))
+    assert strength / max(push, hoop) >= beams.MIN_SF
+    for z in (nk.TUBE_FOOT[2] - 2.0, floor + t + 1.5):
+        assert _held(solid, nk.tube_at((z - nk.TUBE_FOOT[2]) / axis[2]), axis, loads) >= beams.MIN_SF, z
+    pulls = []  # each M3's worst pull, in nk.SOCKET_SCREWS' order
+    for i in range(len(nk.SOCKET_SCREWS)):
+        rocks = []
+        for moment, at, edges in ((bend_x, 1, ys), (bend_w, 0, xs)):
+            for edge in edges:
+                levers = [abs(screw[at] - edge) for screw in nk.SOCKET_SCREWS]
+                rocks.append(moment * levers[i] / sum(lever**2 for lever in levers))
+        pulls.append(max(rocks))
+    pull = max(pulls)
+    seat = math.pi / 4 * (nk.M3["nut_flats"] ** 2 - 3.4**2)
+    cone = math.pi * (base.SINK[0] ** 2 - base.SINK[1] ** 2)
+    ring = 2 * math.pi * base.SINK[0] * (floor - base.nb.TORSO[2][0] - base.SINK[2])
+    assert strength / (pull / min(seat, cone)) >= beams.MIN_SF
+    assert strength / math.sqrt(3) / (pull / ring) >= beams.MIN_SF
+    assert nk.M3["proof_mpa"] * nk.M3["stress_mm2"] / pull >= beams.MIN_SF
+    for sign in (-1, 1):
+        beside = [
+            (np.array((x, y, floor + t)), np.array([(0.0, 0.0, p)]))
+            for (x, y), p in zip(nk.SOCKET_SCREWS, pulls)
+            if x * sign > 0
+        ]
+        at = (sign * (neck.TOWER[0] + 0.5), sum(ys) / 2, floor + t / 2)
+        assert _held(solid, at, (sign, 0, 0), beside, (ys[1] - ys[0] + 2, t + 2)) >= beams.MIN_SF, sign
+
+
+@pytest.mark.model
+def test_the_leads_have_an_open_way_from_the_torsos_floor_up_the_tubes_bore():
+    """#1075: the four leads' bundle, packed square, passes from the Torso's floor in through the socket's L side, up
+    under the tube's foot and through the tube and the carrier, out of its top, touching none of them."""
+    r, floor = nk.LEAD_OD * (1 + math.sqrt(2)) / 2, nk.MOUNT_Z[0]
+    parts = stages.neck_sub().parts
+    low = (floor + r + 0.1 - nk.TUBE_FOOT[2]) / nk.TUBE_AXIS[2]
+    way = neck._along(nk.tube_at(low), nk.tube_at(nk.TUBE[2] + 2.0), r)
+    way = way.union(neck._along(nk.tube_at(low), np.add(nk.tube_at(low), (nk.SOCKET_FLANGE[0][1] + 2.0, 0, 0)), r))
+    for name in ("neck socket:1", "neck tube:1", "cervical carrier:1"):
+        assert _shape(parts[name]).intersect(way.val()).Volume() < 1e-6, name
 
 
 @pytest.mark.model

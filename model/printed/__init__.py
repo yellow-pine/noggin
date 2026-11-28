@@ -25,6 +25,7 @@ PARTS = {
     "gimbal frame": gimbal.frame,
     # the Mech's neck and jaw (#641)
     "cervical carrier": neck.cervical_carrier,
+    "neck socket": neck.neck_socket,
     "nod plate": neck.nod_plate,
     "head mount": neck.head_mount,
     "pan fixed cap": neck.pan_fixed_cap,
@@ -58,6 +59,7 @@ UNSTYLED = {
     **dict.fromkeys(
         (
             "cervical carrier",
+            "neck socket",
             "nod plate",
             "head mount",
             "tilt lever",

@@ -31,8 +31,8 @@ _Avoid_: base, desk stand, jig
 
 **Torso**:
 The Mech's base, a box pedestal under its lid: holding the pack lying low, the switch board and the power-path
-board, and nothing else (#858); the neck mount stands on its floor, its hollow post rising through the lid to the pan
-under the head, the neck cable up inside it; its bottom is the foot the Mech stands on.
+board, and nothing else (#858); the neck socket stands on its floor, the neck tube rising from it through the lid to
+the head, the neck cable up inside it; its bottom is the foot the Mech stands on.
 _Avoid_: base plate, body, stand
 
 **Head variant**:
@@ -139,9 +139,13 @@ The board in the Torso that charges the pack from the head's USB-C and feeds the
 switching over between the two seamlessly (#858), so the pack charges with the Mech switched off.
 _Avoid_: charger, UPS (for the board)
 
+**Neck tube**:
+The one bought aluminium tube the Mech's neck stands on, up the cervical canal from the neck socket on the Torso's
+floor to the cervical carrier under the head; cut and drilled by the builder (docs/adr/0031).
+_Avoid_: post, spine, rail (the printed rails it replaced), rod
+
 **Neck cable**:
-The one cable up the Mech's neck between the power-path board and the head (the hollow post's bore today, the cervical
-canal once spec #893's neck lands): USB 5 V down, the pack's supply up (#858); the pan's range limits its twist, no
+The one cable up the Mech's neck between the power-path board and the head, through the neck tube's bore: USB 5 V down, the pack's supply up (#858); the pan's range limits its twist, no
 slip ring.
 _Avoid_: link (the Link is the noggin service's), lead (a servo's or the pack's)
 
@@ -364,9 +368,8 @@ A part we print, by our name (model/printed); the Skeleton's:
 - upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
   off the lid bar;
 - test stand: the Test stand;
-- torso: the Torso; torso lid: its lid; neck mount: on the Torso, its hollow post up through the lid, the pan servo on
-  it; pan yoke: turns on the post's top for pan, the tilt servo on it, its cheeks up to the head; pan bar: the pan
-  Horn to the yoke;
+- torso: the Torso; torso lid: its lid; neck socket: bolted on the Torso's floor, holding the Neck tube's foot;
+  cervical carrier: fixed on the Neck tube's top, the nod plate's trunnions and the tilt's reaction anchor on it;
 - cranium tray: on the gimbal frame's plate, up into the realistic skull's cranium, both Cores lying on it and the hub
   on its riser at the back of the skull base;
 - head mount: turns on the yoke's cheeks for tilt, the gimbal frame on it; tilt bar: the tilt Horn to the head mount;

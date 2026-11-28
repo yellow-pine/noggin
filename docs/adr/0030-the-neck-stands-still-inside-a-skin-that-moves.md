@@ -21,7 +21,7 @@ and nods ±20° round what stands still inside it.
   stood where the nape's rim arrives. The vertebrae's canals follow the path (ADR 0025's Warp reads it), so the neck's
   bones stand in the middle of Morty's neck, leaning 4° forward going down where a real neck's lean back. It shows
   only with the Skin off.
-- **The rails and the mechanism clear both rims; C5 and C6 do not, at any path.** A vertebra here is about 47 mm front
+- **The rails (one tube since ADR 0031) and the mechanism clear both rims; C5 and C6 do not, at any path.** A vertebra here is about 47 mm front
   to back, and the room between the rims is 24 mm. y 72 is where #874 measured the least of them left in the rims' way
   (#1039's comments). What gives for those two (the tilt's range, the seam, or the bones) is open, on #874.
 - **The mechanism moves, the skin and the range stay.** The tilt lever's arm steps inboard round its horn, so the pan
