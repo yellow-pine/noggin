@@ -39,9 +39,10 @@ calibrated ([Calibration](calibration.md)).
    inside the jaw, where the mouth servo will stand, so it is fitted first.
 
 2. **Jaw** on the gimbal frame's lugs, turning at the mandible's condyles; it turns down to open the mouth. Its
-   carrier is a chain of Bones inside the mandible, down each ramus and along the body, with a bar across behind the
-   chin, sized to hold the mouth servo's stall. *Upcoming (#968): how the mandible comes off its carrier (#874's magnets), and the jaw's
-   Shell, cut from Morty's sculpt (#850, #992).*
+   carrier is a chain of Bones laid on the mandible's inner face, half let in, down each ramus and along the body,
+   with a bar across behind the chin, sized to hold the mouth servo's stall. The mandible comes off it in one piece,
+   down and 30° forward. *Upcoming (#968): the two magnet pairs that hold the mandible on, and the chin Shell's Seat
+   in its front (#850).*
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 

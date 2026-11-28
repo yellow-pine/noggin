@@ -22,11 +22,13 @@ BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mech
 # its half-depth fore and aft, then across. The condyle's neck is stout across, where the bone is narrow fore and aft;
 # the ramus' plate deep fore and aft, where it is thin across; the body between the two
 _CONDYLE, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
-JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, _BODY, _BODY)
-# the bar across at the chin, one Bone from one chain's last joint to the other's, its long axis upright in the thin
-# symphysis: no waist, since it carries the drive to the R chain as twist (model/printed/test_neck.py), and nothing
-# crossing at the chin, where two chains ending together left a 0.015 mm edge Linux's OCCT read as invalid (#850)
+# the bar across at the chin, one Bone from one chain's last joint to the other's, its long axis upright behind the
+# thin symphysis: no waist, since it carries the drive to the R chain as twist (model/printed/test_neck.py), and
+# nothing crossing at the chin, where two chains ending together left a 0.015 mm edge Linux's OCCT read as invalid (#850)
 JAW_CHIN_BAR = (4.0, 2.6)
+# the fifth span has no waist either: the L one turns in from outside the mouth Horn's sweep to the bone's inner face,
+# half across, and twists as the bar does
+JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, (JAW_CHIN_BAR, JAW_CHIN_BAR), _BODY)
 JAW_LAP = 2.0  # each Bone runs this far past its joints: flat ends meeting on a bend leave a notch to mid-section
 # #1039: the tilt lever's arm, from the shaft: its slab along x, 0.9 mm off the case's face, and where it steps in from
 # the disc's slab, 0.6 mm outside the horn's rim (inferred)

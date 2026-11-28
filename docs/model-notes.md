@@ -196,8 +196,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   pilot), the yaw yokes (a cradle round the core flaring from its flat foot at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts): each prints as drawn (the leaned push-rod and the bail on their
   own beds, `rod_bed` and `bail_bed`, #967) with no overhang past 45 deg, its bores across the layers where its pins
-  are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
-  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
+  are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars and links (#698, #1097:
+  a Bone along each one's long span, fuller than its 3 mm slab and its 5 mm arm, which cut it flat on top and at the
+  sides; the jog by the horn stays flat). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
   bars Bones between their pins, the frame's uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
@@ -229,7 +230,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, its servo
   hanging under the frame's plate behind it; since #968
-  its carrier a chain of Bones inside the mandible, measured on the bone, its bar, horn and servo inboard of the left
+  its carrier a chain of Bones laid on the mandible's inner face, half let in, so the bone comes off it in one piece
+  (model/skeleton OFF), its bar, horn and servo inboard of the left
   ramus), each servo
   drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
@@ -273,7 +275,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   with `base.DOME` and `base.EYES_UP`) measured it before and is gone, with the report's head box and eye height and
   the gimbal's bounding box. Where a part does not fit under his skin the mechanism moves, never the skin; the jaw
   carrier's chin end did (#968: its chains met 1.88 mm under his chin's skin and swung through the skin under it as
-  the jaw opened; now a bar across behind the symphysis' front wall, 6 mm or more from both). `just sim` ranks the variants into model/build/reports/mech-ranking.json
+  the jaw opened; now a bar across behind the symphysis, 6 mm or more from both). `just sim` ranks the variants into model/build/reports/mech-ranking.json
   (base.rank: the clearance and four-bar gates, #51's marks, then its criteria in order, each variant's `fails`
   named), which orders and marks the Viewer's buttons ("Back: clearance"). A variant whose four-bar opens stays in the
   model, ranked last; the report's gate then holds only the leading variant to it, and fails on anything else, or on

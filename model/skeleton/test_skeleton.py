@@ -407,6 +407,51 @@ def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
         assert top < mesh.bounds[0][2] and mesh.bounds[1][2] < nk.HEAD_AXES["tilt"][0][2]
 
 
+def test_the_finish_cuts_the_carriers_way_out_of_the_mandible():
+    """#968: beside the carrier where it rides, job() gives the mandible's Finish the carrier as the bone sees it on
+    its way off, a millimetre at a time: the bone leaves down and forward, so the carrier rises and falls back, at
+    the last place 34.64 mm up and 20 mm back. No other bone gets a way."""
+    bones = skeleton.job()["bones"]
+    places = np.array([at for name, at in bones["mandible"]["rigid"] if name == "jaw:1"])
+    assert len(places) == 41 and np.allclose(places[:, :3, :3], places[0, :3, :3])
+    assert np.allclose(places[1:, :3, 3] - places[:-1, :3, 3], (0.0, 0.5, 0.8660254), atol=1e-6)
+    assert np.allclose(places[-1, :3, 3] - places[0, :3, 3], (0.0, 20.0, 34.641), atol=1e-3)
+    assert all(
+        len({name for name, _ in kinds["rigid"]}) == len(kinds["rigid"])
+        for b, kinds in bones.items()
+        if b != "mandible"
+    )
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("stem", ("mandible", g.WORN["mandible"]))
+def test_the_mandible_comes_off_its_carrier(stem):
+    """#968 (Cansin, 2026-11-28, #893's sixth round): the one-piece mandible comes off the Mech along skeleton.OFF,
+    its Shells off first. A millimetre at a time over that way, no part of the Mech and nothing of its skull stands
+    in the finished bone, to a voxel and a depth's own tolerance (the carrier reads 0.87 mm in it where it rides, at
+    the Finish's rounded corners): the Finish cut the carrier's way out of it as well as the carrier."""
+    doc, (way, far) = skeleton.DOC, skeleton.OFF["mandible"]
+    head = np.linalg.inv(stages.align(*stages.DOCS[doc]["eyes"]))
+    mesh = trimesh.load(stages.stl(stem), force="mesh")
+    bone, (lo, hi) = envelope.Skin(mesh), mesh.bounds
+    skull = "skull" if stem == "mandible" else g.WORN["skull"]
+    clouds = {skull: shells._points(trimesh.load(stages.stl(skull), force="mesh").triangles, 1.0)}
+    for name, part in stages.STAGES[doc].parts.items():
+        if stages.stem(part.file) not in (*g.BONES, *sk.SHELLS):
+            points = shells._points(trimesh.load(part.file, force="mesh").triangles, 1.0)
+            clouds[name] = trimesh.transform_points(points, head @ part.matrix)
+    stuck = {}
+    for mm in np.arange(0.0, far + 0.5, 1.0):
+        for name, cloud in clouds.items():
+            seen = cloud - mm * np.array(way)  # as the bone sees it, that far on its way
+            seen = seen[((seen > lo) & (seen < hi)).all(axis=1)]
+            least = max(skeleton.PITCH + SKIN_TOL, stuck.get(name, (0.0,))[0])
+            if len(seen) and (deep := float(bone.depth(seen).max())) > least:
+                stuck[name] = (round(deep, 2), float(mm))
+    assert stuck == {}
+
+
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
