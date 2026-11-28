@@ -13,7 +13,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skin as sk
 from model import stages
-from model.printed import PARTS, gimbal, skin
+from model.printed import PARTS, gimbal, skin, styled
 
 CLEAR_MM = gm.LID_CLEAR_MM  # a Shell's least room to a part it does not sit on (#51 shell containment)
 DOC = next(d for d in g.MECH if d in g.SIMULATED)  # the whole Mech, mechanical: as physics runs it
@@ -37,13 +37,14 @@ def test_a_shell_is_one_valid_solid(stem):
 )
 def test_a_seat_on_the_skeleton_is_flush_in_its_carriers_surface(seat):
     """#852: nothing of a Skeleton part stands in front of a Seat's face, and the part is there right behind it, round
-    its magnet's pocket: no raised pad, the pocket and the grooves sunk into the carrier."""
-    carrier = PARTS[seat.carrier]().val()
+    its magnet's pocket: no raised pad, the pocket and the grooves sunk into the carrier, in each of its styles."""
     proud = skin._placed(gimbal.cyl("z", (0, 0, 0), sk.PAD_R, (0.05, 3.0)), seat).val()
     ring = gimbal.cyl("z", (0, 0, 0), sk.RING - sk.GROOVE - 0.1, (-0.5, -0.2))  # under a lid's curve at its edge
     behind = skin._placed(ring.cut(gimbal.cyl("z", (0, 0, 0), sk.MAGNET[0] / 2 + sk.FIT + 0.1, (-1, 1))), seat).val()
-    assert carrier.intersect(proud).Volume() < 1e-3
-    assert carrier.intersect(behind).Volume() == pytest.approx(behind.Volume(), rel=0.02)
+    for style in dict.fromkeys((seat.carrier, styled(seat.carrier, mechanical=True))):
+        carrier = PARTS[style]().val()
+        assert carrier.intersect(proud).Volume() < 1e-3, style
+        assert carrier.intersect(behind).Volume() == pytest.approx(behind.Volume(), rel=0.02), style
 
 
 @pytest.mark.model

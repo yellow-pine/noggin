@@ -38,7 +38,7 @@ SF = 2.0  # the magnets hold at least this many times a Shell's weight at its pe
 
 Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: the carrier's face, normal: out of it
 SKIN = 0.6  # the least of a Shell's own surface left over its magnet's pocket, mm: two 0.3 mm layers (inferred)
-FACE_BOSS = 12.0  # from the beam's front out past the face's wall, which stands 6 to 10 mm ahead of it there
+FACE_BOSS = 12.0  # from the beam's front out past the face's wall, whose inside is 6 mm ahead of it there (measured)
 _BEAM_SEAT = gm.BEAM_X - gm.BEAM_CUT - PAD_R  # a beam Seat's |x|: its whole circle on the beam's flat front
 
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
