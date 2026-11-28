@@ -50,7 +50,7 @@ FINE_MM = {
     f"gimbal frame{g.MECHANICAL}": 1.0,
     # the tie-bar's fingers pass 2 mm over the frame's yaw bearings and its cross-bar 2.8 mm behind the shut lower
     # lids (#967): pieces within 0.5 mm of it, where the default lets a fork's pieces fill 4 mm of its inside corners
-    "tie-bar": 0.5,
+    **dict.fromkeys(("tie-bar", f"tie-bar{g.MECHANICAL}"), 0.5),
 } | {
     # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
     # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
