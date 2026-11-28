@@ -1,8 +1,9 @@
-# Morty's Shells are cut in Python, six of them
+# Morty's Shells are cut in Python, seven of them
 
 > Decided on 2026-11-27, ticket #850 (made while away). Cansin confirmed the collar and set the eye openings the
 > same day (spec #893, "Decided by Cansin (2026-11-27, second grilling round…)"), and made the brows dark after
-> looking at the review file (#850): four Shells became six. Builds on ADR 0027.
+> looking at the review file (#850): four Shells became six. On 2026-11-28 he picked the hair in two pieces (spec
+> #893, fourth round): seven. Builds on ADR 0027.
 
 ADR 0027 makes Morty's Sculpt his Skin. This is how the Shells are cut from it (`model/morty/shells.py`) and which
 Shells there are.
@@ -19,8 +20,17 @@ Shells there are.
   under 0.8 mm wide at the brow's inner end (the original has them too, so the adoption did not make them). A wall
   grown from every surface would follow a pocket in. So a pocket's walls are left out whole and each crack is capped
   where it leaves the outside (#850, `outer()`): a brow is its ridge on the face and nothing behind it.
-- **Six Shells: hair, face, a brow over each eye, chin, shirt.** The eyes get none: the eyeballs, the mechanism's
-  own, are the eye whites.
+- **Seven Shells: the hair's crown and its back, face, a brow over each eye, chin, shirt.** The eyes get none: the
+  eyeballs, the mechanism's own, are the eye whites.
+- **The hair is two Shells, cut on a level seam at eye level** (Cansin, 2026-11-28). As one piece it is a hood, from
+  the forehead over the crown down to the collar and forward to behind the ears, tucked in under a skull that is
+  widest at eye level: no straight way takes it off (straight up, 19% of its surface has bone ahead of it; at the
+  best slant, 40° back, 3.6%). Cut level, 10 mm above the eyes' centres (`shells.LEVEL`), the crown lifts straight
+  up and the back slides straight back, each clear of the skull and the mechanism all the way, with the head at
+  rest. 10 is the highest level in the range Cansin picked (0 to 20) at which the back comes no nearer the skull on
+  its way than where it rests, 2.5 mm; at 20 it passes 0.4 mm from it. The seam is one the Sculpt does not have: a
+  0.8 mm line round dark hair (ADR 0029). The crown's Seats face up on the skull's calvaria cap and the back's face
+  back on its occiput, in bone (#874).
 - **A brow is its own Shell, in the hair's filament** (Cansin: the brow's shape is right, and it should be dark). On
   this Sculpt a brow is a slab standing 1.4 to 2.3 mm proud of the forehead, 8 mm across, from over the nose round
   to the temple. Its Shell is the wall inside the slab's outline, cut through, and the face steps back a seam's gap
@@ -54,6 +64,10 @@ Shells there are.
   within the wall's thickness of the outside, at each brow's inner end, its walls counted as outside, and the face
   held 0.1 cm² of them with a spur of wall to 2.4 mm deep behind.
 - A neck Shell between the head and the shirt: this Sculpt shows no neck to cut one from.
+- The hair in one piece, sprung off by hand: its sides have to open 5 to 16 mm each over the skull, which the model
+  cannot show a 1.6 mm PLA hood doing.
+- The hair in one piece, the skull slimmed along its way off: the skull loses its sides and back under the hair, and
+  the tilt lever and its reaction bar stand in that way too.
 - The brows left on the face and painted, or printed in a second filament in one piece: every Colour group is a
   Shell of its own in one filament (ADR 0022), so a Palette can change a brow's colour by swapping a spool.
 - A brow as the proud slab alone, laid on a face that runs on under it: the face under a brow would be a surface

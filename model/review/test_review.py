@@ -62,10 +62,11 @@ def test_the_review_wears_mortys_skin_whatever_the_documents_wear():
     document has every Shell cut from the Sculpt beside what the document has, and its Skin layer is those Shells and
     the eyeball caps, the eye whites."""
     worn = review.worn()
-    assert len(SHELLS) == 6 and set(worn.parts) == set(STAGE.parts) | set(SHELLS)
+    assert len(SHELLS) == 7 and set(worn.parts) == set(STAGE.parts) | set(SHELLS)
     assert {n for n, p in worn.parts.items() if review.layer(p.file) == "Skin"} == {*SHELLS, *CAPS}
     region = review.regions()
-    assert {region[f"morty {n}:1"] for n in ("hair", "face", "L brow", "R brow", "chin")} == {"Skull"}
+    head = ("hair crown", "hair back", "face", "L brow", "R brow", "chin")
+    assert {region[f"morty {n}:1"] for n in head} == {"Skull"}
     assert region["morty shirt:1"] == "Pedestal"
 
 
@@ -83,7 +84,7 @@ def test_each_shell_moves_with_what_carries_its_motion_region_and_the_shirt_with
             mats = stages.pose(worn, horn, deg).parts
             np.testing.assert_allclose(mats["morty shirt:1"], rest["morty shirt:1"])
             for shell, carrier in (
-                *((n, "gimbal frame") for n in ("hair", "face", "L brow", "R brow")),
+                *((n, "gimbal frame") for n in ("hair crown", "hair back", "face", "L brow", "R brow")),
                 ("chin", "jaw"),
             ):
                 np.testing.assert_allclose(
@@ -91,7 +92,7 @@ def test_each_shell_moves_with_what_carries_its_motion_region_and_the_shirt_with
                 )
     pan = stages.pose(worn, "pan horn", worn.horns["pan horn"].limits[1]).parts
     jaw = stages.pose(worn, "jaw horn", worn.horns["jaw horn"].limits[0]).parts
-    assert not np.allclose(pan["morty hair:1"], rest["morty hair:1"])
+    assert not np.allclose(pan["morty hair crown:1"], rest["morty hair crown:1"])
     assert not np.allclose(jaw["morty chin:1"], rest["morty chin:1"])
     np.testing.assert_allclose(jaw["morty face:1"], rest["morty face:1"])
 
@@ -355,7 +356,7 @@ def test_each_layer_has_its_regions_at_its_alpha_and_helpers_are_hidden(blend):
 
 
 def test_the_skin_layer_is_mortys_shells_and_the_caps_in_the_skins_colours_each_with_what_carries_it(blend):
-    """#850: the six Shells cut from the Sculpt and the eyeball caps, seen when the file opens, each in its Colour
+    """#850: the seven Shells cut from the Sculpt and the eyeball caps, seen when the file opens, each in its Colour
     group's filament (the Default Skin palette: the brows in the hair's) at the Skin's alpha; through the loop the
     hair, the face, the brows and the chin stay on what carries them and the shirt never moves."""
     layer = blend["skin_layer"]
