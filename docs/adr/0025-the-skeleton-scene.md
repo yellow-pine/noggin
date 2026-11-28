@@ -243,4 +243,4 @@ forward on the forehead under the cap's seam.
 - **The crown and the cap hold equally, and that stands.** Three pairs each, 13.7 N. Lifted steadily and upright, the
   crown parts first by the cap's own weight (0.85 N); lifted by one edge it may bring the cap with it. Both lift
   straight up and part by hand, and each lands where it was on its own Seats. Fewer pairs on the crown would let
-  it rock (two hold 41 N·mm against a 1 g sideways shake's 42); a fourth on the cap has no room at the back.
+  it rock (two hold 41 N·mm against about 40 from a 1 g sideways shake); a fourth on the cap has no room at the back.

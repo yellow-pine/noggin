@@ -413,8 +413,8 @@ def capped(job):
 def seated(job):
     """Each bone that carries a Skin's Seat (job["seats"], #850) has its flats and its grooves cut from its Finish's
     mesh, exactly, where capped() cuts its seam and every pocket (the cap's and the Seats', one collection). Its
-    pads are among the cap's bosses, united with the bone before the carve.
-    shortcut: only a capped skull's Finish and its cap's have that cut; give another bone one when it carries a Seat"""
+    pads are among the cap's bosses, united with the bone before the carve."""
+    # shortcut: only a capped skull's Finish and its cap's have that cut; give another bone one when it carries a Seat
     for name in {n for names, _, _ in job["seats"]["at"] for n in names}:
         group = bpy.data.objects[f"finished {name}"].modifiers["Finish"].node_group
         cut = {n.inputs["Collection"].default_value for n in group.nodes if n.bl_idname == "GeometryNodeCollectionInfo"}
