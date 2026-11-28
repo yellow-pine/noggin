@@ -203,10 +203,11 @@ PRINTED |= {name + MECHANICAL: v for name, v in PRINTED.items() if v[1].startswi
 # The realistic Skeleton's skull (#838; the Skeleton scene, model/skeleton, docs/adr/0025): meshes under their sources' licences (docs/adr/0023), on
 # the realistic documents alone (SKULL_SUB): the mechanical Skeleton has none. Its bones as they show bare (SKULL), and
 # the skull and mandible carved round every Skin's Shells too (WORN), printed to wear a Skin (Cansin, 2026-11-03): the
-# documents, which wear one, carry the worn ones; the pictures' bare look shows the bare ones
+# documents, which wear one, carry the worn ones; the pictures' bare look shows the bare ones. The calvaria is the
+# skull's cap, cut off it along a level seam so the head's mechanism can be reached (#874, model/skeleton CAP)
 NECK = ("atlas", "axis", *(f"c{i}" for i in range(3, 8)))  # C1 to C7, BodyParts3D's (#874)
-SKULL = ("skull", "mandible", *NECK)
-WORN = {"skull": "worn skull", "mandible": "worn mandible"}
+SKULL = ("skull", "calvaria", "mandible", *NECK)
+WORN = {"skull": "worn skull", "calvaria": "worn calvaria", "mandible": "worn mandible"}
 BONES = (*SKULL, *WORN.values())
 PRINTED |= dict.fromkeys(BONES, ("Bones", "PETG HF"))
 SKULL_SUB = "skull"

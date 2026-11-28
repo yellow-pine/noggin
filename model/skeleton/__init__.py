@@ -41,6 +41,19 @@ REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back
 # axis, and how far back it runs, to behind where the tie-bar and the bail's axis will stand (the paper sketch's, inferred)
 LID_SHELL, BELT = 38.0, (22.0, 48.0)
 BELT_Z = tuple(round(float(LID_SHELL * np.sin(np.radians(a))), 1) for a in (214.0, 174.0))
+# The skull's calvaria (g.SKULL's CAP) comes off as a cap, so the head's mechanism can be reached (#874, docs/adr/0025):
+# each skull's own Finish cut in two (export.capped) along a seam level in the head's frame at SEAM_Z. Flat, as a
+# teaching skull's cut is, and the cap prints lying on it. It sits on three Seats (model/skin.py: the Skin's own, so
+# a Shell's Seat in bone is cut the same way), each on a ball boss of skin.PAD_R on the vault's inner side, the wall
+# there being 4 to 9 mm: a magnet flush in each face, three balls standing on the skull's and their V-grooves in
+# the cap's, which take the shear and hold the faces skin.GAP apart, so a hair Shell seated on the cap lands where
+# it was. SEAM_Z is the lowest whole ring with FLOOR of bone left over the lids' shell (the finished skull is open in
+# front under z 50). SEATS (x, y in the head's frame) stand in front and to each side, behind the cap's centre of
+# mass (y 75), each boss a mm inside the skull's outer faces, where the mechanism leaves 37 mm and more (the nod
+# plate's sweep leaves 8 mm straight behind and 13 at 70 deg round). Measured on the uncut skull, 2026-11-28; inferred
+CAP, CAPPED = "calvaria", "skull"
+SEAM_Z = 54.0
+SEATS = ((0.0, 3.0), (76.0, 83.5), (-77.0, 83.5))
 
 
 def blender():
@@ -63,7 +76,9 @@ def job():
     """What export.py needs, JSON-ready: the head's frame in the document; each cutting part's STL; for each bone, the
     places (4x4, the document's frame) of every part as the bone sees it over every pose, sorted into what rides it
     (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (head's
-    frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box) and the finish's numbers."""
+    frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box), its cap (CAP: which
+    Finish it is cut off, the seam, and each Seat's boss, pocket, balls and grooves, head's frame) and the finish's
+    numbers."""
     from model.skeleton import fit  # here: fit reads this module's numbers
 
     stage = stages.STAGES[DOC]
@@ -72,7 +87,7 @@ def job():
     shells = {n for n in files if stages.stem(files[n]) in sk.SHELLS}
     every = poses(stage)
     bones = {}
-    for bone in g.SKULL:
+    for bone in (b for b in g.SKULL if b != CAP):  # the cap is carved with its skull, in the one Finish
         carrier, seen = stages.RIDES[bone + ":1"], {}
         for pose in every:
             back = rest[carrier] @ np.linalg.inv(pose[carrier])  # the document as the bone sees it there
@@ -100,6 +115,16 @@ def job():
             [[x - BELT[0], y, z + BELT_Z[0] - CLEAR_MM], [x + BELT[0], y + BELT[1], z + BELT_Z[1] + CLEAR_MM]]
             for x, y, z in gm.EYE.values()
         ],
+        "cap": {
+            "of": {CAPPED: CAP, g.WORN[CAPPED]: g.WORN[CAP]},
+            "seam": SEAM_Z,
+            "gap": sk.GAP,
+            "seats": list(map(list, SEATS)),
+            "boss": sk.PAD_R,
+            "bore": [sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]],
+            "ball": [sk.RING, sk.BALL_R],
+            "groove": [sk.GROOVE, sk.GROOVE_D],
+        },
         "vault": {"bones": sorted(fit.VAULT), "middle": list(fit.MIDDLE)},
         "numbers": {
             "Thick": THICK,

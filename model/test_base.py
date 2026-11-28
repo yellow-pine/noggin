@@ -98,8 +98,9 @@ def test_the_cores_lie_on_the_cranium_tray_and_the_switch_and_power_path_boards_
 
 @functools.cache
 def _skull_faces():
-    """The finished skull's hull, as its faces' plane equations."""
-    return ConvexHull(trimesh.load(stages.stl("skull"), force="mesh").vertices).equations
+    """The finished skull's hull, its calvaria on (#874), as its faces' plane equations."""
+    whole = [trimesh.load(stages.stl(stem), force="mesh").vertices for stem in (skeleton.CAPPED, skeleton.CAP)]
+    return ConvexHull(np.vstack(whole)).equations
 
 
 def _depth_in_skull(points):

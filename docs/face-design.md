@@ -70,7 +70,9 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   The model has the eyeball caps' Seats, in the cores' faces, and the face's two lower ones, in the front of the
   gimbal frame's beam under the eyes, 84 mm apart: the face comes off forward. A Shell cut from a sculpt stands on a
   boss in from its wall at each Seat, cut at the sculpt's surface, with at least 0.6 mm of its own surface left
-  over the magnet (model/morty/shells.py `seated()`). *Upcoming (#850): the rest of Morty's Seats: the face's top
+  over the magnet (model/morty/shells.py `seated()`). The realistic skull's calvaria sits on three Seats of the
+  same sizes on its skull's rim, each on a boss inside the wall, the balls on the skull and the grooves in the cap
+  (model/skeleton, #874). *Upcoming (#850): the rest of Morty's Seats: the face's top
   and the hair on the skull, the chin on the jaw and the shirt on the Torso (#879).*
 - A brow has no Seat (`skin.GLUED`): it is 8 mm across, a Seat 14, and the lids stow 1.1 mm behind it over the eye.
   It drops into its opening in the face, its own outline its key with 0.2 mm of play a side, onto two 1 mm tabs

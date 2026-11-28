@@ -60,7 +60,7 @@ _Avoid_: cover, cosmetic
 
 **Seat**:
 Where a Shell sits on what carries it, the same for every Skin: a magnet pair that holds it on and three balls in
-V-grooves that take the shear.
+V-grooves that take the shear. The skull's calvaria sits on its skull on Seats too.
 _Avoid_: mount, socket, pad
 
 **Skin**:
@@ -376,7 +376,9 @@ A part we print, by our name (model/printed); the Skeleton's:
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their
   licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
-  post on the pan yoke; the mechanical Skeleton has none. Worn skull, worn mandible: the skull and mandible carved
+  post on the pan yoke; the mechanical Skeleton has none. Calvaria: the skull's cap, cut off it along a level seam
+  over the eyes and lifted off to reach the head's mechanism, sitting on three Seats on the skull.
+  Worn skull, worn calvaria, worn mandible: those bones carved
   round a Skin's Shells too (the eyeball caps alone, while they are the only Shells a document wears), printed to wear a Skin; bare,
   the Skeleton shows the full ones.
 _Avoid_: the designer's file names, version suffixes, earlier part names (git history)

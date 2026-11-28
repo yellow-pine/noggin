@@ -46,9 +46,9 @@ def test_the_loop_moves_the_lower_lids_with_the_blink_and_the_eyes_with_the_pitc
 
 
 def test_the_bones_ride_their_regions():
-    """The skull and mandible in Skull, the atlas and axis in Mechanism, the Torso in Pedestal."""
+    """The skull, its calvaria and the mandible in Skull, the atlas and axis in Mechanism, the Torso in Pedestal."""
     region = review.regions()
-    assert region["worn skull:1"] == region["worn mandible:1"] == "Skull"
+    assert region["worn skull:1"] == region["worn calvaria:1"] == region["worn mandible:1"] == "Skull"
     assert region["atlas:1"] == region["axis:1"] == "Mechanism"
     assert region["torso:1"] == "Pedestal"
 
@@ -546,6 +546,7 @@ for collection in list(cube.users_collection): collection.objects.unlink(cube)
 bpy.data.collections['Finished'].objects.link(cube)
 job={'files':{'carrier:1':str(folder/'marker.stl')},'bones':{},'frame':[0,0,0],
      'rest':{'carrier:1':list(identity)},'orbits':[],'belts':[],'vault':{'bones':[],'middle':[0,0,0]},'numbers':{},
+     'cap':{'of':{}},
      'parts':{'carrier:1':{'region':'Skull','layer':'Mech','colour':'#FFFFFF'},
               'worn skull:1':{'region':'Skull','layer':'Skeleton','colour':'#FFFFFF'}},
      'alpha':{'Mech':1,'Skeleton':.69,'Morty':.33},
