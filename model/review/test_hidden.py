@@ -66,8 +66,8 @@ def _points(mesh, step):
 def depth(mesh, part=None):
     """(points) -> mm each lies outside the closed mesh's outer surface (negative: inside; past FAR either way,
     FAR). His sculpt crosses itself (hair, lids, collar), so the room outside is flooded from a corner of his box
-    through the PITCH voxels his surface does not cross: a point in a voxel the flood reached, or one his surface
-    crosses, is outside, and his outer surface is the part of it beside the flood. The distance is to that surface's
+    through the PITCH voxels his surface does not cross: his outer surface is the part of it beside the flood, and a
+    point in a voxel the flood reached, or one his outer surface crosses, is outside. The distance is to that surface's
     points, exact to their spacing; the voxels only sort inside from outside and skip the deep points. With `part`
     ((points) -> which), the distance is to those of the outer surface's points alone (the head's skin,
     model/review/test_nape.py); inside and outside stay the whole mesh's.
@@ -84,8 +84,9 @@ def depth(mesh, part=None):
     wall[cell(v)] = True
     rooms, _ = ndimage.label(~wall)
     room = rooms == rooms[0, 0, 0]
+    wall &= ndimage.binary_dilation(room, np.ones((3, 3, 3), bool))  # a surface inside him (his scalp) is inside
     deep = ndimage.distance_transform_edt(~(wall | room)) * PITCH  # mm inside, to a voxel
-    outer = v[ndimage.binary_dilation(room, np.ones((3, 3, 3), bool))[cell(v)]]
+    outer = v[wall[cell(v)]]
     outer = cKDTree(outer if part is None else outer[part(outer)])
 
     def mm(points):
@@ -110,6 +111,9 @@ def test_depth_reads_a_ball_through_a_ball_as_one_surface():
     points = np.array([(0.0, 0, 0), (12.5, 0, 0), (18.0, 0, 0), (0, 18.0, 0), (0, 21.0, 0), (60.0, 0, 0)])
     # the middle of the lens is 7.5 mm inside each ball, and 15.6 mm from where the two meet, the outer surface there
     assert mm(points) == pytest.approx([-FAR, -FAR, -FAR, -2.0, 1.0, FAR], abs=0.15)
+    # a point on the first ball's own surface where it runs through the second, 15 mm under the second's: his scalp
+    # under his hair is such a surface, and the cranium tray and its boards stand across it (#1089)
+    assert mm(np.array([(20.0, 0, 0), (19.0, 6.2, 0)])) == pytest.approx([-FAR, -FAR])
 
 
 @pytest.fixture(scope="module")

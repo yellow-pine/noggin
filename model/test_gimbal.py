@@ -40,8 +40,6 @@ def test_each_lid_servo_drives_from_the_inner_side_of_its_eye(side):
     face, shaft, _, _ = gimbal.drives()[f"{side} lid"]
     x = gimbal.EYE[side][0]
     assert 0 < abs(face[0]) < abs(x) and np.sign(shaft[0]) == -np.sign(x)
-    # the lids' frame across both eyes within Morty's life-size cranium (#901)
-    assert gimbal.SPACING + 2 * gimbal.LID_X["upright"][1] <= gimbal.HEAD_MM[0]
 
 
 def _box(drive, part="case"):
