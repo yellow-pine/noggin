@@ -2,6 +2,7 @@
 0025): on the Mech's eyes and neck, under Morty's skin (envelope.py), one piece each; the scene itself committed
 light, its one source under its own licence."""
 
+import fcntl
 import functools
 import itertools
 import os
@@ -15,7 +16,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import mjcf, skeleton, stages
+from model import mjcf, review, skeleton, stages
 from model import neck as nk
 from model import skin as sk
 from model.morty import shells
@@ -71,9 +72,12 @@ def test_the_exporter_cuts_every_seat_a_skin_has_in_bone():
     its floor and behind its whole bore (the ball through both rims, and half a voxel for the Finish's grid: 5.0 mm,
     its middle 0.1 mm in front of the Seat's face, which the flat cuts back to). The skull's seven have one; the
     chin's, in the mandible, which is solid, has none.
-    Each flat is the Seat's pad and skeleton.SEAT_ROOM wider, so the Shell's boss stands in it free."""
+    Each flat is the Seat's pad and skeleton.SEAT_ROOM wider, so the Shell's boss stands in it free. And the worn
+    copy keeps each Seat's own disc from its carve round the Shells, the flat's, as far back into the bone as the
+    magnet's pocket and the print floor behind it."""
     seats = skeleton.job()["seats"]
     assert seats["flat"] == sk.PAD_R + skeleton.SEAT_ROOM and len(seats["at"]) == len(SKIN_SEATS) == 8
+    assert seats["back"] == 4.0 == sk.MAGNET[1] + skeleton.FLOOR
     bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
     for s, (names, frame, pad) in zip(SKIN_SEATS, seats["at"], strict=True):
         assert names == [s.carrier, g.WORN[s.carrier]]
@@ -98,6 +102,22 @@ def test_the_exporter_cuts_the_mandibles_two_pockets_for_its_hold_on_the_jaw():
     assert [names for names, _ in pockets] == [["mandible", "worn mandible"]] * 2
     assert [tuple(np.array(frame)[:3, 3]) for _, frame in pockets] == [(6.0, -2.6, -78.0), (-6.0, -2.6, -78.0)]
     assert all(np.array(frame)[:3, 2] == pytest.approx((0.0, 1.0, 0.0)) for _, frame in pockets)
+
+
+def test_the_finish_of_a_document_that_wears_the_shells_carves_its_worn_bones_round_them():
+    """#850: job() takes the document to finish the bones for. The documents wear the eyeball caps alone
+    (g.SKINS), so those are all a worn bone is carved round; for one that wears Morty's Shells too (review.worn())
+    each bone gets every Shell as it sees it over every pose: the chin once from the mandible, which it rides, and
+    the face wherever the jaw's travel puts it."""
+    caps = {f"{s} eyeball cap:1" for s in "LR"}
+    assert {n for kinds in skeleton.job()["bones"].values() for n, _ in kinds["skins"]} == caps
+    worn = skeleton.job(review.worn())["bones"]
+    morty = {f"morty {n}:1" for n in g.SHELLS["morty"]}
+    for bone in ("skull", "mandible"):
+        assert {n for n, _ in worn[bone]["skins"]} == caps | morty
+        assert not morty & {n for kind in ("rigid", "moving") for n, _ in worn[bone][kind]}
+    places = [n for n, _ in worn["mandible"]["skins"]]
+    assert places.count("morty chin:1") == 1 and places.count("morty face:1") >= 5
 
 
 @functools.cache
@@ -266,18 +286,31 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
         assert (solids[cap] ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at)).volume() > 0
 
 
-@pytest.mark.model
-@pytest.mark.bones
-@pytest.mark.parametrize("worn", [False, True], ids=["bare", "worn"])
-@pytest.mark.parametrize("seat", SKIN_SEATS, ids=lambda s: f"{s.shell} {s.at[0]:+.0f}")
-def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, worn, solids):
-    """#850: each Seat a Skin has in bone (model/skin.py SEATS), in the bare copy of its carrier and in the worn
-    one, read in the Seat's own frame, z out of the bone. No bone stands in front of the Seat's face as far round as
-    its flat, so the Shell's boss comes down onto it free. The face is bone: round the pocket, and between the
-    grooves out to their far ends. The magnet's pocket is open from the face, a magnet deep and its fit round, with
-    the print floor of bone (skeleton.FLOOR) round it under the grooves' depth and behind it. And a ball at each of
-    the Shell's three places meets no bone, while one 0.05 mm larger does: it rests in its groove's sides."""
-    bone = solids[g.WORN[seat.carrier] if worn else seat.carrier]
+@pytest.fixture(scope="module")
+def wearing(tmp_path_factory, worker_id):
+    """{worn bone: its solid} as the Finish leaves it for a document that wears Morty's Shells (review.worn()): a
+    Blender run of its own, 50 s, once a run: xdist's workers share the folder over theirs, and the first to take
+    its lock builds for all. No document wears them yet (g.SKINS), so `just ours` carves the worn bones round the
+    eyeball caps alone, and what the Shells' carve does to a bone would go unread. Once a document wears them,
+    `just ours` builds these and this goes."""
+    base = tmp_path_factory.getbasetemp()
+    out = (base if worker_id == "master" else base.parent) / "wearing"
+    with open(f"{out}.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not (out / "done").exists():
+            skeleton.finish(str(out), review.worn())
+            (out / "done").touch()
+    meshes = {stem: trimesh.load(out / f"{stem}.stl", force="mesh") for stem in g.WORN.values()}
+    return {stem: shells._solid(mesh.vertices, mesh.faces) for stem, mesh in meshes.items()}
+
+
+def _seated(bone, seat):
+    """Whether `bone` (a solid) has `seat` cut in it, read in the Seat's own frame, z out of the bone. No bone stands
+    in front of the Seat's face as far round as its flat, so the Shell's boss comes down onto it free. The face is
+    bone: round the pocket, and between the grooves out to their far ends. The magnet's pocket is open from the
+    face, a magnet deep and its fit round, with the print floor of bone (skeleton.FLOOR) round it under the
+    grooves' depth and behind it. And a ball at each of the Shell's three places meets no bone, while one 0.05 mm
+    larger does: it rests in its groove's sides."""
     to = np.array(sk.frame(seat))[:3]
     bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
 
@@ -297,6 +330,57 @@ def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, w
         at = sk.RING * np.cos(np.radians(deg)), sk.RING * np.sin(np.radians(deg)), sk.GAP
         assert (bone ^ m3.Manifold.sphere(sk.BALL_R, 48).translate(at).transform(to)).volume() < 0.01, deg
         assert (bone ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at).transform(to)).volume() > 0, deg
+
+
+EACH_SEAT = pytest.mark.parametrize("seat", SKIN_SEATS, ids=lambda s: f"{s.shell} {s.at[0]:+.0f}")
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("worn", [False, True], ids=["bare", "worn"])
+@EACH_SEAT
+def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, worn, solids):
+    """#850: each Seat a Skin has in bone (model/skin.py SEATS) is cut (_seated()) in the bare copy of its carrier
+    and in the worn one."""
+    _seated(solids[g.WORN[seat.carrier] if worn else seat.carrier], seat)
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@EACH_SEAT
+def test_the_carve_round_the_shells_leaves_each_seat_in_bone_alone(seat, wearing):
+    """#850: finished for a document that wears Morty's Shells, a worn bone is carved a moving part's room clear of
+    every Shell, and the Shell's own boss stands a Seat's gap over the Seat's face: carved round, the face went
+    from under it, with the grooves and half the bone round the pocket (measured: all eight). The carve stops at
+    each Seat's own disc (export.spared()), so the Seat is cut there as in the bare copy (_seated())."""
+    _seated(wearing[g.WORN[seat.carrier]], seat)
+
+
+@pytest.mark.model
+@pytest.mark.bones
+def test_the_worn_mandible_clears_the_faces_edge_under_the_jaw_all_the_way_open(wearing):
+    """#850: as the jaw opens wide the face's edge under the jaw comes up between the bone and the chin's wall.
+    Carved round the caps alone, the worn mandible's lower front edge ran into it from about 19 of the jaw's 25 deg
+    (42.7 mm3 shared wide open, measured). Finished for a document that wears the Shells, the bone shares nothing
+    with the face and keeps a worn Shell's room from it (gm.LID_CLEAR_MM) over the jaw's whole travel, read between
+    the five places its Finish carves it at too: 1.1 mm wide open, where the carve stops at the chin's Seat, whose
+    disc it leaves (the test above; 1.6 were the Seat not there, measured). Exact solids, the face as the bone sees
+    it, the part of it within reach of the bone."""
+    stage, bone = review.worn(), wearing[g.WORN["mandible"]]
+    face = trimesh.load(stages.stl("morty face"), force="mesh")
+    face = shells._solid(face.vertices, face.faces)
+    eyes, name = stages.align(*stages.DOCS[skeleton.DOC]["eyes"]), f"{g.WORN['mandible']}:1"
+    lo, hi = np.reshape(bone.bounding_box(), (2, 3))
+    reach = m3.Manifold.cube(tuple(hi - lo + 20.0)).translate(tuple(lo - 10.0))
+    near = {}
+    for deg in np.linspace(*stage.horns["jaw horn"].limits, 13):
+        parts = stages.pose(stage, "jaw horn", float(deg)).parts
+        at = np.linalg.inv(eyes) @ stage.parts[name].matrix @ np.linalg.inv(parts[name]) @ parts["morty face:1"]
+        seen = face.transform(at[:3]) ^ reach
+        near[round(float(deg), 1)] = ((bone ^ seen).volume(), bone.min_gap(seen, 3.0))
+    assert max(shared for shared, _ in near.values()) == 0.0, near
+    # and under the carve's own room: the edge does come that near, so this reads it
+    assert gm.LID_CLEAR_MM < min(gap for _, gap in near.values()) < skeleton.CLEAR_MM, near
 
 
 @pytest.mark.model
