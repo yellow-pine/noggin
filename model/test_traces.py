@@ -24,7 +24,7 @@ def horn(writes, name):
 def test_the_mech_points_its_linked_eyes_through_the_gimbals_command_map():
     """#663, #896: the wink's glance, the eye program's 8 deg to the Mech's left, is 8 deg on the one yaw servo (the
     program's range is the gimbal's, its calibration the model's nominals), the pitch servo level; the winking eye's lids shut, meeting
-    over its middle (lid servo -76.8 from open, #967, model/test_gimbal.py) as the other squints, and both come
+    over its middle (lid servo -75.2 from open, #967, model/test_gimbal.py) as the other squints, and both come
     back to rest (0)."""
     writes, times = traces.commands("wink")
     yaw, pitch = (horn(writes, f"{s} horn") for s in ("yaw", "pitch"))

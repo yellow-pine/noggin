@@ -3,9 +3,9 @@ import pytest
 import eyes as mod
 
 RANGES = {
-    mod.L_LID: (85.5, 166.8),
+    mod.L_LID: (85.5, 165.2),
     mod.YAW: (65, 115),
-    mod.R_LID: (13.2, 94.5),
+    mod.R_LID: (14.8, 94.5),
     mod.PITCH: (59.6, 120.4),
 }  # servo degrees
 

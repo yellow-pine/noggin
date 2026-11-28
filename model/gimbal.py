@@ -27,26 +27,33 @@ from model import geometry as g
 # model/review MORTY_EYES); his eyeballs' centres this far apart
 MORTY_BALL_R = 37.1
 SPACING = 73.3  # eye centres apart: his Sculpt's eyeballs', each fitted to its dome (#967, model/review MORTY_EYES)
-# the eye's growth, x1.4, from the 27 mm cap the gimbal was first drawn round (#630): the core, its lever and the yoke
-# are sized to his eyeball's own radius (x1.5, to the 40.4 mm cap's, before #967), so they turn inside the lids' shell
-K = round(MORTY_BALL_R / 27.0, 1)
+# the eye's growth, x1.3, from the 27 mm cap the gimbal was first drawn round (#630): the core, its seat and the yoke
+# are sized to his eyeball cap's radius (CAP_R, 34.9; x1.4 to his eyeball's own 37.1 before the eyes sank, x1.5 to the
+# 40.4 mm cap's before #967), so the yoke's crank and the tie-bar's fingers under it stand 1.4 mm higher and leave the
+# yaw bearing's pad its depth inside the lids' shell (3.3 mm where the web gives way under the fingers' bosses; 1.9
+# at x1.4, SF 1.0 at the eyes' servos' stall)
+K = 1.3
 EYE = {"L": (SPACING / 2, 0.0, 0.0), "R": (-SPACING / 2, 0.0, 0.0)}
 SERVO_DEG = 90.0  # a servo's travel either side of its centre
 YAW, PITCH = 25.0, 15.0  # each eye's range, +-: the neck joins larger gaze shifts (#51)
 CRANK = g.HORN_STEP["pin"]  # the horn's pin hole from its hub: every crank the horns drive or match
 PIN_R = 1.6  # the busy pivots' M3 steel shank (model/printed/coupon.py) in a bore 0.1 over it
 CORE_R, SEAT_R = 13.0 * K, 8.0 * K  # the core ball; the boss its cap sits on
-LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
+# the lever up the yaw axis to its ball's centre: 17 x 1.4, as his 37.1 mm eyeball had it, since the pitch drive (the
+# push-rod, the bail's arm, the core's relief, the pitch's calibration) is laid out from that ball and none of it
+# stands in the yaw bearing's way
+LEVER, BALL_R = 23.8, 3.0
 # a push-rod's reach about the line between its balls: its cups' 1.5 mm walls, and the skirt its bail cup stands on
 # its bed with (#967, model/printed/gimbal.py push_rod)
 ROD_R = BALL_R + 1.7
 YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from below, round the core
 # The yaw drive round the lids' shell (#967, the re-layout). The hidden lids and their cap sweep a shell
-# LIDS_SHELL from each eye's centre (the cap's 35.8, the lids' band 36.35 to 37.1, 0.5 clear: CAP_R, LID_R), through
+# LIDS_SHELL from each eye's centre (the cap's 34.9, the lids' band 35.45 to 36.2, 0.5 clear: CAP_R, LID_R), through
 # LIDS_SWEEP deg about the eye line where the yaw drive stands (from forward, up positive), and nothing else may
 # cross it: only the belt behind the eye, between the two stowed lids' back edges, is a way out of the eye's sphere,
 # and the lids' own hubs between the eyes. The face's wall comes no nearer an eye's centre than LIDS_SHELL[1] where
-# a lid ever is (#850: the band is 0.75 mm, not 1.2, so a brow laid on the face has 1.4 mm under it). So each
+# a lid ever is: the eyes are sunk (Cansin, 2026-11-28, #893's fifth round) so that 0.4 mm of the face's wall reaches
+# each opening's own outline over it, where his skin is 37.15 mm or more from the centre (#850). So each
 # yoke has no stem: its crank lies at its bottom bar's level and it turns on a post (POST_R) on its yaw bearing, which
 # lies inside the shell (out to RAIL_R[1], the lids' band less its clearance: the cap never comes behind the yaw axis
 # inboard), runs back and inboard from under the yoke and leaves the shell RAIL_EXIT (deg inboard along the eye line,
@@ -55,7 +62,7 @@ YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from belo
 # (y, z) line, FINGER_X outboard of the pin) to a cross-bar behind the eyes (CROSS_Y, CROSS_Z), and a tail down the
 # midline to the yaw horn's pin, which stays in TIE_Z with the horn and its servo. Inferred, from the rough CAD of the
 # layout (#967, comment 7209502441) and the exact solids since
-LIDS_SHELL = (35.8, 37.6)
+LIDS_SHELL = (34.9, 36.7)
 LIDS_SWEEP = (-144.0, 166.0)
 YAW_CRANK_Z = (-(YOKE["inner"] + YOKE["wall"]), -YOKE["inner"])  # the yokes' cranks, at their bottom bars' level
 FINGER_Z = (YAW_CRANK_Z[0] - 3.0, YAW_CRANK_Z[0])  # the tie-bar's fingers' pins, under the cranks
@@ -94,23 +101,23 @@ BAIL_TIP = (
 BAIL_END = 18.0
 PITCH_HORN = (72.25, -20.0)  # its arm along +y at rest: where the bail's old axis put it (60 behind the eyes, #838)
 GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
-# Each eyeball cap (#967): his eye white, a sphere 1.3 mm under his Sculpt's eye (Cansin: 35.8), solid within CAP_HALF
+# Each eyeball cap (#967): his eye white, a sphere 2.2 mm under his Sculpt's eye (Cansin: 34.9), solid within CAP_HALF
 # of the gaze (its flat back on the core's seat, where the old cap's was) and a shell CAP_WALL thick from there out
 # to its eye opening's own outline as the front sees it (model/printed/skin.py cap): the opening is the Sculpt's, and
 # the eye has no Shell. Below the eye line it ends on the rim's own way out from the eye's centre instead, CAP_LOW of
 # the outline as the front sees it: pitched down, a cap that filled the outline there met the yaw bearing under it
 CAP_R, CAP_HALF, CAP_WALL = LIDS_SHELL[0], 37.0, 1.6
 CAP_LOW = CAP_R / MORTY_BALL_R
-# how far toward the other eye a cap reaches, deg off its gaze: where the front sees its opening's inner corner on
-# it (30.9 mm from the eye's middle, the R eye's), through the shell's depth, so yawed in it stays 3.5 mm from the
-# eye line
+# how far toward the other eye a cap reaches, deg off its gaze, through the shell's depth: 0.75 mm short of where
+# the front sees its opening's inner corner on it (62.3 deg), so yawed in it stays 3.1 mm from the eye line, where
+# the lids' sleeves are (to the corner it would pass 1.6 mm from the line)
 CAP_IN = 59.7
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
 # The lids (#967, Cansin, 2026-11-28: "the shut line works, build it"): both in one band LID_R, two perimeters, its
-# outer face on his eye's own surface, so no lid stands proud of his skin at an opening's rim. Open, the lower lid's
+# outer face 0.9 mm under his eye's own surface, the face's thinnest wall and the lids' clearance. Open, the lower lid's
 # edge lies along its opening's bottom rim, where the cap's bottom edge shows (CAP_LOW: cut to the rim's curve, seen
-# from the front, so the sliver of lid Cansin accepted, 1.2 mm, fills the opening under the cap), and the upper
+# from the front, so the sliver of lid Cansin accepted, 2.2 mm, fills the opening under the cap), and the upper
 # lid's, the same curve, is parked wholly behind the top rim; shut, the two edges meet LID_SLIT apart on that curve
 # lifted LOWER_TRAVEL, LID_SHUT deg over the eye's middle. The upper lid turns UPPER_TRAVEL from there to the servo's
 # centre, the lids' rest: the opening's greatest height about the eye line over that curve, less the lower's, so its
@@ -127,7 +134,7 @@ PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (
 # lie up to 0.03 mm inside a sphere (0.47 mm for an exact 0.5, model/printed/test_skin.py)
 LID_OVER = 0.05
 LID_R = (LIDS_SHELL[0] + LID_CLEAR_MM + LID_OVER, LIDS_SHELL[1] - LID_CLEAR_MM)
-LID_SHUT, LOWER_TRAVEL, UPPER_TRAVEL, LID_WIDE = 6.5, 65.9, 76.8, 4.5
+LID_SHUT, LOWER_TRAVEL, UPPER_TRAVEL, LID_WIDE = 6.5, 63.5, 75.2, 4.5
 LID_SLIT = 0.6  # between the shut lids' edges: the lids' clearance, and a tenth for what a sampled sweep misreads
 LID_COVER, LID_TIPS, COVER_FREE = 4.0, (2.6, 12.0), 5.2
 LID_ENDS = (-62.0, 82.0)  # the lids' ends along the eye line, deg from the eye's middle (outward positive)
@@ -164,7 +171,7 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # the link meeting the crank at 54 deg or more
 LINK_CRANK = 6.75
 LINK_PIN = tuple(np.add(LID_HORN, np.multiply(LID_PIN, LINK_CRANK / CRANK)))  # (y, z) of the link's pin on the horn
-LOWER_CRANK = (7.61, -124.0)  # the lower lid's crank at rest: mm, deg from forward toward up
+LOWER_CRANK = (7.72, -123.0)  # the lower lid's crank at rest: mm, deg from forward toward up
 LOWER_PIN = (
     -LOWER_CRANK[0] * math.cos(math.radians(LOWER_CRANK[1])),
     LOWER_CRANK[0] * math.sin(math.radians(LOWER_CRANK[1])),
@@ -190,12 +197,12 @@ BAIL_INPUT_X = (PITCH_BAR_X[0] - 4.0, PITCH_BAR_X[0])  # face-to-face with the b
 # it: the lower lid's spoke, back and down to its band; its crank, far enough from the midline that the cap's shell is
 # 12 mm from the eye line there, its pin's boss out to the link; the bar and the link, side by side on the horn's
 # face (the bar above, the link under it), 3 mm for the link's buckling; and the upper lid's crank and spoke, short of
-# the yawing yoke (22.95), 0.2 mm off the link, which passes beside the spoke: the 1.25 mm the lid servo leaves them
+# the yawing yoke (22.95 when they were laid out; 21.6 since it shrank with the sunk eye), 0.2 mm off the link, which passes beside the spoke: the 1.25 mm the lid servo leaves them
 # (0.15 mm further in than it stood: further, and the bail's input arm comes under 1.9 mm from its tab). No lid has a guide at its outer end (comment 7209505450); a
 # sleeve is 5.4 to 5.8 mm long where that layout had lands 11 mm apart, which two lids a side do not fit: about
 # 0.5 mm of tilt at the band's middle (inferred), all of the band's room, until a build shows it
 LID_X = {
-    **{"upper": (23.45, 24.7), "bar": (24.9, 27.9), "link": (24.9, 27.9), "crank": (29.05, 31.0)},
+    **{"upper": (23.45, 24.7), "bar": (24.9, 27.9), "link": (24.9, 27.9), "crank": (29.05, 30.45)},
     **{"lower": (32.45, 34.85), "upper sleeve": (23.45, 28.85), "lower sleeve": (29.05, 34.85)},
 }
 HUB_R, WALL_X = 2.5, 1.3
@@ -203,7 +210,7 @@ HUB_R, WALL_X = 2.5, 1.3
 # lies on a line through the eye line, so all of the spoke is behind what the cap's shell sweeps between the eyes
 # (lid angles -93 to 105, read on its mesh over the yaw and the pitch); SPOKE_W wide behind that edge, for the
 # lid servo's stall through a jammed lid at SF 2 across the layers (a hand sum: 11 and 12 MPa)
-SPOKES, SPOKE_W = {"upper": 108.0, "lower": -98.0}, {"upper": 8.0, "lower": 6.0}
+SPOKES, SPOKE_W = {"upper": 115.0, "lower": -98.0}, {"upper": 8.0, "lower": 6.0}
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
 # to a foot behind each cheek (FOOT_X: where the lids' uprights stood before the lids' hubs moved between the eyes,
