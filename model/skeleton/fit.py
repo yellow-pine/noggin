@@ -19,10 +19,11 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal, neck, skeleton
+from model import skin as sk
 from model.skeleton import budget, envelope
 
 LATTICE = 20.0  # the field's control spacing, mm
-LOW, MARGIN = 0.75, 0.01  # the compression floor; the solve's margin inside every bound, so the check passes
+LOW, MARGIN = budget.LOW, 0.01  # the compression floor; the solve's margin inside every bound, so the check passes
 TOL_MM = 1.0  # a functional landmark's miss, at most
 ROUNDS = 6  # the solve's rounds, at most, each adding the face points still short of the skin's limit
 # the solve's weights: on a length factor past the budget, a landmark's miss and a vertex past its limit (a mm2 each)
@@ -57,6 +58,13 @@ GAP_MM = 15.6  # the alveolar ridges' gap at rest in BodyParts3D's own articulat
 # the regions' uniform resize (the neck's: neck_scale()): the skull's back and crown then stand at Morty's own, and
 # its orbits (59.6 mm apart on the Basis) spread to his eyes (73.3) inside the face's 1.25
 SCALES = {"skull": 1.05, "mandible": 1.0}
+# the neck's skin rides the head (#893, 2026-11-27): the box the vertebrae are fitted in, in which the skin is read
+# as the still neck sees it, the head's poses NOD and SWING deg apart (the rim moves about 1.2 mm a step, inside AIM
+# and the Finish's half voxel)
+NECK_BOX = ((-42.0, PAN[1] - 32.0, neck.CERVICAL_PATH[2][1] - 4.0), (42.0, PAN[1] + 48.0, TILT[2] + 4.0))
+NOD, SWING = 1.0, 2.5
+# the factors a slimmed zone is tried at (budget.slim), the greatest that brings it RAW under that skin taken
+SLIMS = (1.0, 0.8, 0.65, 0.5, 0.4, 0.3, 0.2, 0.15, 0.1, 0.05)
 
 
 def lattice(points, lo, shape):
@@ -88,13 +96,15 @@ def spread(x, faces):
     return sp.csr_matrix((w.ravel(), (np.repeat(np.arange(len(p)), 3), faces[f].ravel())), shape=(len(p), len(x)))
 
 
-def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, faces=None):
+def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, faces=None, lows=LOW, pre=None):
     """The field over the region's Basis `x` (n, 3): x -> scale * (x + u(x)). `pairs`: (Basis point, target, per-axis
     weight); `skin` (envelope.Skin): every warped vertex RAW under it, and with the region's `faces` the points
     spread over them too (a crease of the skin cuts in between vertices: the points spread over the Basis, then, a
     round at a time, those spread over the Warp that still come short); `fill`: the rows drawn out to that limit,
     softly: the budget and the pairs win; `lo`: the warped region's lower bound; `clear` (rows, points): those rows
-    kept CLEAR_MM off the points. Returns the warped x, the field's Jacobians (n, 3, 3) and the warped pair points."""
+    kept CLEAR_MM off the points; `lows`: each vertex's compression floor where it is not LOW (budget.floors); `pre` (n, 3, 3): what brought the
+    original anatomy to `x` already (budget.slim), which the budget counts with the field. Returns the warped x, the
+    Jacobians (n, 3, 3) from the original anatomy and the warped pair points."""
     origin = x.min(0) - LATTICE
     shape = np.ceil((x.max(0) + LATTICE - origin) / LATTICE).astype(int) + 3
     B = lattice(x, origin, shape)
@@ -104,14 +114,17 @@ def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, f
     over_faces = spread(x, faces) if skin and faces is not None else None
 
     def jacobians(d):
-        return np.eye(3) + np.stack([B[j + 1] @ d for j in range(3)], -1)
+        f = np.eye(3) + np.stack([B[j + 1] @ d for j in range(3)], -1)
+        return f if pre is None else f @ pre
 
     def energy(z):
         d = z.reshape(k, 3)
         y = scale * (x + B[0] @ d)
         u, s, vt = np.linalg.svd(jacobians(d))
-        over, under = np.maximum(s[:, 0] - (caps - MARGIN), 0), np.maximum(LOW + MARGIN - s[:, 2], 0)
+        over, under = np.maximum(s[:, 0] - (caps - MARGIN), 0), np.maximum(lows + MARGIN - s[:, 2], 0)
         gf = 2 * (over[:, None, None] * (u[:, :, :1] @ vt[:, :1]) - under[:, None, None] * (u[:, :, 2:] @ vt[:, 2:]))
+        if pre is not None:
+            gf = gf @ pre.transpose(0, 2, 1)  # on the field's own Jacobian
         e = BUDGET * (over @ over + under @ under)
         gd = BUDGET * sum(B[j + 1].T @ gf[:, :, j] for j in range(3))
         r = (scale * (P + Bp @ d) - T) * W
@@ -160,10 +173,11 @@ def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, f
     return y, jacobians(d), scale * (P + Bp @ d)
 
 
-def stretch(f, caps):
-    """Each vertex's least and greatest local length factor; raises past the budget (LOW to its cap)."""
+def stretch(f, caps, lows=LOW):
+    """Each vertex's least and greatest local length factor; raises past the budget (its floor, LOW but in a slimmed
+    zone, to its cap)."""
     s = np.linalg.svd(f, compute_uv=False)
-    bad = (s[:, 0] > caps) | (s[:, 2] < LOW)
+    bad = (s[:, 0] > caps) | (s[:, 2] < lows)
     if bad.any():
         raise ValueError(
             f"local stretch outside the budget at {bad.sum()} vertices: {s[:, 2].min():.3f}..{s[:, 0].max():.3f}"
@@ -227,11 +241,27 @@ def aperture(basis):
     return (nasal[nasal[:, 2].argmin()] + mid[mid[:, 1].argmin()]) / 2
 
 
-def seen(points, tilt, pan):
-    """Points fixed to the neck as the head sees them, tilted and panned (degrees; the pan's axis tilts with it)."""
+def head(tilt, pan):
+    """The head's move from rest (4x4), tilted and panned (degrees; the pan's axis tilts with it)."""
     turn = trimesh.transformations.rotation_matrix
-    head = turn(np.radians(tilt), (1, 0, 0), TILT) @ turn(np.radians(pan), (0, 0, 1), PAN)
-    return trimesh.transform_points(points, np.linalg.inv(head))
+    return turn(np.radians(tilt), (1, 0, 0), TILT) @ turn(np.radians(pan), (0, 0, 1), PAN)
+
+
+def seen(points, tilt, pan):
+    """Points fixed to the neck as the head sees them, tilted and panned."""
+    return trimesh.transform_points(points, np.linalg.inv(head(tilt, pan)))
+
+
+def neck_skin(skin):
+    """Morty's `skin` as the still neck sees it (envelope.turning) over NECK_BOX: his skin above the collar's cut
+    rides the head, every NOD deg of tilt and SWING deg of pan over their ranges together."""
+    collar = sk.cuts()["collar"][1]
+    moves = [
+        np.linalg.inv(head(t, p))
+        for t in np.arange(neck.RANGES["tilt"][0], neck.RANGES["tilt"][1] + NOD / 2, NOD)
+        for p in np.arange(neck.RANGES["pan"][0], neck.RANGES["pan"][1] + SWING / 2, SWING)
+    ]
+    return envelope.turning(skin, envelope.sculpt()[0], lambda p: ~sk.inside(p[:, [1, 2]], collar), moves, *NECK_BOX)
 
 
 def canal(mesh, b=0.5):
@@ -271,25 +301,57 @@ def neck_scale(basis):
 
 def vertebrae(basis, faces, skin):
     """({vertebra: fitted vertices}, the report): C1 to C7 resized uniformly about C1's top, under the occipital
-    condyles, each canal onto the path, C1's round the pan axis; then one field over them all that brings every spine
-    RAW under `skin` (Morty's neck and shoulders), each canal and each body's front staying where they stand."""
+    condyles, each canal onto the path, C1's round the pan axis; C5 and C6 slimmed toward their canals in their
+    declared zones (budget.slim) by the greatest of SLIMS that brings each RAW under `skin` (Morty's neck and
+    shoulders as the still neck sees them while his neck's skin rides the head: neck_skin()); then one field over them
+    all for what is left, each canal staying where it stands, and each body's front too where the skin's rim leaves
+    it be (C1 to C5). The budget counts the slimming with the field; the report gives each slimmed vertebra's factor,
+    its zone's vertices, those squashed past LOW and the least length factor there."""
     s, top = neck_scale(basis), basis[NECK[0]][:, 2].max()
-    placed, pairs = [], []
+    placed, pairs, lows, pre, factors = [], [], [], [], {}
     for n in NECK:
         v = basis[n]
         c, zc = canal(trimesh.Trimesh(v, faces[n], process=False)), (v[:, 2].min() + v[:, 2].max()) / 2
         z = TILT[2] - C0_BELOW - 0.5 + s * (zc - top)
         at = (0.0, PAN[1] if n == NECK[0] else canal_y(z), z)
-        placed.append(s * (v - (*c, zc)) + at)
-        front = placed[-1][placed[-1][:, 1].argmin()]
-        pairs += [(at, at, (1, 1, 1)), (front, front, (1, 1, 1))]
-    x = np.vstack(placed)
+
+        def place(points, factor, n=n, c=c, zc=zc, at=at):
+            return s * (budget.slim(n, points, c, factor) - (*c, zc)) + at
+
+        factor = 1.0
+        if n in budget.SLIMMED:
+            factor = next((k for k in SLIMS if skin.depth(surface(place(v, k), faces[n])).min() >= RAW), None)
+            if factor is None:
+                raise ValueError(
+                    f"{n} slimmed to {SLIMS[-1]} still comes within {RAW} mm of the skin that rides the head"
+                )
+            factors[n] = factor
+        placed.append(place(v, factor))
+        # the slimming's own Jacobian at each vertex, on the original anatomy (the uniform resize aside)
+        pre.append(np.stack([(place(v + h, factor) - place(v - h, factor)) / (2e-3 * s) for h in 1e-3 * np.eye(3)], -1))
+        lows.append(budget.floors(n, v, c))
+        pairs.append((at, at, (1, 1, 1)))
+        if n in NECK[:5]:
+            front = placed[-1][placed[-1][:, 1].argmin()]
+            pairs.append((front, front, (1, 1, 1)))
+    x, lows = np.vstack(placed), np.concatenate(lows)
     caps = np.full(len(x), 1.25)
     tris = np.vstack([faces[n] + at for n, at in zip(NECK, np.cumsum([0, *map(len, placed[:-1])]))])
     foot = (-np.inf, -np.inf, neck.CERVICAL_PATH[2][1])  # the path's
-    y, f, hit = solve(x, caps, pairs, 1.0, skin, lo=foot, faces=tris)
-    report = _region(f, caps, hit, pairs) | {"scale": s, "skin_mm": _under(skin, y, tris)}
-    return dict(zip(NECK, np.split(y, np.cumsum([len(v) for v in placed])[:-1]))), report
+    y, f, hit = solve(x, caps, pairs, 1.0, skin, lo=foot, faces=tris, lows=lows, pre=np.concatenate(pre))
+    report = _region(f, caps, hit, pairs, lows) | {"scale": s, "skin_mm": _under(skin, y, tris)}
+    least, ends = np.linalg.svd(f, compute_uv=False)[:, 2], np.cumsum([0, *map(len, placed)])
+    report["slimmed"] = {
+        n: {
+            "factor": factors[n],
+            "allowed": int((lows[a:b] < LOW).sum()),
+            "used": int((least[a:b] < LOW).sum()),
+            "least": round(float(least[a:b].min()), 3),
+        }
+        for n, a, b in zip(NECK, ends, ends[1:])
+        if n in budget.SLIMMED
+    }
+    return dict(zip(NECK, np.split(y, ends[1:-1]))), report
 
 
 def _under(skin, y, faces):
@@ -302,8 +364,8 @@ def _under(skin, y, faces):
     return round(float(depth.min()), 2)
 
 
-def _region(f, caps, hit, pairs):
-    lo, hi = stretch(f, caps)
+def _region(f, caps, hit, pairs, lows=LOW):
+    lo, hi = stretch(f, caps, lows)
     miss = np.abs(hit - np.array([p[1] for p in pairs])) * np.array([p[2] for p in pairs])
     if miss.max() > TOL_MM:
         raise ValueError(f"a landmark misses by {miss.max():.2f} mm")
@@ -331,9 +393,10 @@ def outer(x, caps, step=3.0, skin=3.0):
     return (r > far[at] - skin) & ((el > VAULT_EL) | (caps > 1.375))
 
 
-def warp(basis, faces, landmarks, skin):
+def warp(basis, faces, landmarks, skin, still=None):
     """({bone: warped vertices}, the report) from {bone: Basis vertices}, {bone: triangles}, the Basis's landmarks
-    {name: point} (the scene's LM empties) and Morty's `skin` (envelope.Skin), all in the head's frame."""
+    {name: point} (the scene's LM empties) and Morty's `skin` (envelope.Skin), all in the head's frame; `still`: his
+    skin as the still neck sees it (neck_skin()), which the vertebrae are fitted under."""
     lm = {k.removeprefix("LM "): np.asarray(v, float) for k, v in landmarks.items()}
     occ = occipital_condyles(basis["occipital bone"])
     ref = {
@@ -342,7 +405,7 @@ def warp(basis, faces, landmarks, skin):
         "condyles": [lm["L condyle"], lm["R condyle"]],
     }
     out, report = {}, {"scales": dict(SCALES)}
-    fitted, report["neck"] = vertebrae(basis, faces, skin)
+    fitted, report["neck"] = vertebrae(basis, faces, still or skin)
     report["scales"]["neck"] = report["neck"].pop("scale")
 
     skull = [n for n in basis if n not in (*NECK, JAW)]
@@ -425,7 +488,8 @@ def rewarp(scene):
             {n: data["basis|" + n] - frame for n in names},
             {n: data["faces|" + n] for n in names},
             {k.split("|", 1)[1]: data[k] - frame for k in data if k.startswith("landmark|")},
-            envelope.morty(),
+            skin := envelope.morty(),
+            neck_skin(skin),
         )
         np.savez(dst, **{n: v + frame for n, v in out.items()})
         json.dump(report, open(rep, "w"))

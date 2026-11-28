@@ -68,3 +68,19 @@ def test_mortys_skin_is_built_once_and_read_from_its_file_by_whoever_waited(tmp_
     assert len(builds) == 1 and len(list(build.glob("envelope-*.npz"))) == 1
     for skin in skins:
         assert skin.depth(np.array(((0, 0, 20.0),))) == pytest.approx(10.0, abs=0.2)
+
+
+def test_a_still_point_reads_its_least_depth_under_the_skin_that_rides_the_head():
+    """A 30 mm tube, upright, its upper half (z over 0) riding a head that nods 20 deg either way about an axis 40 mm
+    over the cut, as Morty's neck rides his (#874): a still point 4 mm under the tube's back, just over the cut, is
+    6.4 mm out of it when the nod swings the back forward past it, and so is one at the front; one at the side, on
+    the nod's axis, stays under it (1.4 mm, the tube turning past it); one deep under the cut is hidden there, by its
+    distance to the rim as it swings nearest (26.5 mm), which is less than its depth under the still skin (30)."""
+    tube = trimesh.creation.cylinder(radius=30.0, height=120.0, sections=96)
+    turn = trimesh.transformations.rotation_matrix
+    moves = [np.linalg.inv(turn(np.radians(deg), (1, 0, 0), (0, 0, 40.0))) for deg in np.linspace(-20, 20, 41)]
+    seen = envelope.turning(
+        envelope.Skin(tube), tube, lambda p: p[:, 2] > 0, moves, np.array((-34.0, -34, -40)), np.array((34.0, 34, 20))
+    )
+    at = np.array(((0, 26.0, 5), (0, -26.0, 5), (26.0, 0, 5), (0, 0, -30.0)))
+    assert seen.depth(at) == pytest.approx((-6.4, -6.4, 1.4, 26.5), abs=0.5)
