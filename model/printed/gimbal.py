@@ -116,7 +116,7 @@ def bail_foot():
 
 
 # the relief on the core's top (#967): pitched down 15 deg, the leaned push-rod's underside passes 16.1 mm from the
-# core's centre, 2.1 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
+# core's centre, 0.8 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
 # round the lever's axis, its side this far from the centre and facing (out, up) this way, 2 mm under the rod's bar
 # wherever the eye turns (fitted to its underside over the pitch and the yaw)
 CORE_RELIEF = (14.0, (0.649, 0.760))
@@ -472,11 +472,11 @@ def _spoke(deg, back, x, w):
 
 # Each lid's tail (#967): its band running on behind its inner end to its spoke, under his skin. Between the planes
 # TAIL_X (from the eye's centre: the upper's from its spoke's slab, 0.2 mm off the bar's and the link's, which cross
-# the band's radius beside it, out to 0.7 mm short of the yaw bearing's neck, which the open lid's tail lies beside
-# (at -21.5 it was 0.02 mm into the neck, #1102); the lower's from its spoke's slab out to its band) and
+# the band's radius beside it, out to 1.2 mm short of the yaw bearing's neck, which the open lid's tail lies beside
+# (0.7 before the eyes sank; at -21.5 it was 0.02 mm into the neck, #1102); the lower's from its spoke's slab out to its band) and
 # the lid angles TAIL_DEG (shut)
 TAIL_X = {"upper": (-gm.LID_X["upper"][1], -22.1), "lower": (-gm.LID_X["lower"][1] + 0.05, -31.0)}
-TAIL_DEG = {"upper": (20.0, 131.0), "lower": (-134.0, 28.0)}
+TAIL_DEG = {"upper": (20.0, 138.0), "lower": (-134.0, 28.0)}
 CRANK_W = {"upper": 8.0, "lower": 7.0}  # each lid's crank's width, for its servo's stall at SF 2 (a hand sum)
 # A lid's edges follow every third point of its opening's outline, 6 mm apart, straight between them (0.13 mm inside
 # the outline at most): each point is a face on the lid, and the lid drives' sweep reads every face (#1053)

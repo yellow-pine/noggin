@@ -87,9 +87,9 @@ def test_the_wiring_table_is_built_from_the_code():
 
     table = macros.wiring()
     for row in [
-        "| 1 (eyes) | 1 | 3 | L lid | 13.2..94.5 | 90 |",
+        "| 1 (eyes) | 1 | 3 | L lid | 14.8..94.5 | 90 |",
         "| 1 (eyes) | 2 | 2 | yaw | 65..115 | 90 |",
-        "| 1 (eyes) | 3 | 1 | R lid | 13.2..94.5 | 90 |",
+        "| 1 (eyes) | 3 | 1 | R lid | 14.8..94.5 | 90 |",
         "| 1 (eyes) | 4 | 0 | pitch | 62.5..117.5 | 90 |",
     ]:
         assert row in table, row
