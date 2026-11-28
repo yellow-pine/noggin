@@ -55,10 +55,6 @@ STYLED = {
 UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
-    # his skin's own moving covers, in the face's filament, hidden under it but through his eye openings (#967)
-    **dict.fromkeys(
-        (f"{s} {lid} lid" for s in "LR" for lid in ("upper", "lower")), "a cover of his skin, no bone: none"
-    ),
     **dict.fromkeys(
         ("lid bar", "lid link"), "re-laid side by side on the lid horn's face (#967): #1097 draws their Bones"
     ),

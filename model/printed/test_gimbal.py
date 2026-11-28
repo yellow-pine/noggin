@@ -162,7 +162,7 @@ def _rims(outline, a):
 def test_the_lids_travels_and_the_caps_reach_are_read_off_his_eye_openings():
     """#967 (ADR 0011): the lower lid turns from where the cap's bottom edge shows at the eye's middle (the bottom rim
     drawn in by gm.CAP_LOW, as the front sees it) up to gm.LID_SHUT; the upper lid from there up by the greatest height
-    either opening has over that curve, and 4 deg (its edge's cut); and a cap reaches gm.CAP_IN toward the other eye,
+    either opening has over that curve, less half a degree; and a cap reaches gm.CAP_IN toward the other eye,
     where the front sees the further of the two openings' inner corners on it. All read off the eye whites' cuts."""
     heights, corners = [], []
     for side in gm.EYE:
@@ -171,7 +171,7 @@ def test_the_lids_travels_and_the_caps_reach_are_read_off_his_eye_openings():
         assert gm.LID_SHUT - _rims(low, 0.0)[0] == pytest.approx(gm.LOWER_TRAVEL, abs=0.1)
         heights.append(max(_rims(rim, a)[1] - _rims(low, a)[0] for a in np.arange(-50.0, 80.0)))
         corners.append(math.degrees(math.asin(-rim[:, 0].min() / gm.CAP_R)))
-    assert max(heights) - gm.LOWER_TRAVEL + 4.0 == pytest.approx(gm.UPPER_TRAVEL, abs=0.1)
+    assert max(heights) - gm.LOWER_TRAVEL - 0.5 == pytest.approx(gm.UPPER_TRAVEL, abs=0.1)
     assert max(corners) == pytest.approx(gm.CAP_IN, abs=0.1)
 
 
@@ -196,12 +196,13 @@ def _seen(mesh, points, eye):
 @pytest.mark.parametrize("side", "LR")
 def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(side):
     """#967 (Cansin, 2026-11-28): each opening is his Sculpt's own. Seen from the front, on a 0.5 mm grid inside its
-    outline: open, the upper lid shows nowhere but 0.5 mm of its edge past the top rim's outer part (under 5 mm2), and
-    the lower lid only under the cap's bottom edge, the sliver along the bottom rim (under 100 mm2: 1.2 mm wide); shut,
-    the two lids cover it all but a point or two at its outer corner, past the lids' ends."""
+    outline: at rest, open, the upper lid shows nowhere but 0.5 mm of its edge past the top rim's outer part (under
+    10 mm2; under 5 wide open), and the lower lid only under the cap's bottom edge, the sliver along the bottom rim
+    (under 100 mm2: 1.2 mm wide); shut, the two lids cover it all but a point or two at its outer corner, past the
+    lids' ends."""
     import trimesh
 
-    from model import linkage, skin, stages
+    from model import skin, stages
 
     eye, sign = np.array(gm.EYE[side]), 1 if side == "L" else -1
     rim = gimbal.opening(side) * (sign, 1)
@@ -212,12 +213,14 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
         k: trimesh.load(stages.stl(f"{side} {k} lid"), force="mesh").apply_translation(eye) for k in ("upper", "lower")
     }
     under = _seen(lids["lower"], inside, eye)
-    assert _seen(lids["upper"], inside, eye).sum() * 0.25 < 5.0
+    assert _seen(lids["upper"], inside, eye).sum() * 0.25 < 10.0
     assert 40.0 < under.sum() * 0.25 < 100.0 and not (under & skin.inside(inside, gimbal._offset(low, -0.3))).any()
-    moved = gm.moved(float(gm.LID_EDGES[0] - gm.LID_REST), 0.0)
-    shut = [lids[k].copy().apply_transform(moved[f"{side} {k} lid:1"]) for k in lids]
+    shut, wide = (
+        [lids[k].copy().apply_transform(gm.moved(float(e - gm.LID_REST), 0.0)[f"{side} {k} lid:1"]) for k in lids]
+        for e in gm.LID_EDGES
+    )
     assert (~(_seen(shut[0], inside, eye) | _seen(shut[1], inside, eye))).sum() <= 4
-    del linkage
+    assert _seen(wide[0], inside, eye).sum() * 0.25 < 5.0 and not _seen(wide[1], inside, eye).any()
 
 
 def _lids_shell(side):

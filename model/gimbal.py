@@ -112,27 +112,29 @@ PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (
 # edge lies along its opening's bottom rim, where the cap's bottom edge shows (CAP_LOW: cut to the rim's curve, seen
 # from the front, so the sliver of lid Cansin accepted, 1.2 mm, fills the opening under the cap), and the upper
 # lid's, the same curve, is parked wholly behind the top rim; shut, the two edges meet LID_SLIT apart on that curve
-# lifted LOWER_TRAVEL, LID_SHUT deg over the eye's middle. The upper lid turns UPPER_TRAVEL: the opening's greatest
-# height about the eye line over that curve, less the lower's, and 4 deg, since its edge is cut along the lower lid's
-# view and lies further round on the band's inside (parked, 3 mm2 of it still show past the top rim's outer part;
-# 7 deg would hide all of it and reach the bail's arm). The same for both eyes (the R eye's opening is 1.2 deg lower:
-# its upper lid parks that far behind its rim). Each lid covers LID_COVER deg past the rim it hides behind (and LID_TIPS mm past its opening's inner corner,
+# lifted LOWER_TRAVEL, LID_SHUT deg over the eye's middle. The upper lid turns UPPER_TRAVEL from there to the servo's
+# centre, the lids' rest: the opening's greatest height about the eye line over that curve, less the lower's, so its
+# edge's outer corner is on the top rim; its edge is cut along the lower lid's view and lies further round on the
+# band's inside, so 9 mm2 of it show past the top rim's outer part at rest. LID_WIDE more, the servo's open end, and
+# 3 mm2 do (7 deg would hide all of it and reach the bail's arm): the room the eye program's lid map needs over its
+# rest (eyes/eyes.py: rest inside both ends), the lower lid 3.5 deg under the cap's edge there. The same for both
+# eyes (the R eye's opening is 1.2 deg lower: its upper lid parks that far behind its rim). Each lid covers LID_COVER deg past the rim it hides behind (and LID_TIPS mm past its opening's inner corner,
 # seen from the front, within that far of the eye line's height), but the upper lid along the top rim's middle,
-# COVER_FREE mm either side of the eye's (its back edge is the rim itself there, so open it stops 154 deg round,
-# short of the bail's arm at 157: comment 7226349814's cure 1). The travels are read off his Sculpt's eye whites' cuts
+# COVER_FREE mm either side of the eye's (its back edge is the rim itself there, so wide open it stops 154 deg
+# round, short of the bail's arm at 157: comment 7226349814's cure 1). The travels are read off his Sculpt's eye whites' cuts
 # (model/printed/test_gimbal.py holds them to it); every other size here is inferred
 LID_R = (LIDS_SHELL[0] + LID_CLEAR_MM, LIDS_SHELL[1] - LID_CLEAR_MM)
-LID_SHUT, LOWER_TRAVEL, UPPER_TRAVEL = 6.5, 65.9, 81.3
+LID_SHUT, LOWER_TRAVEL, UPPER_TRAVEL, LID_WIDE = 6.5, 65.9, 76.8, 4.5
 LID_SLIT = 0.6  # between the shut lids' edges: the lids' clearance, and a tenth for what a sampled sweep misreads
 LID_COVER, LID_TIPS, COVER_FREE = 4.0, (2.6, 12.0), 5.2
 LID_ENDS = (-62.0, 82.0)  # the lids' ends along the eye line, deg from the eye's middle (outward positive)
 # the upper lid's edge at the eye's middle with the lid servo at its centre: open, the lids' rest (no lid shows but
-# the sliver of lower lid along the bottom rim)
+# the sliver of lower lid along the bottom rim, and the upper lid's corner)
 LID_REST = LID_SHUT + UPPER_TRAVEL
 LOWER_REST = LID_SHUT - LOWER_TRAVEL  # the lower lid's: the cap's bottom edge there, 3.7 deg over the bottom rim
-# the upper lid's edge over the servo's range: shut, open. No lid follows the eyes' pitch any more (#51 Gestures,
-# #698): a hidden lid has no edge on the eye to keep there
-LID_EDGES = (LID_SHUT, LID_REST)
+# the upper lid's edge over the servo's range: shut, wide open. No lid follows the eyes' pitch any more (#51
+# Gestures, #698): a hidden lid has no edge on the eye to keep there
+LID_EDGES = (LID_SHUT, LID_REST + LID_WIDE)
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
 # #967: its case stood across the belt behind the eye, where the push-rod, the tie-bar and the yaw bearing's rail have
@@ -156,10 +158,10 @@ LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.rad
 # a crossed four-bar, so the lower lid turns against the upper, LOWER_TRAVEL for its UPPER_TRAVEL. A link from the bar
 # (#698) needs a crank about 14 mm long, and between the eyes the cap's shell, which reaches its opening's inner
 # corner and yaws 25 deg further in, sweeps everything past 10 mm from the eye line. Searched for the two travels,
-# the link meeting the crank at 56 deg or more
+# the link meeting the crank at 54 deg or more
 LINK_CRANK = 6.75
 LINK_PIN = tuple(np.add(LID_HORN, np.multiply(LID_PIN, LINK_CRANK / CRANK)))  # (y, z) of the link's pin on the horn
-LOWER_CRANK = (7.91, -126.0)  # the lower lid's crank at rest: mm, deg from forward toward up
+LOWER_CRANK = (7.61, -124.0)  # the lower lid's crank at rest: mm, deg from forward toward up
 LOWER_PIN = (
     -LOWER_CRANK[0] * math.cos(math.radians(LOWER_CRANK[1])),
     LOWER_CRANK[0] * math.sin(math.radians(LOWER_CRANK[1])),

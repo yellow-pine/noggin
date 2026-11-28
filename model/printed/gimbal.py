@@ -487,7 +487,7 @@ def _lid(band, travel, which, name, pin, side):
 
 
 def upper_lid(side):
-    """The `side` upper lid (#967): parked open behind its opening's top rim, its crank's pin gm.LID_PIN on the lid bar,
+    """The `side` upper lid (#967): at rest, open behind its opening's top rim, its crank's pin gm.LID_PIN on the lid bar,
     its spoke behind the eye line."""
     return _lid(_bands(side)[0], gm.UPPER_TRAVEL, "upper", "upper", gm.LID_PIN, side)
 

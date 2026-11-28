@@ -7,7 +7,7 @@ meshes, read through Blender (review.MORTY), so that half is one of the review's
 the written file (`just review` sets NOGGIN_REVIEW; by hand `NOGGIN_REVIEW=1 pytest model/review/test_hidden.py` after
 `just ours`), skips in CI, and nothing of the reference leaves the run. The caps and lids are the eyes' own surfaces,
 seen through his eye openings, so they are left out of those; the lids, his skin's moving covers, stand proud of his
-outer surface nowhere over their travel."""
+outer skin nowhere over their travel."""
 
 import functools
 import os
@@ -176,23 +176,33 @@ def test_the_eye_gimbal_hides_inside_mortys_sculpt(doc, sculpt):
     assert near == {}
 
 
-PROUD_MM = 0.3  # what depth()'s voxels can misread at a crease: his skin is 37.0 mm from an eye's centre at its nearest
+PROUD_MM3 = 0.5  # of a lid outside his outer skin: none (0.01 measured), but what two meshed surfaces misread
 
 
 @pytest.mark.model
 @pytest.mark.parametrize("side", "LR")
-def test_no_lid_stands_proud_of_his_skin(side, sculpt):
+def test_no_lid_stands_proud_of_his_skin(side):
     """#967 (the skin keeps its shape): the lids' band's outer face is his eyeball's own surface, so over the lid
-    servo's range no point of either lid lies outside his outer surface, in an eye opening (his dome's) or past its
-    rim, by more than PROUD_MM; nor of the cap, 1.3 mm under his eye."""
-    stage = stages.STAGES["mech-back-mechanical"]
-    horn, proud = stage.horns[f"{side} lid horn"], {}
-    for deg in np.linspace(*horn.limits, STEPS):
-        mats = stages.pose(stage, f"{side} lid horn", deg).parts
-        for n in (f"{side} upper lid:1", f"{side} lower lid:1", f"{side} eyeball cap:1"):
-            worst = float(sculpt(trimesh.transform_points(_cloud(stages.stem(stage.parts[n].file)), mats[n])).max())
-            if worst > PROUD_MM and worst > proud.get(n, (0,))[0]:
-                proud[n] = (round(worst, 2), round(float(deg), 1))
+    servo's range neither lid has any volume outside his Sculpt's outer skin (the solid his Skin is cut from: its
+    brows' pockets are no outside, which depth() takes them for), in an eye opening, where his dome is the skin, or
+    past its rim; nor has the cap, 1.3 mm under his eye."""
+    import manifold3d as m3
+
+    from model.morty import shells
+
+    whole, eye = shells.outside(), np.array(gm.EYE[side])  # the head's frame at rest is the gimbal's
+
+    def solid(name):
+        mesh = trimesh.load(stages.stl(name), force="mesh")
+        return m3.Manifold(m3.Mesh(np.asarray(mesh.vertices + eye, np.float32), np.asarray(mesh.faces, np.uint32)))
+
+    parts, proud = {k: solid(f"{side} {k}") for k in ("upper lid", "lower lid", "eyeball cap")}, {}
+    for deg in np.linspace(gm.LID_EDGES[0] - gm.LID_REST, 0.0, 5):
+        moved = gm.moved(float(deg), 0.0)
+        for k, part in parts.items():
+            out = (part.transform(moved[f"{side} {k}:1"][:3]) - whole).volume()
+            if out > PROUD_MM3:
+                proud[k, round(float(deg), 1)] = round(out, 1)
     assert proud == {}
 
 

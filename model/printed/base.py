@@ -117,7 +117,7 @@ def stand(mechanical=False):
     """Stage 1's test stand (printed upside down, on its top): an open box under the gimbal frame's plate, from the desk
     to the plate's underside round the hanging yaw servo, its top behind that, with the holes under the head mount's
     (nk.HEAD_SCREWS), the eyes Core against its back face; as Bones (#704) its upright edges round."""
-    x, top, r = gm.EYE["L"][0] + gm.LID_X["upright"][1], gm.PLATE_Z[0], 0.0 if mechanical else ROUND / 3
+    x, top, r = gm.EYE["L"][0] + gm.FOOT_X[1], gm.PLATE_Z[0], 0.0 if mechanical else ROUND / 3
     y = (gm.PLATE_Y[0] - 5.0, gm.PLATE_Y[1])  # its front behind the lower lids' sweep, before the yaw servo (#901)
     out = _box((-x, x), y, (nb.STAND_Z, top), r)
     out = out.cut(_box((-x + WALL, x - WALL), (y[0] + WALL, y[1] - WALL), (nb.STAND_Z, top), r and r - WALL))

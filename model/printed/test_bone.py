@@ -104,8 +104,7 @@ GROUPS = {
         "pan lever",
         "pan bar",
         "jaw bar",
-    ]
-    + [f"{s} {lid}" for s in "LR" for lid in ("upper lid", "lower lid")],
+    ],
     "Mounts": [
         "torso",
         "torso lid",

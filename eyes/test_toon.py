@@ -229,10 +229,11 @@ def closures(lines):
 
 def test_rest_blinks_every_3_to_6_s():
     """#621: a face held still reads as lifeless after ~1.7 s (docs/research/2026-11-02-literature-perception.md), so at
-    Rest the lids blink once every 3-6 s, at random within that (a blink takes ~0.5 s), and nothing else moves."""
+    Rest the lids blink once every 3-6 s, at random within that (a blink takes ~0.7 s since the hidden lids turn 77
+    deg to shut, #967: the servo's slew stretches its close), and nothing else moves."""
     shut = closures([clocked_ticks])  # a minute at rest
     gaps = [b - a for a, b in zip(shut, shut[1:], strict=False)]
-    assert 9 <= len(shut) <= 20 and min(gaps) >= 3000 and max(gaps) <= 6600, gaps
+    assert 9 <= len(shut) <= 20 and min(gaps) >= 3000 and max(gaps) <= 6800, gaps
     assert max(gaps) - min(gaps) > 1000  # random, not a metronome
     eye, _ = after_rest(clocked_ticks, pin=YAW)
     assert not eye  # the eyes stay centred
