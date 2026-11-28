@@ -153,6 +153,17 @@ def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_it
     assert [n for n in named if n not in codes] == []
 
 
+def test_the_neck_tubes_cut_list_is_built_from_the_model():
+    """#1075: Stage 2's guide gives the neck tube's length and each cross hole's place from model/neck.py."""
+    import macros
+    from model import neck
+
+    table = macros.neck_tube()
+    assert f"| Cut to | {neck.TUBE[2]:g} mm |" in table
+    assert [f"{s:g} mm from the foot" in table for s in neck.TUBE_SCREWS] == [True, True]
+    assert "<!--{{ neck_tube }}-->" in (ROOT / "docs" / "build" / "stage-2.md").read_text()
+
+
 def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     """#721: each Stage's guide (docs/build/stage-*.md) lists the parts and the servos its Stage adds to the one before,
     the Mech's Stages as model/geometry.py STAGES has them (#720): the eye block on its test stand with the eyes
