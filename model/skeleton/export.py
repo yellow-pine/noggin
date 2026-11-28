@@ -119,6 +119,8 @@ def _seats(job, frame):
     bone's; and three V-grooves down into the face, opening outward. And each bone's plain pockets (job["pockets"],
     #968), a magnet's pocket alone, its mouth at its frame's origin. A collection's own pieces never meet: the cut
     takes each as one mesh."""
+    if not (job["seats"]["at"] or job["pockets"]):
+        return
     (bore, depth), (ring, _), (reach, deep) = (job["cap"][k] for k in ("bore", "ball", "groove"))
     w, out = deep + 1.0, 10.0  # a groove's cutter 45 deg each side up past the face; a flat's, past a pad's top
     wedge = [(r, t, h) for r in (ring - reach, ring + reach) for t, h in ((-w, 1.0), (w, 1.0), (0.0, -deep))]

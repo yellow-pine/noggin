@@ -328,8 +328,8 @@ def test_the_two_pairs_hold_the_mandible_on_while_the_chin_is_pulled_off_its_sea
     """#968: the bone leaves its carrier along skeleton.OFF, 60 deg off its pairs' axis, so half of each pair's pull
     holds it on. Face to face (no gap: the bone's grooves locate it, not balls), the two hold at least skin.SF times
     what pulls it off: the worn bone's weight and its chin Shell's, whichever way up the head is, and the share
-    along that way of the chin's own Seat's pull as the chin is pulled off forward (inferred, like every hold: 6.3 N
-    against 2.7)."""
+    along that way of the chin's own Seat's pull as the chin is pulled off forward (inferred, like every hold: 6.2 N
+    against 2.5)."""
     way = np.array(skeleton.OFF["mandible"][0])
     holds = sum(sk.hold_n(0.0) * -(way @ out) for _, out in skeleton.POCKETS["mandible"])
     stems = (g.WORN["mandible"], "morty chin")

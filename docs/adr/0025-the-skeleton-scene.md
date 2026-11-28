@@ -261,8 +261,9 @@ forward on the forehead under the cap's seam.
 - **The hold is two plain magnet pairs**, each a magnet flush in the front of the carrier's bar and one in the bone
   facing it, face to face (`model/neck.py` `JAW_HOLD`). No balls and no gap: the grooves the Finish cuts for the
   carrier locate the bone, the magnets only hold it. The bone leaves 60° off the pairs' axis, so half of each
-  pair's 6.3 N holds it: 6.3 N for the two against 2.7 N (the chin pulled off its own Seat, and the weights), SF
-  2.3. At `skin.GAP` the same two give SF 1.7, so the bone's magnets are glued in against their partners.
+  pair's 6.2 N holds it: 6.2 N for the two against 2.5 N (2.3 N as the chin is pulled off its own Seat, and 0.2 N
+  of bone and chin), SF 2.5. At 0.1 mm apart it is 2.1 and at `skin.GAP` 1.8, so the bone's magnets are glued in
+  against their partners.
 - **The pairs are 6 mm either side of the middle, not 8.** At 8 mm the pocket cuts through the ends of the chains'
   last spans where they run into the bar, and leaves edges of 0.02 to 0.25 mm, the kind Linux's OCCT has read as
   an invalid jaw. Out to 6 mm the bar is plain. The bone lies on the bar there on the left and 0.1 to 0.5 mm off

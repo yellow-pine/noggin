@@ -318,14 +318,13 @@ def _places(carrier):
 def test_each_shell_in_bone_comes_off_straight(piece):
     """#893 (Cansin, 2026-11-28): the hair is cut in two on a level seam so that each piece comes off the head a
     straight way (skin.DIRECTIONS), the crown up and the back back, the other piece still on; and the chin comes
-    off the mandible forward, the mandible still on its carrier (the sixth round). Exact solids, a
-    millimetre at a time until the piece is past everything: it never comes nearer a part than a worn Shell's room
+    off the mandible forward, the mandible still on its carrier (the sixth round). Exact solids, a millimetre at a
+    time until the piece is past everything: it never comes nearer a part than a worn Shell's room
     (gm.LID_CLEAR_MM, so it touches nothing between two steps). Every part of the Skeleton at rest and wherever each
-    servo's ends put it as the part that carries the piece sees it; every other Shell at rest. The bone its Seats
-    are in it rests on, its
-    balls in their grooves; once off them, a millimetre on, it keeps its bosses' room in their flats from that bone
-    (skeleton.SEAT_ROOM, as two meshed rounds read it). And it comes no nearer the worn skull or its calvaria on its
-    way than where it rests."""
+    servo's ends put it as the part that carries the piece sees it (the head, or the jaw); every other Shell at
+    rest. The bone its Seats are in it rests on, its balls in their grooves; once off them, a millimetre on, it
+    keeps its bosses' room in their flats from that bone (skeleton.SEAT_ROOM, as two meshed rounds read it). And it
+    comes no nearer the worn skull or its calvaria on its way than where it rests."""
     places = _places(skin.MOTION[skin.region(piece)])
     way = np.array(skin.DIRECTIONS[piece])
     carriers = {g.WORN[s.carrier] for s in skin.SEATS if s.shell == piece}
