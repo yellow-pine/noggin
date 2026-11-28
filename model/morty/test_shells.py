@@ -23,6 +23,10 @@ NAMES = [f"morty {n}" for n in g.SHELLS["morty"]]
 # and this much of the Sculpt's head, cm2
 SHIRT_MM, SHIRT_CM2 = 40.0, 48.6
 UNDER_JAW, UNDER_JAW_CM2 = ((-30.0, -27.0, -120.0), (30.0, 24.0, -70.0)), 9.8
+# How far from a brow's cut the face's skin ends at the most, mm, as the brow's view sees it: shells.FIT along the
+# brow, and 0.45 at its two tips (measured), where the view sees the slab's end edge on and the strip of face between
+# the fit and the slab's end stands free of the face: four flakes, 0.19 mm3 in all, which the cutter drops as crumbs
+BROW_TIP = 0.45
 
 
 @pytest.fixture(scope="module")
@@ -76,13 +80,14 @@ def _off(points, polygon):
 
 def _at_a_seam(points, room=0.05):
     """Which points lie in a seam's gap: within shells.SEAM of the hairline's or the collar's cut, or of the mouth's
-    in front of the eyes, or behind the chin by it, or of a brow's as its view sees it."""
-    cuts, gap = skin.cuts(), shells.SEAM + room
+    in front of the eyes, or behind the chin by it; or in a brow's fit round it, within BROW_TIP of its cut as its
+    view sees it (a brow is glued in the face: no seam's gap)."""
+    cuts, gap, fit = skin.cuts(), shells.SEAM + room, BROW_TIP + room
     out = (_off(points[:, [1, 2]], cuts["hairline"][1]) < gap) | (_off(points[:, [1, 2]], cuts["collar"][1]) < gap)
     for side in gm.EYE:
         view, brow = cuts[f"{side} brow"]
         seen = skin.facing(points, view)
-        out |= (seen[:, 1] < gap) & (_off(seen[:, [0, 2]], brow) < gap)
+        out |= (seen[:, 1] < fit) & (_off(seen[:, [0, 2]], brow) < fit)
     mouth, xz = cuts["mouth"][1], points[:, [0, 2]]
     return out | ((points[:, 1] < gap) & ((_off(xz, mouth) < gap) | (_inside(xz, mouth) & (points[:, 1] > -room))))
 
@@ -378,7 +383,8 @@ def test_the_shells_are_cut_where_the_cuts_are(built):
     under the mouth line in front of the eyes, each brow out of the face. Read at each Shell's box and weight (g,
     solid PLA Pure)."""
     grams = {n: m.volume / 1000 * g.MATERIALS["PLA Pure"]["density_g_cm3"] for n, m in built.items()}
-    weighed = {"hair": 181, "L brow": 1.54, "R brow": 1.53, "face": 87.6, "chin": 4.1, "shirt": 57}
+    # the face with its two bosses (2.4 g) and its tabs behind the brows, the fit round them closed up (1.5 g)
+    weighed = {"hair": 181, "L brow": 1.54, "R brow": 1.53, "face": 91.5, "chin": 4.1, "shirt": 57}
     assert grams == pytest.approx({f"morty {n}": w for n, w in weighed.items()}, rel=0.05), grams
     collar = skin.contour("collar")[:, 1]
     assert collar.max() - 10.0 < built["morty shirt"].bounds[1][2] < collar.max()  # its top gave way to the head
