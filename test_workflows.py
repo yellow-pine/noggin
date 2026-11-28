@@ -673,6 +673,18 @@ def test_checks_deploys_the_site_it_built_as_its_last_job_on_mains_push():
     assert not (wf.parent.parent / "scripts" / "deploy_status.py").exists()
 
 
+def test_deploy_finds_the_pages_artifact_its_own_attempt_uploaded():
+    """#1117, actions/deploy-pages#451: deploy-pages lists the run's artifacts once, by name, and the list spans the
+    run's attempts, so a re-run's second `github-pages` made it refuse both (or deploy the first attempt's). Each
+    attempt uploads and looks up its own name. That list also lags a finalized upload, by 0.3 s to 46 s as measured,
+    and no input makes the action wait or look again: a wait stands between the upload and the lookup."""
+    job = yaml.safe_load((WORKFLOWS[0].parent / "checks.yml").read_text())["jobs"]["deploy"]
+    upload, wait, deploy = job["steps"][-3:]
+    assert upload["uses"].startswith("actions/upload-pages-artifact@")
+    assert upload["with"]["name"] == deploy["with"]["artifact_name"] == "github-pages-${{ github.run_attempt }}"
+    assert re.fullmatch(r"sleep \d+", wait["run"])
+
+
 def test_default_branch_failure_watches_checks_and_ci_images_and_files_its_issue_by_label():
     """#697, #729, #745: a renamed workflow would never be watched again, and an issue filed without the label it is
     found by would be filed again on every red run. A few lines of gh in the workflow do it all, no script."""
