@@ -41,7 +41,7 @@ calibration inside them ([Wiring](wiring.md#servo-ports)), and you calibrate you
 3. **Eyeball cores** turning up and down in the yokes; the **bail** and its two **push-rods** turn both from the pitch
    servo through the **pitch bar**.
 4. **Lids**: each eye's upper lid through its **lid bar** from its lid servo, the lower lid through a **lid link** off
-   that bar, so the two close against each other. The left upper lid:
+   the same horn's inner hole, so the two close against each other. The left upper lid:
 
    [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&part=L+upper+lid)
 

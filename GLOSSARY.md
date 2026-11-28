@@ -54,7 +54,7 @@ One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of
 Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). None is drawn by
 hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair (in two pieces, its crown and
 its back), his face, each brow (its
-ridge, in the hair's filament, glued in the face), his chin (under the mouth line, on the jaw) and his shirt (under
+ridge, in the hair's filament, laid on the face and glued there), his chin (under the mouth line, on the jaw) and his shirt (under
 the collar, the whole fixed body). The face has its two lower Seats. *Upcoming (#850): the rest of the Seats of Morty's Shells.*
 _Avoid_: cover, cosmetic
 
@@ -366,7 +366,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - eyeball core: turns up and down in its yoke, its eyeball cap (a Shell) on it;
 - bail, push-rod, pitch bar: turn both cores up and down from the pitch Horn;
 - upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
-  off the lid bar;
+  from the same Horn's inner hole;
 - test stand: the Test stand;
 - torso: the Torso; torso lid: its lid; neck socket: bolted on the Torso's floor, holding the Neck tube's foot;
   cervical carrier: fixed on the Neck tube's top, the nod plate's trunnions and the tilt's reaction anchor on it;

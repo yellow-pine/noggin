@@ -158,10 +158,6 @@ _SKELETON = {
         "pitch bar",
         "lid bar",
         "lid link",
-        "L upper lid",
-        "R upper lid",
-        "L lower lid",
-        "R lower lid",
         "jaw bar",
         "tilt lever",
         "tilt reaction bar",
@@ -174,6 +170,8 @@ PRINTED = {
     **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
     "L eyeball cap": ("eye whites", "PLA Pure"),
     "R eyeball cap": ("eye whites", "PLA Pure"),
+    # each eye's lids (#967): his skin's own moving covers, in his face's filament
+    **{f"{s} {lid} lid": ("face", "PLA Pure") for s in "LR" for lid in ("upper", "lower")},
 }
 # The Skin shapes whose Shells a document wears, each its sub-assembly: none yet. Morty's are cut from his Sculpt
 # (SHELLS: model/morty/shells.py, docs/adr/0027, 0028) and built beside our parts, but no document wears them until

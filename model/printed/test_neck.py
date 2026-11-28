@@ -458,6 +458,18 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
 
 
 @pytest.mark.model
+@pytest.mark.parametrize("style", ("", g.MECHANICAL))
+def test_the_jaw_turns_with_room_from_the_gimbal_frame(style):
+    """#968 (Cansin, 2026-11-27: the jaw's pivot bosses get print clearance): over the jaw's range the jaw keeps a
+    moving part's room (LID_CLEAR_MM) from the frame it turns on, each pivot boss from its lug's face, as drawn, and
+    from the other wall of its notch in the frame's plate, which it stood against (0.00 mm)."""
+    jaw, frame, (jy, jz) = _built("jaw" + style), _built("gimbal frame" + style), nk.JAW
+    for deg in np.linspace(0.0, max(nk.RANGES["jaw"]), 6):
+        turned = jaw.rotate(cq.Vector(0, jy, jz), cq.Vector(1, jy, jz), float(deg))
+        assert turned.distance(frame) >= LID_CLEAR_MM - 1e-6, deg
+
+
+@pytest.mark.model
 @pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
 def test_the_jaw_carriers_bar_meets_each_chain_without_a_sliver(side):
     """#850: two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a

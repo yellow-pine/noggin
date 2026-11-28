@@ -56,12 +56,12 @@ FINE_MM = {
     # the solids keep 2.4 mm there (model/printed/test_neck.py)
     "nod plate": 1.0,
 } | {
-    # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
-    # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
-    f"{s} {lid} lid{style}": 0.5
+    # each lid's band rides 0.5 mm over its cap, a shell as thin (#967): pieces within 0.5 mm of each, not chords across
+    # the band or the cap's hollow, where the yoke and the core turn (the old lids' read the shut upper lid 0.59 mm
+    # into the cap, #1003)
+    f"{s} {part}": 0.5
     for s in "LR"
-    for lid in ("upper", "lower")
-    for style in ("", g.MECHANICAL)
+    for part in ("upper lid", "lower lid", "eyeball cap")
 }
 # The mechanical parts that take their Bones in (model/printed/bone.py grown, #809): curved sections would cut into many
 # pieces, so each one's capped and the sim stays fast; but the yaw yoke, whose capped pieces fill its cradle and read

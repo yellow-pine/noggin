@@ -10,7 +10,7 @@ from model import geometry as g
 from model import gimbal as gm
 from model import skin as sk
 from model.envelopes import box
-from model.printed.gimbal import ball, cyl
+from model.printed.gimbal import ball, cone, cyl, opening, prism
 
 
 def _at(seat):
@@ -101,8 +101,19 @@ def _pupil_prism(side):
 
 
 def cap(side):
-    """The `side` eyeball cap (eye whites): the largest cap's sphere segment within CAP_HALF of the gaze (each
-    Character's largest, #630), its back GAP off the core's seat face, its pupil's jagged seat cut in."""
+    """The `side` eyeball cap (#967), Morty's eye white: his eye's sphere gm.CAP_R, solid within CAP_HALF of the gaze
+    (its back GAP off the core's seat face, its pupil's jagged seat cut in), and from there a shell gm.CAP_WALL thick
+    out to its eye opening's own outline as the front sees it, so at rest it fills the opening and no more; below the
+    eye line out to the rim's own way from the eye's centre (gm.CAP_LOW), short of the yaw bearing."""
     r, back = gm.CAP_R, gm.CAP_R * math.cos(math.radians(gm.CAP_HALF)) + sk.GAP
-    out = ball(r).intersect(box((-r, r), (-r - 1, -back), (-r, r))).cut(_pupil_prism(side))
+    rim = opening(side) * ((1, 1) if side == "L" else (-1, 1))  # in this eye's own frame
+    shell = ball(r).cut(ball(r - gm.CAP_WALL)).intersect(prism(rim))
+    shell = shell.intersect(cone(rim).union(box((-r - 1, r + 1), (-r - 1, 1), (0, r + 1))))
+    # its end toward the other eye cut square to its face (the view's cut leaves its inside 5 deg longer)
+    reach, inward = 45.0 / math.tan(math.radians(gm.CAP_IN)), -1 if side == "L" else 1
+    shell = shell.cut(
+        cq.Workplane().add(cq.Solid.makeCone(0.0, reach, 45.0, cq.Vector(0, 0, 0), cq.Vector(inward, 0, 0)))
+    )
+    out = ball(r).intersect(box((-r, r), (-r - 1, -back), (-r, r))).union(shell)
+    out = out.cut(_pupil_prism(side))
     return _finish(f"{side} eyeball cap", out)

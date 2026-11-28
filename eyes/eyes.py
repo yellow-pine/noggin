@@ -117,12 +117,12 @@ def mirror(pin, a):
 
 
 DEFAULT_CAL = {
-    "l_lid_lo": 41,
+    "l_lid_lo": 13.2,
     "l_lid_rest": 90,
-    "l_lid_hi": 105,
-    "r_lid_lo": 41,
+    "l_lid_hi": 94.5,
+    "r_lid_lo": 13.2,
     "r_lid_rest": 90,
-    "r_lid_hi": 105,
+    "r_lid_hi": 94.5,
     "yaw_lo": 65,
     "yaw_hi": 115,
     "pitch_lo": 62.5,
@@ -130,7 +130,7 @@ DEFAULT_CAL = {
     "lid_rest": 0.28,
     "lid_think": 0.16,
     "lid_closed": 0.0,
-    "lid_open": 0.95,
+    "lid_open": 0.48,
     "think_trace": 0,  # 1: replay the GazeBase recording while thinking instead of synthetic drift
     # the pan servo's degrees that turn the head as far as the eyes turn at the yaw's lo and hi ends (lo > hi: reversed)
     "pan_lo": 60,
