@@ -53,6 +53,16 @@ BETWEEN = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1")
 
 @pytest.mark.model
 @pytest.mark.parametrize("side", "LR")
+def test_each_open_upper_lids_tail_keeps_the_lids_room_from_the_yaw_bearings_neck(rest, side):
+    """#1102: open, the upper lid's tail lies beside the yaw bearing's neck behind the eye, and it was 0.02 mm into
+    it. The lid drives' sweep reads the pair over the lid's travel, but only the sim runs it."""
+    for lid in (0.0, gm.LID_WIDE):
+        tail = _posed(rest, gm.moved(lid, 0.0), f"{side} upper lid:1")
+        assert tail.distance(rest["gimbal frame:1"]) >= gm.LID_CLEAR_MM, lid
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
 @pytest.mark.parametrize("yaw", [-gm.YAW, gm.YAW])
 @pytest.mark.parametrize("pitch", [-gm.PITCH, gm.PITCH])
 @pytest.mark.parametrize("lid", list(np.subtract(gm.LID_EDGES, gm.LID_REST)))
