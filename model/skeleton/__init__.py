@@ -54,6 +54,14 @@ BELT_Z = tuple(round(float(LID_SHELL * np.sin(np.radians(a))), 1) for a in (214.
 # mass (y 75), each boss a mm inside the skull's outer faces, where the mechanism leaves 37 mm and more (the nod
 # plate's sweep leaves 8 mm straight behind and 13 at 70 deg round). Measured on the uncut skull, 2026-11-28; inferred
 CAP, CAPPED = "calvaria", "skull"
+# How a bone comes off the part it rides (#968; Cansin, 2026-11-28, #893's sixth round: the mandible off its carrier
+# in one piece): {bone: (the way it leaves, a unit vector in the head's frame at rest; how far, mm)}. One stiff U off
+# another, so in the head's middle plane; the Finish cuts the carrier's way out of the bone as well as the carrier.
+# The mandible's: down and 30 deg forward. Straight down its condyles run 2.2 mm into the skull's mastoids behind
+# them (15 deg forward they still touch); this way nothing but the carrier stands in it, and 40 mm on the carrier's
+# pivots are over the bone's top (measured on the finished bones, 2026-11-28; inferred)
+OFF = {"mandible": ((0.0, -0.5, -0.8660254), 40.0)}
+OFF_STEP = 1.0  # the carrier's places along that way, mm apart: under the Finish's voxel, so their cuts run together
 SEAM_Z = 54.0
 SEATS = ((0.0, 3.0), (76.0, 83.5), (-77.0, 83.5))
 # A Skin's Seat in bone (model/skin.py SEATS, #850) is a flat cut into the bone, the Seat's pad and this much wider
@@ -117,6 +125,11 @@ def job():
         for n, places in seen.items():
             kind = "skins" if n in shells else "rigid" if len(places) == 1 else "moving"
             sorted_[kind] += [[n, at.tolist()] for at in places]
+        way, far = OFF.get(bone, ((0.0, 0.0, 0.0), 0.0))
+        for mm in np.arange(OFF_STEP, far + OFF_STEP / 2, OFF_STEP):  # the bone that far on its way off
+            at = rest[carrier].copy()
+            at[:3, 3] -= mm * np.array(way)
+            sorted_["rigid"].append([carrier, at.tolist()])
         bones[bone] = sorted_
     return {
         "frame": list(stages.DOCS[DOC]["eyes"][0]),

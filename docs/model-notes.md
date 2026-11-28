@@ -228,7 +228,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   gimbal: the head turns on its own pivots (the yoke on the neck mount for pan, the head mount on the yoke's cheeks for
   tilt, under the realistic skull's foramen magnum since #838, the jaw at its condyles on the gimbal frame's lugs, its servo
   hanging under the frame's plate behind it; since #968
-  its carrier a chain of Bones inside the mandible, measured on the bone, its bar, horn and servo inboard of the left
+  its carrier a chain of Bones laid on the mandible's inner face, half let in, so the bone comes off it in one piece
+  (model/skeleton OFF), its bar, horn and servo inboard of the left
   ramus), each servo
   drives through
   a bar, each busy pivot is a greased M3 shank turning in a Z-printed bore. Its numbers are in the Mech's sim
@@ -272,7 +273,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   with `base.DOME` and `base.EYES_UP`) measured it before and is gone, with the report's head box and eye height and
   the gimbal's bounding box. Where a part does not fit under his skin the mechanism moves, never the skin; the jaw
   carrier's chin end did (#968: its chains met 1.88 mm under his chin's skin and swung through the skin under it as
-  the jaw opened; now a bar across behind the symphysis' front wall, 6 mm or more from both). `just sim` ranks the variants into model/build/reports/mech-ranking.json
+  the jaw opened; now a bar across behind the symphysis, 6 mm or more from both). `just sim` ranks the variants into model/build/reports/mech-ranking.json
   (base.rank: the clearance and four-bar gates, #51's marks, then its criteria in order, each variant's `fails`
   named), which orders and marks the Viewer's buttons ("Back: clearance"). A variant whose four-bar opens stays in the
   model, ranked last; the report's gate then holds only the leading variant to it, and fails on anything else, or on
