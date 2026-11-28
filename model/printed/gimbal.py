@@ -436,7 +436,7 @@ def _spoke(deg, back, x, w):
 # the band's radius beside it, out to short of the yaw bearing's neck; the lower's from its spoke's slab out to its band) and
 # the lid angles TAIL_DEG (shut)
 TAIL_X = {"upper": (-gm.LID_X["upper"][1], -21.5), "lower": (-gm.LID_X["lower"][1] + 0.05, -31.0)}
-TAIL_DEG = {"upper": (20.0, 131.0), "lower": (-134.0, 28.0)}
+TAIL_DEG = {"upper": (20.0, 138.0), "lower": (-134.0, 28.0)}
 CRANK_W = {"upper": 8.0, "lower": 7.0}  # each lid's crank's width, for its servo's stall at SF 2 (a hand sum)
 # A lid's edges follow every third point of its opening's outline, 6 mm apart, straight between them (0.13 mm inside
 # the outline at most): each point is a face on the lid, and the lid drives' sweep reads every face (#1053)

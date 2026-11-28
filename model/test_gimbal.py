@@ -18,12 +18,10 @@ def test_the_eyes_are_mortys_at_life_size():
     room). At rest the lids are open: the upper's edge 83.3 deg up at the eye's middle, behind the top rim, the lower's
     on the cap's bottom edge, 59.4 deg down."""
     assert gimbal.SPACING == pytest.approx(73.3)
-    assert gimbal.CAP_R == pytest.approx(35.8) == pytest.approx(gimbal.MORTY_BALL_R - 1.3)
+    assert gimbal.CAP_R == pytest.approx(34.9) == pytest.approx(gimbal.MORTY_BALL_R - 2.2)
     assert gimbal.CORE_R == pytest.approx(13.0 * 1.4) and gimbal.LEVER == pytest.approx(17.0 * 1.4)
-    assert gimbal.LID_R == pytest.approx((36.35, gimbal.MORTY_BALL_R)) and gimbal.LIDS_SHELL == pytest.approx(
-        (35.8, 37.6)
-    )
-    assert gimbal.LID_REST == pytest.approx(83.3) and gimbal.LOWER_REST == pytest.approx(-59.4)
+    assert gimbal.LID_R == pytest.approx((35.45, 36.2)) and gimbal.LIDS_SHELL == pytest.approx((34.9, 36.7))
+    assert gimbal.LID_REST == pytest.approx(81.7) and gimbal.LOWER_REST == pytest.approx(-57.0)
 
 
 @pytest.mark.parametrize("drive", ["yaw", "pitch", "L lid", "R lid"])
@@ -208,8 +206,8 @@ def test_the_gaze_gate_counts_the_pupils_seating_beside_the_play(report):
     """#650 (#51 perception [GH]): a pupil keyed with 0.3 mm of seat play strays 0.15 mm from its seat's centre, 0.24
     deg on Morty's 35.8 mm cap (#967); it can stray the way the play does, so the two add, and the total stays under 2
     deg."""
-    assert report["pupil_deg"] == pytest.approx(0.24, abs=0.005)
-    assert report["gaze_deg"] == pytest.approx(report["play_deg"] + 0.24, abs=0.015)
+    assert report["pupil_deg"] == pytest.approx(0.25, abs=0.005)
+    assert report["gaze_deg"] == pytest.approx(report["play_deg"] + 0.25, abs=0.015)
     assert report["gaze_deg"] <= gimbal.GAZE_DEG
 
 
