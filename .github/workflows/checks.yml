@@ -253,9 +253,9 @@ jobs:
       ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.shards != '[]'
       && needs.convex.result != 'failure' }}
     runs-on: ubuntu-26.04
-    # twice its longest run: the sim's first part, whose lid drives' sweep took 31 min on #1040's branch and passed
-    # 40 on main (#1053)
-    timeout-minutes: 90
+    # twice its longest run: the sim's first part, whose lid drives' sweep took 30 to 49 min over six runs since the
+    # bail rose (#1040), 49 on fb6ab715 (#1053)
+    timeout-minutes: 100
     permissions:
       contents: read
     strategy:
