@@ -25,7 +25,8 @@ SHIRT_MM, SHIRT_CM2 = 40.0, 48.6
 UNDER_JAW, UNDER_JAW_CM2 = ((-30.0, -27.0, -120.0), (30.0, 24.0, -70.0)), 9.8
 # How far from a brow's cut the face's skin ends at the most, mm, as the brow's view sees it: shells.FIT along the
 # brow, and 0.45 at its two tips (measured), where the view sees the slab's end edge on and the strip of face between
-# the fit and the slab's end stands free of the face: four flakes, 0.19 mm3 in all, which the cutter drops as crumbs
+# the fit and the slab's end stands free of the face: seven flakes at the four tips, 0.18 mm3 in all, which the
+# cutter drops as crumbs
 BROW_TIP = 0.45
 
 
