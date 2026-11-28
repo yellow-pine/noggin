@@ -69,18 +69,35 @@ def test_the_exporter_cuts_every_seat_a_skin_has_in_bone():
     of its carrier it is cut in, the bare and the worn; its frame in the head's, z out of the bone at the Seat's
     place; and its pad, a ball on its axis that makes the bone solid the print floor round the magnet's pocket at
     its floor and behind its whole bore (the ball through both rims, and half a voxel for the Finish's grid: 5.0 mm,
-    its middle 0.1 mm in front of the Seat's face, which the flat cuts back to).
+    its middle 0.1 mm in front of the Seat's face, which the flat cuts back to). The skull's seven have one; the
+    chin's, in the mandible, which is solid, has none.
     Each flat is the Seat's pad and skeleton.SEAT_ROOM wider, so the Shell's boss stands in it free."""
     seats = skeleton.job()["seats"]
-    assert seats["flat"] == sk.PAD_R + skeleton.SEAT_ROOM and len(seats["at"]) == len(SKIN_SEATS) == 7
+    assert seats["flat"] == sk.PAD_R + skeleton.SEAT_ROOM and len(seats["at"]) == len(SKIN_SEATS) == 8
     bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
-    for s, (names, frame, (under, radius)) in zip(SKIN_SEATS, seats["at"], strict=True):
-        assert names == [s.carrier, g.WORN[s.carrier]] and set(names) <= {*CAPS[0], *CAPS[1]}
+    for s, (names, frame, pad) in zip(SKIN_SEATS, seats["at"], strict=True):
+        assert names == [s.carrier, g.WORN[s.carrier]]
         assert np.array(frame)[:3, 3] == pytest.approx(s.at) and np.array(frame)[:3, 2] == pytest.approx(s.normal)
+        if s.carrier == "mandible":
+            assert pad is None
+            continue
+        assert set(names) <= {*CAPS[0], *CAPS[1]}
+        under, radius = pad
         assert (under, radius) == pytest.approx((-0.1, 5.0), abs=0.01)
         reach = radius - skeleton.PITCH / 2
         assert np.hypot(bore, depth + skeleton.FLOOR - under) == pytest.approx(reach)  # behind the pocket's bore
         assert np.hypot(bore + skeleton.FLOOR, depth - under) == pytest.approx(reach)  # and round its floor
+
+
+def test_the_exporter_cuts_the_mandibles_two_pockets_for_its_hold_on_the_jaw():
+    """#968: the exporter gets a plain pocket (job()["pockets"]) for each magnet pair that holds the mandible on its
+    carrier: cut in the bare mandible and the worn one, on the pair's place on the jaw's bar (model/neck.py
+    JAW_HOLD), open backward, toward the bar. No Seat round it: the pocket's sizes are the cap's own
+    (job()["cap"]["bore"])."""
+    pockets = skeleton.job()["pockets"]
+    assert [names for names, _ in pockets] == [["mandible", "worn mandible"]] * 2
+    assert [tuple(np.array(frame)[:3, 3]) for _, frame in pockets] == [(6.0, -2.6, -78.0), (-6.0, -2.6, -78.0)]
+    assert all(np.array(frame)[:3, 2] == pytest.approx((0.0, 1.0, 0.0)) for _, frame in pockets)
 
 
 @functools.cache

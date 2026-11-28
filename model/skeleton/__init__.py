@@ -17,6 +17,7 @@ import trimesh
 
 from model import geometry as g
 from model import gimbal as gm
+from model import neck as nk
 from model import skin as sk
 from model import stages
 
@@ -67,6 +68,10 @@ SEATS = ((0.0, 3.0), (76.0, 83.5), (-77.0, 83.5))
 # A Skin's Seat in bone (model/skin.py SEATS, #850) is a flat cut into the bone, the Seat's pad and this much wider
 # all round, so the Shell's boss stands in it clear of the bone beside it (inferred)
 SEAT_ROOM = 0.5
+# A bone's plain magnet pockets (#968), {bone: [(the pocket's mouth, the way out of the bone), ...]}, the head's frame:
+# a magnet's flush pocket and nothing round it, cut from the mesh as a Seat's is. The mandible's two, face to face
+# with the jaw's on the front of its bar (model/neck.py JAW_HOLD), which hold the bone on its carrier
+POCKETS = {"mandible": [(at, (0.0, 1.0, 0.0)) for at in nk.JAW_HOLD]}
 
 
 def blender():
@@ -88,13 +93,15 @@ def poses(stage):
 def seat(s):
     """A Skin's Seat in bone (model/skin.py SEATS, its carrier one of g.SKULL) as export.py cuts it: [its carrier's
     two copies, the bare and the worn; its frame in the head's (4x4 rows, z out of the bone); its pad, a ball on its
-    axis (how far under the Seat's face its middle is, its radius)]. The pad makes the bone solid FLOOR round the
-    magnet's pocket at its floor, and behind the pocket's whole bore to `s.pad` under the face: the ball through
-    both rims, and half a voxel, which the Finish's grid may round off it."""
-    bore, d = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
-    under = (bore**2 + s.pad**2 - (bore + FLOOR) ** 2 - d**2) / (2 * (s.pad - d))
-    radius = float(np.hypot(bore, s.pad - under)) + PITCH / 2
-    return [[s.carrier, g.WORN[s.carrier]], np.array(sk.frame(s)).tolist(), [under, radius]]
+    axis (how far under the Seat's face its middle is, its radius), None for a Seat with no pad]. The pad makes the
+    bone solid FLOOR round the magnet's pocket at its floor, and behind the pocket's whole bore to `s.pad` under the
+    face: the ball through both rims, and half a voxel, which the Finish's grid may round off it."""
+    pad = None
+    if s.pad:
+        bore, d = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+        under = (bore**2 + s.pad**2 - (bore + FLOOR) ** 2 - d**2) / (2 * (s.pad - d))
+        pad = [under, float(np.hypot(bore, s.pad - under)) + PITCH / 2]
+    return [[s.carrier, g.WORN[s.carrier]], np.array(sk.frame(s)).tolist(), pad]
 
 
 def job():
@@ -103,7 +110,8 @@ def job():
     (one place), what moves against it and the Shells (cut from the worn copy alone); the skull's openings (head's
     frame: each orbit a ball, cut off at y `back` where one is given, and each belt a box), its cap (CAP: which
     Finish it is cut off, the seam, and each Seat's boss, pocket, balls and grooves, head's frame), the Skin's Seats
-    in bone (seat(), and their flats' radius) and the finish's numbers."""
+    in bone (seat(), and their flats' radius), the bones' plain pockets (POCKETS: [a bone's two copies, the pocket's
+    frame in the head's, z out of the bone at its mouth]) and the finish's numbers."""
     from model.skeleton import fit  # here: fit reads this module's numbers
 
     stage = stages.STAGES[DOC]
@@ -159,6 +167,11 @@ def job():
             "at": [seat(s) for s in sk.SEATS if s.carrier in g.SKULL],
             "flat": sk.PAD_R + SEAT_ROOM,
         },
+        "pockets": [
+            [[bone, g.WORN[bone]], np.array(g.align_rows(at, (1, 0, 0), out)).tolist()]
+            for bone, pockets in POCKETS.items()
+            for at, out in pockets
+        ],
         "vault": {"bones": sorted(fit.VAULT), "middle": list(fit.MIDDLE)},
         "numbers": {
             "Thick": THICK,

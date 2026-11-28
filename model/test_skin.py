@@ -45,7 +45,8 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     caps = {f"{s} eyeball cap" for s in "LR"}
     # every Shell, held by Seats, by glue or by nothing yet: what a document's parts are sorted by once it wears them
     assert set(skin.SHELLS) == caps | {f"morty {n}" for n in g.SHELLS["morty"]}
-    assert {s.shell for s in skin.SEATS} == caps | {"morty face", "morty hair crown", "morty hair back"}  # on Seats
+    on_seats = {"morty face", "morty hair crown", "morty hair back", "morty chin"}
+    assert {s.shell for s in skin.SEATS} == caps | on_seats
     assert skin.DRAWN == [] and g.SKINS == {}
     assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
         "hair crown": ("hair", "PLA Pure"),
@@ -97,6 +98,25 @@ def test_mortys_hair_comes_off_in_two_pieces_the_crown_up_and_the_back_back():
     assert {"hair crown", "hair back"} <= g.SHELLS["morty"].keys() and "hair" not in g.SHELLS["morty"]
 
 
+def test_mortys_chin_sits_on_one_seat_in_the_mandibles_front_and_comes_off_forward():
+    """#893 (Cansin, 2026-11-28, sixth round): the chin Shell's Seat is flush in the front of the mandible's
+    symphysis, on the midline, facing forward, so the chin comes off forward and rides the jaw with the bone. One
+    Seat, three balls: it locates the chin whole. The bone is solid there, so nothing is thickened behind it (no
+    pad), and it stands level with the bar across behind the bone, between the two magnet pairs that hold the bone
+    on (model/neck.py JAW_HOLD), the print floor of bone between its pocket and each of theirs."""
+    from model import neck, skeleton
+
+    (seat,) = (s for s in skin.SEATS if s.shell == "morty chin")
+    assert (seat.carrier, seat.normal, seat.pad, seat.polarity) == ("mandible", (0.0, -1.0, 0.0), 0.0, 1)
+    assert seat.at[0] == 0.0 and seat.at[2] == neck.JAW_CHIN[2] and seat.boss > 0
+    assert skin.MOTION[skin.region(seat.shell)] == "jaw" == stages.RIDES["mandible:1"].removesuffix(":1")
+    bore = skin.MAGNET[0] / 2 + skin.FIT
+    for x, y, z in neck.JAW_HOLD:
+        assert z == seat.at[2]
+        # the two pockets pass each other, floor by floor, the print floor of bone between them
+        assert np.hypot(abs(x) - 2 * bore, y - seat.at[1] - 2 * skin.MAGNET[1]) >= skeleton.FLOOR
+
+
 def test_mortys_seats_in_bone_are_three_for_each_piece_of_the_hair_and_the_faces_top_one():
     """#850, #874: the Seats the skull carries, in the head's frame (a bone lies in it at rest). The crown's three
     face up on the calvaria, the skull's cap, one in front and two behind it either side of the midline; the back's
@@ -108,7 +128,7 @@ def test_mortys_seats_in_bone_are_three_for_each_piece_of_the_hair_and_the_faces
     from model import skeleton  # here: the skull's cap and its seam
     from model.morty import shells
 
-    bone = {s for s in skin.SEATS if s.carrier in g.SKULL}
+    bone = {s for s in skin.SEATS if s.carrier in (skeleton.CAPPED, skeleton.CAP)}
     assert {(s.shell, s.carrier, s.normal) for s in bone} == {
         ("morty hair crown", "calvaria", (0.0, 0.0, 1.0)),
         ("morty hair back", "skull", (0.0, 1.0, 0.0)),

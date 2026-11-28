@@ -12,6 +12,7 @@ import numpy as np
 from model import envelopes, fits
 from model import gimbal as gm
 from model import neck as nk
+from model import skin as sk
 from model.envelopes import box, hull
 from model.printed import bone
 from model.printed.gimbal import cyl, link
@@ -25,7 +26,13 @@ _CONDYLE, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((
 # the bar across at the chin, one Bone from one chain's last joint to the other's, its long axis upright behind the
 # thin symphysis: no waist, since it carries the drive to the R chain as twist (model/printed/test_neck.py), and
 # nothing crossing at the chin, where two chains ending together left a 0.015 mm edge Linux's OCCT read as invalid (#850)
-JAW_CHIN_BAR = (4.0, 2.6)
+# Its front is where the magnet pairs that hold the mandible on it meet (nk.JAW_HOLD): its half-thickness is theirs
+JAW_CHIN_BAR = (4.0, nk.JAW_CHIN[1] - nk.JAW_HOLD[0][1])
+# behind each pair's pocket the bar is thickened by the pocket's depth, a disc of this radius out of its back: the
+# pocket alone left it SF 1.5 at the mouth servo's stall, where it twists (the bar's own is 2.4). Under the bar's
+# half-height, so the disc's side meets the bar's top and bottom across, not along a tangent; at 3.6 it left edges
+# of 0.2 mm where it crosses a chain's last span
+JAW_HOLD_PAD_R = 3.0
 # the fifth span has no waist either: the L one turns in from outside the mouth Horn's sweep to the bone's inner face,
 # half across, and twists as the bar does
 JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, (JAW_CHIN_BAR, JAW_CHIN_BAR), _BODY)
@@ -331,6 +338,12 @@ def jaw(mechanical=False):
     post = (nk.JAW_BAR_X[1] + 0.3, points["L"][2][0])
     out = out.union(cyl("x", (0, *nk.JAW_PIN), 4.0 if mechanical else 3.5, post))
     out = out.cut(cyl("x", (0, *nk.JAW_PIN), TAP_R, (post[0], post[0] + 8.0)))  # 8 mm deep, short of the chain
+    # the mandible's hold (nk.JAW_HOLD): a magnet's pocket in the bar's front at each pair, the magnet's face on it,
+    # and the bar's pad behind it
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+    for x, y, z in nk.JAW_HOLD:
+        out = out.union(cyl("y", (x, 0, z), JAW_HOLD_PAD_R, (nk.JAW_CHIN[1], y + depth + 2 * JAW_CHIN_BAR[1])))
+        out = out.cut(cyl("y", (x, 0, z), bore, (y - 1.0, y + depth)))
     return out
 
 

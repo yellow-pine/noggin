@@ -12,6 +12,7 @@ import pytest
 from model import beams, envelopes, linkage, sim, stages
 from model import geometry as g
 from model import neck as nk
+from model import skin as sk
 from model.gimbal import LID_CLEAR_MM
 from model.printed import PARTS, gimbal, neck
 from model.printed.test_gimbal import ON_SPLINE, _overlaps
@@ -413,8 +414,9 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
     sweep, in the jaw's plane, and pulls with its worst force (the crank's tangent force over the sine of the
     crank-to-bar angle). The moment turns about x: a section square to x bends under all of it, the bar across at the
     chin (along x) twists under all of it, one askew takes its share of each (von Mises; the twist as on an ellipse
-    as thick as the section's thin way). Along each span and at each joint between two. On the mechanical part (ADR
-    0020)."""
+    as thick as the section's thin way). Along each span and at each joint between two, and through each magnet's
+    pocket in the bar (nk.JAW_HOLD), at its middle and both rims: a pocket alone left SF 1.5 there, so the bar is
+    thickened behind each. On the mechanical part (ADR 0020)."""
     # shortcut: the pin's post (r 3.5, 12 mm) is not sectioned: SF 6 by hand as a cantilever under this force. Nor is
     # the twist its 14 mm offset puts on the L chain: 3.8 MPa of shear in the ramus by hand, SF 2.5 with its bending.
     # Add both if the post thins or lengthens
@@ -434,6 +436,9 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
         cuts = [(a + (b - a) * t, w) for (a, b), w in zip(itertools.pairwise(chain), ways) for t in (0.3, 0.5, 0.7)]
         # each joint too, square to its two spans' mean: where Bones ending flat on a bend left a notch
         cuts += [(joint, (v + w) / np.linalg.norm(v + w)) for joint, v, w in zip(chain[1:], ways, ways[1:])]
+        bore = sk.MAGNET[0] / 2 + sk.FIT
+        (hold,) = (x for x, _, _ in nk.JAW_HOLD if x * chain[0][0] > 0)  # this chain's side's
+        cuts += [(np.array((hold + dx, *nk.JAW_CHIN[1:])), ways[-1]) for dx in (-bore, 0.0, bore)]
         for at, along in cuts:
             u = np.subtract(g.X, along * along[0])  # x in the section's plane: the bending axis, its length the share
             bends = float(np.linalg.norm(u))
@@ -455,6 +460,31 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
             if sf < beams.MIN_SF:
                 weak.append((tuple(np.round(at, 1)), round(sf, 2)))
     assert weak == []
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("style", ("", g.MECHANICAL))
+@pytest.mark.parametrize("at", nk.JAW_HOLD, ids=("L", "R"))
+def test_the_jaws_bar_has_a_flush_magnet_pocket_for_each_pair_that_holds_the_mandible(style, at):
+    """#968 (Cansin, 2026-11-28: the mandible is held on its carrier by two magnet pairs): at each of nk.JAW_HOLD
+    the bar across has a magnet's pocket open forward, toward the bone. The magnet's room is empty from a mm in
+    front of the pair's face back to a magnet's depth behind it, so its face lies on the bar's front, where the
+    bone's magnet meets it. The bar's front is there, beside the pocket along the bar. And behind the pocket the
+    bar is as thick again as it is whole: its pad, a magnet's depth out of its back."""
+    jaw = _built("jaw" + style)
+    x, y, z = at
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+
+    def share(shape):
+        return jaw.intersect(shape.val()).Volume() / shape.val().Volume()
+
+    assert share(gimbal.cyl("y", (x, 0, z), sk.MAGNET[0] / 2, (y - 1.0, y + depth))) < 1e-4
+    for side in (-1, 1):  # on the bar's front line, just under its surface
+        beside = (x + side * (bore + 0.6), z)
+        assert share(gimbal.cyl("y", (beside[0], 0, beside[1]), 0.2, (y + 0.05, y + 0.5))) > 0.99, side
+    thick = 2 * neck.JAW_CHIN_BAR[1]
+    assert thick == pytest.approx(2 * (nk.JAW_CHIN[1] - y))
+    assert share(gimbal.cyl("y", (x, 0, z), bore, (y + depth + 0.01, y + depth + thick - 0.01))) > 0.99
 
 
 @pytest.mark.model

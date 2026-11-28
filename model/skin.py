@@ -160,6 +160,11 @@ SEATS = [
     *[Seat("morty hair crown", "calvaria", at, (0.0, 0.0, 1.0), BONE_PAD, 8.0, 1) for at in _CROWN],
     # the hair's back, back off the occiput under the hair's level seam: it hangs below them, so two are low
     *[Seat("morty hair back", "skull", at, (0.0, 1.0, 0.0), BONE_PAD, 16.0, 1) for at in _BACK],
+    # the chin (Cansin, 2026-11-28, #893's sixth round), forward off the front of the mandible's symphysis, level with
+    # the jaw's bar across behind it (model/neck.py JAW_CHIN), so it opens with the jaw. One Seat: its three balls
+    # locate the chin whole. Its flat is the bone's front at its lowest within the grooves' reach (y -9.1, measured
+    # on the finished mandible, 2026-11-28) and 0.3 mm more; the bone is solid, 5.2 mm of it behind, so no pad
+    Seat("morty chin", "mandible", (0.0, -8.8, -78.0), (0.0, -1.0, 0.0), 0.0, 16.0, 1),
 ]
 
 # {Shell: the Shell it is glued to}, keyed there by its own outline and never off it (#51: not held by magnets
