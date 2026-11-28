@@ -32,6 +32,15 @@ def test_each_part_moves_by_its_sub_assemblys_offset_and_turns_not_at_all():
             assert np.allclose(apart[n][:3, :3], rest[n][:3, :3]), n
 
 
+def test_each_liner_comes_off_its_yaw_bearing_the_way_it_went_on():
+    """#967: an eye liner's Assembly direction is the way its collar snaps off the bearing's post: forward and to its
+    eye's outside, along the bearing's own level way (gm.RAIL_TURN off straight ahead)."""
+    axes = pictures.directions(next(iter(g.MECH)))
+    for side, out in (("L", 1), ("R", -1)):
+        axis, signed = axes[f"{side} eye liner:1"]
+        assert signed and np.allclose(axis, (out * 0.474, -0.880, 0.0), atol=1e-3), side
+
+
 def test_the_front_doors_show_the_mechanism_bare_of_every_shell():
     """#843: the front doors' Stage 3 drops the Skin's Shells, every one of its Skin's (#813: the default Preset's) and
     the eyeball caps, and keeps the rest."""

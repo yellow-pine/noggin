@@ -9,6 +9,7 @@ Usage: python -m model.render.pictures views | site next (Blender at $BLENDER)""
 
 import functools
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -19,7 +20,7 @@ import numpy as np
 import trimesh
 
 from model import geometry as g
-from model import skin, stages, trajectories
+from model import gimbal, skin, stages, trajectories
 from model.render import camera, scene
 
 OUT = os.path.join(stages.REPO, "model", "build", "pictures")
@@ -64,6 +65,11 @@ SEATS = {
     "capacitor": g.Z,
     "torso lid": g.Z,
 } | skin.DIRECTIONS  # a Shell off its Seats; the lid up
+# each eye liner off its yaw bearing's post, back along the bearing's own way: forward and to its eye's outside (#967)
+SEATS |= {
+    f"{s} eye liner": (out * math.sin(math.radians(gimbal.RAIL_TURN)), -math.cos(math.radians(gimbal.RAIL_TURN)), 0.0)
+    for s, out in (("L", 1), ("R", -1))
+}
 # out of the Torso's walls (#838)
 BOARDS = ("receiver", "core")  # out along their local y, the Shield's pins' (model/envelopes.py)
 # the front doors (#739: the README's top, the site's home), side by side in this order, in the default Preset alone,

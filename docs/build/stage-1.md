@@ -45,7 +45,8 @@ calibration inside them ([Wiring](wiring.md#servo-ports)), and you calibrate you
 
    [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&part=L+upper+lid)
 
-5. **Eyeball caps** on the cores, as the eyes look out from the front:
+5. **Eye liners**, each snapped on its yaw bearing's post from the front and the outside, then the **eyeball caps** on
+   the cores through the liners' windows, as the eyes look out from the front:
 
    [Open Stage 1 in the viewer](https://yellowpine.com/noggin/viewer/?stage=1&view=front)
 
