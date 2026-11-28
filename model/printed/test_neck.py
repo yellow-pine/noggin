@@ -373,6 +373,25 @@ def test_the_leads_have_an_open_way_from_the_torsos_floor_up_the_tubes_bore():
 
 
 @pytest.mark.model
+def test_the_nod_plate_tilts_clear_of_the_carrier_but_at_its_trunnions():
+    """#1075, #1085: through the tilt the nod plate shares no volume with the carrier, and keeps a moving part's
+    clearance and the reach of its own collision pieces (mjcf.FINE_MM) from it everywhere but where it turns on it:
+    outboard of the risers' inner faces, its L arm swinging down behind the riser as the face goes up (2.4 mm), and
+    between those faces, its underside over the wings (3.9 mm). Exactly (OCCT's distance): the sim's default pieces
+    bridged the plate's hollow round each trunnion and read the riser 0.2 mm deeper in it with the face up."""
+    from model import mjcf
+
+    carrier, plate = _built("cervical carrier"), _built("nod plate")
+    between = envelopes.box((-neck.RISER_X[0], neck.RISER_X[0]), (0, 200), (-200, 100)).val()
+    outer, inner, wings = plate.cut(between), plate.intersect(between), carrier.intersect(between)
+    room = mjcf.FINE_MM["nod plate"] + LID_CLEAR_MM
+    for deg in np.linspace(*nk.RANGES["tilt"], 9):
+        turn = gimbal._at(linkage.rotation(g.X, deg, nk.HEAD_AXES["tilt"][0]))
+        assert carrier.intersect(plate.moved(turn)).Volume() < 1e-6, deg
+        assert min(carrier.distance(outer.moved(turn)), wings.distance(inner.moved(turn))) >= room, deg
+
+
+@pytest.mark.model
 def test_the_tilt_lever_swings_beside_its_case_with_room():
     """#1039: the lever's arm steps inboard round the horn's rim and rides beside the case's face, and its pin passes
     the case's corner in mid-swing, which neither end of the range shows: at 21 poses through the tilt's sweep the
