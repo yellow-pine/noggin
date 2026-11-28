@@ -39,7 +39,7 @@ SLEEVE_R = 7.5  # the carrier's sleeve on the tube
 # #1075: the carrier's wings, each a slab from the sleeve out under the nod plate's sweep to a riser up to its C0
 # trunnion: the slab's (y) depth, the heights of its root's two ends on the sleeve and of its tip, and the riser's x.
 # The slab stands forward of the trunnion: behind it the nod plate's L arm swings down as the face goes up
-WING_Y, WING_Z, RISER_X = (68.0, 81.0), (-75.0, -65.0, -61.0), (18.0, 24.0)
+WING_Y, WING_Z, RISER_X = (69.5, 79.5), (-73.0, -65.0, -61.0), (18.0, 24.0)
 TOWER = (10.0, 8.5)  # the neck socket's tower round the tube: its half-width across, where its wall holds the tube's
 # push fore and aft as hoop tension, and fore and aft, in front of the pack
 
@@ -79,8 +79,8 @@ def cervical_carrier():
     _, ty, tz = nk.tube_at(s)  # the strut's root, on its screw
     out = _along(nk.tube_at(s - ANCHOR_STRUT[0][0] - 0.5), nk.TUBE_TOP, SLEEVE_R)
     for sign in (-1, 1):
-        root = [(sign * 6.0, WING_Z[0], 4.0), (sign * 6.0, WING_Z[1], 4.0)]
-        tip = (sign * (sum(RISER_X) / 2 - 0.3), WING_Z[2], 3.3)
+        root = [(sign * 6.0, WING_Z[0], 3.5), (sign * 6.0, WING_Z[1], 3.5)]
+        tip = (sign * (sum(RISER_X) / 2 - 0.3), WING_Z[2], 3.0)
         out = out.union(hull("XZ", [*root, tip], WING_Y[0] - WING_Y[1], (0, WING_Y[0], 0)))
         riser = [(y, z, 4.5), (sum(WING_Y) / 2, WING_Z[2], (WING_Y[1] - WING_Y[0]) / 2)]
         out = out.union(hull("YZ", riser, sign * (RISER_X[1] - RISER_X[0]), (sign * RISER_X[0], 0, 0)))
