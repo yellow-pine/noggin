@@ -151,7 +151,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   from the front, are 80 mm apart, as each dome faces outward). The core, its lever and the yoke are x1.4 of the
   gimbal's first 27 mm since #967, sized to his eyeball's own 37.1 mm, so they turn inside the shell the hidden lids
   and their cap sweep (35.8 to 37.6 mm from each eye's centre, `gimbal.LIDS_SHELL`: the cap a 35.8 mm sphere, 1.3 mm
-  under his eye's; the lids' band 0.5 mm over it and 0.8 mm thick, its outer face on his eye's own surface, so no
+  under his eye's; the lids' band 0.55 mm over it and 0.75 mm thick, its outer face on his eye's own surface, so no
   lid stands proud of his skin and a brow laid on the face has 1.4 mm under it, #850). The cap is solid in front, on
   the core's seat, and from there a 1.6 mm shell out to its opening's own outline as the front sees it; below the
   eye line it ends 1.2 mm inside the outline, on the rim's own way out from the eye's centre, since pitched down a

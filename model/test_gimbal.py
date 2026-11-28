@@ -13,14 +13,14 @@ from model import envelopes, gimbal, mujoco_report
 def test_the_eyes_are_mortys_at_life_size():
     """#901, #967: the eyes sit on his Sculpt's eyeballs, 73.3 mm apart (model/test_skin.py refits them); the core,
     its lever and the yoke are sized to his eyeball's own 37.1 mm, x1.4 of the gimbal's first 27 mm, so they turn
-    inside the shell the hidden lids sweep. The cap is a 35.8 mm sphere, 1.3 mm under his eye's; the lids' band 0.5 mm
-    over it and 0.8 mm thick, its outer face on his eye's own surface, so the shell ends at 37.6 mm (#850: the brows'
+    inside the shell the hidden lids sweep. The cap is a 35.8 mm sphere, 1.3 mm under his eye's; the lids' band 0.55 mm
+    over it and 0.75 mm thick, its outer face on his eye's own surface, so the shell ends at 37.6 mm (#850: the brows'
     room). At rest the lids are open: the upper's edge 83.3 deg up at the eye's middle, behind the top rim, the lower's
     on the cap's bottom edge, 59.4 deg down."""
     assert gimbal.SPACING == pytest.approx(73.3)
     assert gimbal.CAP_R == pytest.approx(35.8) == pytest.approx(gimbal.MORTY_BALL_R - 1.3)
     assert gimbal.CORE_R == pytest.approx(13.0 * 1.4) and gimbal.LEVER == pytest.approx(17.0 * 1.4)
-    assert gimbal.LID_R == pytest.approx((36.3, gimbal.MORTY_BALL_R)) and gimbal.LIDS_SHELL == pytest.approx(
+    assert gimbal.LID_R == pytest.approx((36.35, gimbal.MORTY_BALL_R)) and gimbal.LIDS_SHELL == pytest.approx(
         (35.8, 37.6)
     )
     assert gimbal.LID_REST == pytest.approx(83.3) and gimbal.LOWER_REST == pytest.approx(-59.4)

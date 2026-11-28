@@ -830,7 +830,7 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
     pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
     # a lid's band is LID_CLEAR_MM over its cap by its radii, wherever either turns (gimbal.report): no closer, so
     # checked for overlap with the pairs that touch
-    room = gm.LID_CLEAR_MM + 0.01
+    room = gm.LID_CLEAR_MM + 2 * gm.LID_OVER
     near = {(a, b) for a, b in pairs if _gap(rest[a], rest[b]) < room > rest[a].distance(rest[b])}
     lids, pitches = (
         np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), n_lid),
