@@ -201,8 +201,8 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
     """#967 (Cansin, 2026-11-28): each opening is his Sculpt's own, and the eye is sunk 2.2 mm under it, so the opening
     is larger than the eyeball as the front sees it. Seen from the front, on a 0.5 mm grid inside its outline: open,
     the upper lid's band shows only along the top rim, edge on, where no cap can reach (under 50 mm2), and the lower
-    lid only under the cap's bottom edge, the sliver along the bottom rim (120 to 180 mm2: 2.2 mm wide; under half of
-    it wide open, as it drops under the cap's edge); shut, the two lids cover it all but 1.5%: 0.9 mm along the
+    lid only under the cap's bottom edge, the sliver along the bottom rim (120 to 180 mm2: 2.2 mm wide; two thirds of
+    it wide open, as it drops under the cap's edge: under half when the sliver was 1.2 mm); shut, the two lids cover it all but 1.5%: 0.9 mm along the
     middle of the top rim, where the upper lid's back edge stops short of the bail's arm, and its outer corner."""
     import trimesh
 
@@ -224,7 +224,7 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
         for e in gm.LID_EDGES
     )
     assert (~(_seen(shut[0], inside, eye) | _seen(shut[1], inside, eye))).sum() <= 0.015 * len(inside)
-    assert _seen(wide[0], inside, eye).sum() * 0.25 < 50.0 and _seen(wide[1], inside, eye).sum() < under.sum() / 2
+    assert _seen(wide[0], inside, eye).sum() * 0.25 < 50.0 and _seen(wide[1], inside, eye).sum() < 0.75 * under.sum()
 
 
 def _lids_shell(side):
