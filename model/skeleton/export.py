@@ -117,8 +117,8 @@ def _seats(job, frame):
     the bone: its pad, where it has one, a ball among the cap's bosses, united with the bone before the carve; a
     flat, a disc from the Seat's face out past whatever bone stands proud of it; the magnet's pocket among its
     bone's; and three V-grooves down into the face, opening outward. And each bone's plain pockets (job["pockets"],
-    #968), a magnet's pocket alone, its mouth at its frame's origin. A collection's own pieces never meet: the cut
-    takes each as one mesh."""
+    #968), a magnet's pocket alone, its mouth at its frame's origin, with a flat from there out over its partner
+    magnet's place. A collection's own pieces never meet: the cut takes each as one mesh."""
     if not (job["seats"]["at"] or job["pockets"]):
         return
     (bore, depth), (ring, _), (reach, deep) = (job["cap"][k] for k in ("bore", "ball", "groove"))
@@ -149,7 +149,12 @@ def _seats(job, frame):
             groove.matrix_world = seat @ Matrix.Rotation(math.radians(deg), 4, "Z")
             _cutters(job, CARRIED, names[0]).objects.link(groove)
     for names, at in job["pockets"]:
-        pocket(names, Matrix.Translation(frame) @ Matrix(at))
+        at = Matrix.Translation(frame) @ Matrix(at)
+        pocket(names, at)
+        # its partner's place too, a voxel round: the carve round the carrier's empty pocket leaves a ring of bone there
+        clear = _disc(bore + job["numbers"]["Voxel"], 2 * depth)
+        clear.matrix_world = at @ Matrix.Translation((0, 0, depth))
+        _into(clear, _cutters(job, FLATS, names[0]))
     for o in collection(CAP, collection("helpers")).all_objects:
         o.display_type, o.hide_render = "WIRE", True
 
