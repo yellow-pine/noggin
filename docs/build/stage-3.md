@@ -41,8 +41,11 @@ calibrated ([Calibration](calibration.md)).
 2. **Jaw** on the gimbal frame's lugs, turning at the mandible's condyles; it turns down to open the mouth. Its
    carrier is a chain of Bones laid on the mandible's inner face, half let in, down each ramus and along the body,
    with a bar across behind the chin, sized to hold the mouth servo's stall. The mandible comes off it in one piece,
-   down and 30° forward. *Upcoming (#968): the two magnet pairs that hold the mandible on, and the chin Shell's Seat
-   in its front (#850).*
+   down and 30° forward, the face Shell off first; its chin Shell can stay on it. Two magnet pairs hold it on: a
+   4x2 mm disc flush in the front of the bar 6 mm either side of the middle, and one in the bone facing each. Glue
+   the bar's two in first, one showing N and the other S, then each of the bone's on its partner with the bone in
+   place, so the pairs set face to face. The chin Shell sits on one Seat in the front of the bone, between the two
+   pairs, and pulls off forward.
 
    [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3&part=jaw)
 

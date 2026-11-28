@@ -546,7 +546,7 @@ for collection in list(cube.users_collection): collection.objects.unlink(cube)
 bpy.data.collections['Finished'].objects.link(cube)
 job={'files':{'carrier:1':str(folder/'marker.stl')},'bones':{},'frame':[0,0,0],
      'rest':{'carrier:1':list(identity)},'orbits':[],'belts':[],'vault':{'bones':[],'middle':[0,0,0]},'numbers':{},
-     'cap':{'of':{}},'seats':{'at':[]},
+     'cap':{'of':{}},'seats':{'at':[]},'pockets':[],
      'parts':{'carrier:1':{'region':'Skull','layer':'Mech','colour':'#FFFFFF'},
               'worn skull:1':{'region':'Skull','layer':'Skeleton','colour':'#FFFFFF'}},
      'alpha':{'Mech':1,'Skeleton':.69,'Morty':.33},

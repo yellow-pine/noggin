@@ -64,9 +64,10 @@ Also needed, which the model doesn't count as parts:
 - A USB-C charger or laptop port advertising 3 A. *Upcoming (#971): a TUSB320 input-limit detector for lower-current
   sources ([Stage 2](stage-2.md#wiring)).*
 - For a Skin: 4x2 mm N52 magnet discs, two per Seat ([Themes](../face-design.md#seats-and-magnets)): four for the
-  eyeball caps and 18 for Morty's face and hair, on nine Seats. *Upcoming (#850): the discs for his chin and his
+  eyeball caps and 20 for Morty's face, hair and chin, on ten Seats. *Upcoming (#850): the discs for his
   shirt.* Six more for the
-  realistic skull's calvaria, which lifts off three Seats ([Stage 3](stage-3.md)).
+  realistic skull's calvaria, which lifts off three Seats, and four for the two pairs that hold its mandible on
+  the jaw's carrier ([Stage 3](stage-3.md)).
 - For the modeled head interface (#978): two MG996R standard metal-gear servos (tilt and pan) with their supplied
   round horns and 150 mm 22 AWG lead extensions, a Pololu D36V28F5 5 V 3.2 A synchronous step-down regulator (5267) on
   the head-local Y lead for the pan servo's power rail, and an SKF 61804-2RS1 thin-section deep-groove ball bearing

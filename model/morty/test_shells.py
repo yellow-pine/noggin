@@ -1,6 +1,7 @@
 """Seam: Morty's Skin as `just ours` cuts it from his Sculpt (model/morty/shells.py, docs/adr/0027): each Shell's STL in
 model/build/ours, in the head's frame at rest, held to the Sculpt git holds."""
 
+import functools
 import os
 
 import manifold3d as m3
@@ -194,7 +195,7 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
             points = points[gave.query(points)[0] > 3.0]
         under = surface.query(points, workers=-1)[0]
         inside = under[under > 0.25]  # the rest are the Sculpt's own
-        assert len(inside) > 1000, name
+        assert len(inside) > 800, name  # the chin's fewest, its boss's column left out: 993
         thick = shells.BROW if brow else skin.WALL
         low, high = (thick - 0.25, thick + 0.25) if brow else (1.4, 1.9)
         assert inside.min() > low and inside.max() < high, (name, inside.min(), inside.max())
@@ -288,15 +289,15 @@ def test_shells_that_ride_together_keep_the_seams_gap(built):
         assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, (a, b, gap)
 
 
-@pytest.fixture(scope="module")
-def places():
-    """{part: [its solid, in the head's frame, at each place the head sees it in]}: every part of the document the
-    review wears the Shells on, at rest and with each servo at either end, the head held still. Each part's mesh is
-    closed as physics closes it (mjcf._mesh): Linux's OCCT leaves slivers on a few seams, and a solid needs none. A
-    part still open after that stands in as its convex hull."""
+@functools.cache
+def _places(carrier):
+    """{part: [its solid, in the head's frame at rest, at each place `carrier` sees it in]}: every part of the
+    document the review wears the Shells on, at rest and with each servo at either end, the carrier held still.
+    Each part's mesh is closed as physics closes it (mjcf._mesh): Linux's OCCT leaves slivers on a few seams, and a
+    solid needs none. A part still open after that stands in as its convex hull."""
     stage, eyes = review.worn(), stages.align(*stages.DOCS[morty.DOC]["eyes"])
     rest = {n: p.matrix for n, p in stage.parts.items()}
-    head = f"{skin.MOTION['head']}:1"
+    head = f"{carrier}:1"
     poses = [rest, *(stages.pose(stage, horn, deg).parts for horn, h in stage.horns.items() for deg in h.limits)]
     out = {}
     for name, part in stage.parts.items():
@@ -313,16 +314,18 @@ def places():
 
 
 @pytest.mark.bones
-@pytest.mark.parametrize("piece", HAIR)
-def test_each_piece_of_the_hair_comes_off_straight(places, piece):
+@pytest.mark.parametrize("piece", [*HAIR, "morty chin"])
+def test_each_shell_in_bone_comes_off_straight(piece):
     """#893 (Cansin, 2026-11-28): the hair is cut in two on a level seam so that each piece comes off the head a
-    straight way (skin.DIRECTIONS), the crown up and the back back, the other piece still on. Exact solids, a
-    millimetre at a time until the piece is past everything: it never comes nearer a part than a worn Shell's room
+    straight way (skin.DIRECTIONS), the crown up and the back back, the other piece still on; and the chin comes
+    off the mandible forward, the mandible still on its carrier (the sixth round). Exact solids, a millimetre at a
+    time until the piece is past everything: it never comes nearer a part than a worn Shell's room
     (gm.LID_CLEAR_MM, so it touches nothing between two steps). Every part of the Skeleton at rest and wherever each
-    servo's ends put it as the head sees it; every other Shell at rest. The bone its Seats are in it rests on, its
-    balls in their grooves; once off them, a millimetre on, it keeps its bosses' room in their flats from that bone
-    (skeleton.SEAT_ROOM, as two meshed rounds read it). And it comes no nearer the worn skull or its calvaria on its
-    way than where it rests."""
+    servo's ends put it as the part that carries the piece sees it (the head, or the jaw); every other Shell at
+    rest. The bone its Seats are in it rests on, its balls in their grooves; once off them, a millimetre on, it
+    keeps its bosses' room in their flats from that bone (skeleton.SEAT_ROOM, as two meshed rounds read it). And it
+    comes no nearer the worn skull or its calvaria on its way than where it rests."""
+    places = _places(skin.MOTION[skin.region(piece)])
     way = np.array(skin.DIRECTIONS[piece])
     carriers = {g.WORN[s.carrier] for s in skin.SEATS if s.shell == piece}
     (seated,) = places[piece]
@@ -330,7 +333,7 @@ def test_each_piece_of_the_hair_comes_off_straight(places, piece):
     # a Shell at its first place, rest: the shirt stands in the back's way once the head is turned or nodded
     seen = {name: solids[:1] if name in NAMES else solids for name, solids in places.items() if name != piece}
     others = [(name, s, np.reshape(s.bounding_box(), (2, 3))) for name, solids in seen.items() for s in solids]
-    far = max(b[1] @ way for _, _, b in others) - box[0] @ way  # until all of it is past all of them
+    far = max((b @ way).max() for _, _, b in others) - (box @ way).min()  # until all of it is past all of them
     near, off = {}, {}  # {part: (its least gap, how far along)}; {carrier: its least gap once the piece is off it}
     for t in np.arange(0.0, far + 1.0, 1.0):
         moved, low, high = seated.translate(tuple(t * way)), box[0] + t * way, box[1] + t * way
@@ -341,10 +344,28 @@ def test_each_piece_of_the_hair_comes_off_straight(places, piece):
                 if t and name in carriers:
                     off[name] = min(off.get(name, 3.0), gap)
     free = {name: gap for name, gap in near.items() if name not in carriers}
-    assert far > 90 and min(free.values())[0] > gm.LID_CLEAR_MM, sorted(free.items(), key=lambda kv: kv[1])[:5]
+    assert far > 50 and min(free.values())[0] > gm.LID_CLEAR_MM, sorted(free.items(), key=lambda kv: kv[1])[:5]
     assert carriers and min(off[name] for name in carriers) > skeleton.SEAT_ROOM - 0.1, off
     for bone in ("worn skull", "worn calvaria"):  # the skull as a Skin wears it, and its cap (#874)
         assert near.get(bone, (3.0, 0.0))[1] == 0.0, (bone, near[bone])
+
+
+@pytest.mark.bones
+def test_the_mandible_comes_off_its_carrier_with_the_chin_still_on_it():
+    """#968, #850: the chin sits on the mandible, which leaves its carrier along skeleton.OFF. Riding the bone that
+    way a millimetre at a time, the chin never comes nearer anything but the bone it sits on than a worn Shell's
+    room (gm.LID_CLEAR_MM): every part at rest, the head level and the jaw shut (nodded down or the jaw open, the
+    shirt's collar stands in its way after 8 and 13 mm, measured). The bone's own way is model/skeleton's test."""
+    places = _places(skin.MOTION["jaw"])
+    way, far = skeleton.OFF["mandible"]
+    (chin,) = places["morty chin"]
+    least = min(
+        (chin.translate(tuple(t * np.array(way))).min_gap(solids[0], 3.0), name, float(t))
+        for t in np.arange(0.0, far + 0.5, 1.0)
+        for name, solids in places.items()
+        if name not in ("morty chin", g.WORN["mandible"])
+    )
+    assert least[0] > gm.LID_CLEAR_MM, least
 
 
 def test_each_brow_is_laid_on_the_face_which_runs_on_under_it(built, outer):
@@ -459,9 +480,9 @@ def test_the_shells_are_cut_where_the_cuts_are(built):
     under the mouth line in front of the eyes, each brow out of the face. Read at each Shell's box and weight (g,
     solid PLA Pure)."""
     grams = {n: m.volume / 1000 * g.MATERIALS["PLA Pure"]["density_g_cm3"] for n, m in built.items()}
-    # each with its Seats' bosses: the face's three (3.3 g), the crown's (1.5 g) and the back's, its two low ones
-    # 13 mm long (5.9 g); the face runs on under each brow, which is BROW thick
-    weighed = {"hair crown": 107.2, "hair back": 80.6, "L brow": 0.59, "R brow": 0.59, "face": 92.4, "chin": 4.1}
+    # each with its Seats' bosses: the face's three (3.3 g), the crown's (1.5 g), the back's, its two low ones
+    # 13 mm long (5.9 g), and the chin's (1.9 g); the face runs on under each brow, which is BROW thick
+    weighed = {"hair crown": 107.2, "hair back": 80.6, "L brow": 0.59, "R brow": 0.59, "face": 92.4, "chin": 6.0}
     weighed |= {"shirt": 57}
     assert grams == pytest.approx({f"morty {n}": w for n, w in weighed.items()}, rel=0.05), grams
     collar = skin.contour("collar")[:, 1]

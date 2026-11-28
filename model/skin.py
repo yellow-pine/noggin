@@ -160,6 +160,15 @@ SEATS = [
     *[Seat("morty hair crown", "calvaria", at, (0.0, 0.0, 1.0), BONE_PAD, 8.0, 1) for at in _CROWN],
     # the hair's back, back off the occiput under the hair's level seam: it hangs below them, so two are low
     *[Seat("morty hair back", "skull", at, (0.0, 1.0, 0.0), BONE_PAD, 16.0, 1) for at in _BACK],
+    # the chin (Cansin, 2026-11-28, #893's sixth round), forward off the front of the mandible's symphysis, so it
+    # opens with the jaw. One Seat: its three balls locate the chin whole. It has 14 mm of height for its 14 mm
+    # boss, and no more: over it is the mouth line, the chin's top (at z -78 the boss stood 2.3 mm over it, in the
+    # face's wall), and under it the face's own edge under the jaw, which comes up between the bone and the chin's
+    # wall as the jaw opens wide (to z -88 at the bone's front, 1.2 mm higher each mm forward: at z -82 the boss
+    # met it). So its flat is 1.3 mm deeper than the bone's front at its lowest (y -9.1), where that edge is lower,
+    # and the boss gives way to the edge in front of its face (model/morty/shells.py). The bone is solid, 4 mm of
+    # it behind, so no pad. Measured on the finished mandible and the cut Shells, 2026-11-28
+    Seat("morty chin", "mandible", (0.0, -7.8, -81.0), (0.0, -1.0, 0.0), 0.0, 17.0, 1),
 ]
 
 # {Shell: the Shell it is glued to}, keyed there by its own outline and never off it (#51: not held by magnets
