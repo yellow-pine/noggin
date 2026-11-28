@@ -315,14 +315,13 @@ def lid_mechanical(points, x, w=ARM):
     return out
 
 
-def lid_bone(points, x, sizes=LID_BONE, tall=False):
+def lid_bone(points, x, sizes=LID_BONE):
     """Bones (model/printed/bone.py, #704) through the (y, z) `points` in turn, each lying in the slab `x` on its lower
     face, its joints' pins along x, as low as the slab (unclipped: OCCT's clip of one came out empty one way round): the
     lid drives' bars, links and spokes. Every other span's heads, from the first, are 5% smaller, inside its neighbours'
     where they meet: two identical heads fused made an invalid solid, and on Linux so did the bent bar's other way.
-    A span longer than LID_SPAN is drawn as two Bones, each half as long. `tall`: higher than the slab, for a caller
-    that cuts them flat at its upper face."""
-    assert tall or sizes[0][1] < x[1] - x[0]
+    A span longer than LID_SPAN is drawn as two Bones, each half as long."""
+    assert sizes[0][1] < x[1] - x[0]
     halved = [points[0]]
     for a, b in zip(points, points[1:]):
         halved += [tuple(np.add(a, b) / 2)] * (math.dist(a, b) > LID_SPAN) + [b]
@@ -344,21 +343,49 @@ def pitch_bar(mechanical=False):
 # down), which keeps it LID_CLEAR_MM off the other's boss as the horn's arm swings between them
 LID_ARM, LID_BOSS = 5.0, 2.5
 BAR_JOG, LINK_JOG = (-8.0, 4.5), (-8.0, -2.5)  # (y, z) from each one's pin on the horn to its bend
-# Their Bones (#1097), the bar's and the link's alike: along the long span, from the lid's pin to the bend, wider than
-# the arm and higher than its slab, so the arm's sides and the slab's upper face cut them (a flat 2.6 mm wide along the
-# waist, the shoulders rounded down to 1.5 mm at the sides); the jog by the horn, 9 mm between two bosses, stays flat.
-# Fuller than LID_BONE's: the link carries 1.9 times the horn's stall force over 49 mm, and a Bone as low as its slab
-# buckled out of it at SF 1.2 (this one 2.3, the bar's 4.5). Of the sizes tried, these alone built both ways round
+# Their Bones (#1097), the bar's and the link's alike: along the long span, from the lid's pin to the bend, half-ellipse
+# sections (semi-width, height: at the joints, at the waist) wider than the arm and higher than its slab, so each is
+# cut flat by the arm's sides and the slab's upper face (a flat 2.6 mm wide along the waist, the shoulders rounded down
+# to 1.5 mm at the sides); the jog by the horn, 9 mm between two bosses, stays flat. Fuller than LID_BONE's: the link
+# carries 1.9 times the horn's stall force over 49 mm, and a Bone as low as its slab buckled out of it at SF 1.2
 ARM_BONE = ((3.2, 3.8), (2.8, 3.4))
+
+
+def arm_bone(a, b, x, w=LID_ARM, sizes=ARM_BONE, stations=25, around=16):
+    """A Bone from a to b ((y, z)) on the lower face of the slab `x`, inside a flat arm `w` wide: its sections drawn
+    already cut to the arm, as polygons, and joined by flat faces. A loft of ellipses cut by the arm afterwards
+    (bone.chain) came out of OCCT broken at most sizes, on macOS at some and on Linux at others (#1097)."""
+    a, b, thick = np.array(a, float), np.array(b, float), x[1] - x[0]
+    across = np.array([a[1] - b[1], b[0] - a[0]]) / math.dist(a, b)
+    rings = []
+    for t in np.linspace(0.0, 1.0, stations):
+        k = math.cos(math.pi * t) ** 2  # 1 at the joints, 0 mid-span, as bone.bone
+        (wide, high) = ((n + (h - n) * k) for h, n in zip(*sizes, strict=True))
+        q = np.linspace(0.0, math.pi, 400)
+        u, v = np.clip(wide * np.cos(q), -w / 2, w / 2), np.minimum(high * np.sin(q), thick)
+        along = np.r_[0.0, np.cumsum(np.hypot(np.diff(u), np.diff(v)))]  # the cut section, evenly round its outline
+        u, v = (np.interp(np.linspace(0.0, along[-1], around), along, c) for c in (u, v))
+        mid = a + (b - a) * t
+        rings.append([(x[0] + vi, *(mid + ui * across)) for ui, vi in zip(u, v, strict=True)])
+
+    def face(*corners):
+        return cq.Face.makeFromWires(cq.Wire.makePolygon([cq.Vector(*map(float, c)) for c in corners], close=True))
+
+    faces = [face(*rings[0]), face(*rings[-1])]
+    for r0, r1 in itertools.pairwise(rings):
+        faces.append(face(r0[0], r1[0], r1[-1], r0[-1]))  # on the slab's lower face
+        for i in range(around - 1):
+            faces += [face(r0[i], r0[i + 1], r1[i + 1]), face(r0[i], r1[i + 1], r1[i])]
+    return cq.Workplane().add(cq.Solid.makeSolid(cq.Shell.makeShell(faces)))
 
 
 def _bar(points, bosses, mechanical):
     """A lid drive's arm through the (y, z) `points` in turn, centred on x 0 in its slab, a pin's boss `bosses` in
-    radius at its first point and at its last: mechanical, or its long first span as Bones (ARM_BONE)."""
+    radius at its first point and at its last: mechanical, or its long first span a Bone (arm_bone)."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
     out = lid_mechanical(points if mechanical else points[1:], (-w, w), LID_ARM)
     if not mechanical:
-        out = lid_bone(points[:2], (-w, w), ARM_BONE, tall=True).union(out)
+        out = out.union(arm_bone(*points[:2], (-w, w)))
     for pin, r in zip((points[0], points[-1]), bosses, strict=True):
         out = holes(out, [pin], (-w, w), r)
     return out
