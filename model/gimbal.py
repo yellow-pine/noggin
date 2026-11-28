@@ -42,11 +42,11 @@ LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
 ROD_R = BALL_R + 1.7
 YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from below, round the core
 # The yaw drive round the lids' shell (#967, the re-layout). The hidden lids and their cap sweep a shell
-# LIDS_SHELL from each eye's centre (the cap's 35.8, the lids' band 36.3 to 37.1, 0.5 clear: CAP_R, LID_R), through
+# LIDS_SHELL from each eye's centre (the cap's 35.8, the lids' band 36.35 to 37.1, 0.5 clear: CAP_R, LID_R), through
 # LIDS_SWEEP deg about the eye line where the yaw drive stands (from forward, up positive), and nothing else may
 # cross it: only the belt behind the eye, between the two stowed lids' back edges, is a way out of the eye's sphere,
 # and the lids' own hubs between the eyes. The face's wall comes no nearer an eye's centre than LIDS_SHELL[1] where
-# a lid ever is (#850: the band is 0.8 mm, not 1.2, so a brow laid on the face has 1.4 mm under it). So each
+# a lid ever is (#850: the band is 0.75 mm, not 1.2, so a brow laid on the face has 1.4 mm under it). So each
 # yoke has no stem: its crank lies at its bottom bar's level and it turns on a post (POST_R) on its yaw bearing, which
 # lies inside the shell (out to RAIL_R[1], the lids' band less its clearance: the cap never comes behind the yaw axis
 # inboard), runs back and inboard from under the yoke and leaves the shell RAIL_EXIT (deg inboard along the eye line,
@@ -123,7 +123,10 @@ PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (
 # COVER_FREE mm either side of the eye's (its back edge is the rim itself there, so wide open it stops 154 deg
 # round, short of the bail's arm at 157: comment 7226349814's cure 1). The travels are read off his Sculpt's eye whites' cuts
 # (model/printed/test_gimbal.py holds them to it); every other size here is inferred
-LID_R = (LIDS_SHELL[0] + LID_CLEAR_MM, LIDS_SHELL[1] - LID_CLEAR_MM)
+# LID_OVER more than the lids' clearance over the cap: the Shells' gate reads the two on their meshes, whose flats
+# lie up to 0.03 mm inside a sphere (0.47 mm for an exact 0.5, model/printed/test_skin.py)
+LID_OVER = 0.05
+LID_R = (LIDS_SHELL[0] + LID_CLEAR_MM + LID_OVER, LIDS_SHELL[1] - LID_CLEAR_MM)
 LID_SHUT, LOWER_TRAVEL, UPPER_TRAVEL, LID_WIDE = 6.5, 65.9, 76.8, 4.5
 LID_SLIT = 0.6  # between the shut lids' edges: the lids' clearance, and a tenth for what a sampled sweep misreads
 LID_COVER, LID_TIPS, COVER_FREE = 4.0, (2.6, 12.0), 5.2
