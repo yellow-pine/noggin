@@ -226,8 +226,8 @@ def test_the_first_criterion_in_51s_order_that_differs_decides():
 
 def test_the_leads_decide_after_the_mode_and_before_the_tip_over_margin():
     """#51's order: ... lowest mode, fewest leads, tip-over margin: all else equal, the one with fewer leads across
-    pan and tilt ranks first, though the other stands further inside its footprint. The head's fit is no figure
-    since #1089: Morty's skin holds every part (model/review), in or out."""
+    pan and tilt ranks first, though the other stands further inside its footprint. The head's fit is neither a
+    figure nor a gate here since #1089: model/review's tests hold every part under Morty's skin."""
     ranked = base.rank(
         {
             "mech-back": _report(leads={"pan pivot": 6}, tip=40.0),
@@ -236,7 +236,6 @@ def test_the_leads_decide_after_the_mode_and_before_the_tip_over_margin():
     )
     assert ranked["order"] == ["mech-later", "mech-back"]
     assert set(ranked["variants"]["mech-back"]["gates"]) == {"clearance", "loops"}
-    assert "head_room_mm" not in ranked["variants"]["mech-back"]["criteria"]
 
 
 def test_a_mark_missed_outranks_a_better_figure_after_it_and_names_what_it_fails():

@@ -206,7 +206,7 @@ def rank(reports):
         costs = (c["printed"], c["hold_kgf_cm"], c["peak_kgf_cm"], c["rest_kgf_cm"], -c["mode_hz"])
         out[doc] = {
             "gates": gates,
-            "fails": ["clearance"] * bool(gates["clearance"])
+            "fails": (["clearance"] if gates["clearance"] else [])
             + [f"{n.removesuffix(' pivot')} loop" for n in gates["loops"]]
             + [n for n, missed in marks.items() if missed],
             "criteria": c,
