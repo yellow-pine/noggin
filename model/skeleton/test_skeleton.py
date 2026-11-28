@@ -2,6 +2,7 @@
 0025): on the Mech's eyes and neck, under Morty's skin (envelope.py), one piece each; the scene itself committed
 light, its one source under its own licence."""
 
+import fcntl
 import functools
 import itertools
 import os
@@ -286,18 +287,21 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
 
 
 @pytest.fixture(scope="module")
-def wearing(tmp_path_factory):
+def wearing(tmp_path_factory, worker_id):
     """{worn bone: its solid} as the Finish leaves it for a document that wears Morty's Shells (review.worn()): a
-    Blender run of its own, 50 s, once a worker (its tests share an xdist group). No document wears them yet
-    (g.SKINS), so `just ours` carves the worn bones round the eyeball caps alone, and what the Shells' carve does to
-    a bone would go unread. Once a document wears them, `just ours` builds these and this goes."""
-    out = str(tmp_path_factory.mktemp("wearing"))
-    skeleton.finish(out, review.worn())
-    meshes = {stem: trimesh.load(os.path.join(out, stem + ".stl"), force="mesh") for stem in g.WORN.values()}
+    Blender run of its own, 50 s, once a run: xdist's workers share the folder over theirs, and the first to take
+    its lock builds for all. No document wears them yet (g.SKINS), so `just ours` carves the worn bones round the
+    eyeball caps alone, and what the Shells' carve does to a bone would go unread. Once a document wears them,
+    `just ours` builds these and this goes."""
+    base = tmp_path_factory.getbasetemp()
+    out = (base if worker_id == "master" else base.parent) / "wearing"
+    with open(f"{out}.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not (out / "done").exists():
+            skeleton.finish(str(out), review.worn())
+            (out / "done").touch()
+    meshes = {stem: trimesh.load(out / f"{stem}.stl", force="mesh") for stem in g.WORN.values()}
     return {stem: shells._solid(mesh.vertices, mesh.faces) for stem, mesh in meshes.items()}
-
-
-WEARING = pytest.mark.xdist_group("wearing")  # on one worker: the build is made once
 
 
 def _seated(bone, seat):
@@ -328,23 +332,22 @@ def _seated(bone, seat):
         assert (bone ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at).transform(to)).volume() > 0, deg
 
 
-SEAT_IDS = {"argvalues": SKIN_SEATS, "ids": lambda s: f"{s.shell} {s.at[0]:+.0f}"}
+EACH_SEAT = pytest.mark.parametrize("seat", SKIN_SEATS, ids=lambda s: f"{s.shell} {s.at[0]:+.0f}")
 
 
 @pytest.mark.model
 @pytest.mark.bones
 @pytest.mark.parametrize("worn", [False, True], ids=["bare", "worn"])
-@pytest.mark.parametrize("seat", **SEAT_IDS)
+@EACH_SEAT
 def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, worn, solids):
     """#850: each Seat a Skin has in bone (model/skin.py SEATS) is cut (_seated()) in the bare copy of its carrier
     and in the worn one."""
     _seated(solids[g.WORN[seat.carrier] if worn else seat.carrier], seat)
 
 
-@WEARING
 @pytest.mark.model
 @pytest.mark.bones
-@pytest.mark.parametrize("seat", **SEAT_IDS)
+@EACH_SEAT
 def test_the_carve_round_the_shells_leaves_each_seat_in_bone_alone(seat, wearing):
     """#850: finished for a document that wears Morty's Shells, a worn bone is carved a moving part's room clear of
     every Shell, and the Shell's own boss stands a Seat's gap over the Seat's face: carved round, the face went
@@ -353,7 +356,6 @@ def test_the_carve_round_the_shells_leaves_each_seat_in_bone_alone(seat, wearing
     _seated(wearing[g.WORN[seat.carrier]], seat)
 
 
-@WEARING
 @pytest.mark.model
 @pytest.mark.bones
 def test_the_worn_mandible_clears_the_faces_edge_under_the_jaw_all_the_way_open(wearing):
