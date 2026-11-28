@@ -102,9 +102,9 @@ def solve(x, caps, pairs, scale, skin=None, fill=None, lo=-np.inf, clear=None, f
     spread over them too (a crease of the skin cuts in between vertices: the points spread over the Basis, then, a
     round at a time, those spread over the Warp that still come short); `fill`: the rows drawn out to that limit,
     softly: the budget and the pairs win; `lo`: the warped region's lower bound; `clear` (rows, points): those rows
-    kept CLEAR_MM off the points; `lows`: each vertex's compression floor where it is not LOW (budget.floors); `pre` (n, 3, 3): what brought the
-    original anatomy to `x` already (budget.slim), which the budget counts with the field. Returns the warped x, the
-    Jacobians (n, 3, 3) from the original anatomy and the warped pair points."""
+    kept CLEAR_MM off the points; `lows`: each vertex's compression floor where it is not LOW (budget.floors); `pre`
+    (n, 3, 3): what brought the original anatomy to `x` already (budget.slim), which the budget counts with the
+    field. Returns the warped x, the Jacobians (n, 3, 3) from the original anatomy and the warped pair points."""
     origin = x.min(0) - LATTICE
     shape = np.ceil((x.max(0) + LATTICE - origin) / LATTICE).astype(int) + 3
     B = lattice(x, origin, shape)
