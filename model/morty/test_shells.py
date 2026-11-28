@@ -30,6 +30,10 @@ UNDER_JAW, UNDER_JAW_CM2 = ((-30.0, -27.0, -120.0), (30.0, 24.0, -70.0)), 9.8
 # the fit and the slab's end stands free of the face: seven flakes at the four tips, 0.18 mm3 in all, which the
 # cutter drops as crumbs
 BROW_TIP = 0.45
+RIM = 0.4  # the least of the face's wall on an eye opening's outline, mm: one 0.4 mm perimeter (Cansin, 2026-11-28)
+# The face's wall is thinned this far out from an eye opening's outline, as the front sees it, mm: his skin is the
+# wall's 1.6 mm over the lids' shell from about 2.5 mm out (measured, #967)
+RIM_OUT = 3.0
 
 
 @pytest.fixture(scope="module")
@@ -175,7 +179,9 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
     along its cut's sweep: x, or y as a front view turns it; or level, the hair's), the base's, or the inside, which
     lies within 0.15 mm of WALL under the outer skin for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone
     may begin (WALL and 0.5 mm of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the
-    wall, from its Seats' bosses and from the face under each brow, whose outside is the brow's bed. A brow is laid on
+    wall, from its Seats' bosses, from the face under each brow, whose outside is the brow's bed, and from round each
+    eye opening (RIM_OUT), where the face's wall is thinned from inside to the lids' shell (Cansin's way C,
+    2026-11-28) and is RIM thick or more, on the outline too. A brow is laid on
     the face (#893): shells.BROW thick, not a wall, 8 mm across, all of it within 3 mm of its own seam, and a slab
     with a step each side. Its whole inside is held within 0.25 mm of BROW, and 90% of it within 0.15."""
     surface = cKDTree(shells._points(outer.triangles, 0.3))
@@ -194,7 +200,11 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
         if not brow:
             points = points[gave.query(points)[0] > 3.0]
         under = surface.query(points, workers=-1)[0]
-        inside = under[under > 0.25]  # the rest are the Sculpt's own
+        rim = _in_an_eye_opening(points, RIM_OUT)  # thinned to the lids' shell there
+        if name == "morty face":
+            thinned = under[rim & (under > 0.25)]
+            assert len(thinned) > 1000 and thinned.min() >= RIM and thinned.max() < 1.9, (thinned.min(), thinned.max())
+        inside = under[~rim & (under > 0.25)]  # the rest are the Sculpt's own
         assert len(inside) > 800, name  # the chin's fewest, its boss's column left out: 993
         thick = shells.BROW if brow else skin.WALL
         low, high = (thick - 0.25, thick + 0.25) if brow else (1.4, 1.9)
@@ -205,16 +215,18 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
 def test_the_skin_is_open_round_each_eye(built):
     """#893 (Cansin, 2026-11-27): an eye's opening is its eye white's cut, the Sculpt's own dome's edge, exactly. No
     wall in front of the eyes inside it (to 1% of its size, its rim's own vertices), where the eyeball is the eye
-    white; and the face comes up to it all round: its rim is within 0.05 mm of the cut at every point of it. Its
-    wall then comes to 36.3 mm from the eye's centre at its nearest (measured): the room #967's eyeball and lids have
-    under the rim."""
+    white; and the face comes up to it all round: its rim is within 0.05 mm of the cut at every point of it.
+    Round each opening the wall is thinned from inside to the lids' shell (gm.LIDS_SHELL, Cansin's way C, 2026-11-28:
+    the eyes sink so that it reaches the outline): the face comes no nearer the eye's centre than that shell and
+    what two meshed rounds can read short (shells.ROUND)."""
     for name, mesh in built.items():
         ahead = mesh.vertices[mesh.vertices[:, 1] < 0]
         for side, eye in gm.EYE.items():
             white = skin.cuts()[f"{side} eye white"][1]
             if name == "morty face":
                 assert cKDTree(ahead[:, [0, 2]]).query(white)[0].max() < 0.05, side
-                assert np.linalg.norm(mesh.vertices - eye, axis=1).min() == pytest.approx(36.3, abs=0.2), side
+                nearest = np.linalg.norm(mesh.vertices - eye, axis=1).min()
+                assert nearest == pytest.approx(gm.LIDS_SHELL[1] + shells.ROUND, abs=0.01), side
             centre = white.mean(axis=0)
             assert not _inside(ahead[:, [0, 2]], centre + 0.99 * (white - centre)).any(), name
 
@@ -348,6 +360,24 @@ def test_each_shell_in_bone_comes_off_straight(piece):
     assert carriers and min(off[name] for name in carriers) > skeleton.SEAT_ROOM - 0.1, off
     for bone in ("worn skull", "worn calvaria"):  # the skull as a Skin wears it, and its cap (#874)
         assert near.get(bone, (3.0, 0.0))[1] == 0.0, (bone, near[bone])
+
+
+@pytest.mark.parametrize("side", list(gm.EYE))
+def test_the_face_keeps_a_moving_parts_room_from_each_lid_through_its_travel(built, side):
+    """#850, #967 (Cansin's way C, 2026-11-28): thinned round each eye opening, the face keeps gm.LID_CLEAR_MM from
+    the lids' own solids, not only from their shell: each lid of this eye at seven places over its servo's range,
+    and its eyeball cap and the liner behind it with them. Exact solids, each part's mesh closed as physics closes
+    it."""
+    face = _solids({"morty face": built["morty face"]})["morty face"]
+    stage, eyes = review.worn(), stages.align(*stages.DOCS[morty.DOC]["eyes"])
+    horn, near = f"{side} lid horn", {}
+    for name in (f"{side} {part}:1" for part in ("upper lid", "lower lid", "eyeball cap", "eye liner")):
+        mesh = mjcf._mesh(stage.parts[name].file, None)
+        part = shells._solid(mesh.vertices, mesh.faces)
+        for deg in np.linspace(*stage.horns[horn].limits, 7):
+            at = np.linalg.inv(eyes) @ stages.pose(stage, horn, float(deg)).parts[name]  # in the head's frame
+            near[name, round(float(deg), 1)] = face.min_gap(part.transform(at[:3]), 2.0)
+    assert min(near.values()) > gm.LID_CLEAR_MM, sorted(near.items(), key=lambda kv: kv[1])[:4]
 
 
 @pytest.mark.bones

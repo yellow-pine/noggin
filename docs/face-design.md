@@ -49,7 +49,8 @@ and behind his hairline, in two pieces on a level seam 10 mm above his eyes' cen
 and a back that slides straight back; the face, with his nose and ears; each brow, its ridge over the eye, in the hair's filament,
 laid on the face, which runs on under it, and glued there;
 the chin, under the mouth line, which opens with the jaw; and the shirt, under the collar, the whole fixed body. The face is open inside each eye's own outline, where the
-eyeball is the eye white; an open lid's edge shows at the rim. Every seam is a 0.8 mm gap, and the shirt and the
+eyeball is the eye white; an open lid's edge shows at the rim. Round each opening its wall is thinned from inside,
+to 0.4 mm or more on the outline, so it reaches the outline over the lids, which keep 0.5 mm from it (docs/adr/0028). Every seam is a 0.8 mm gap, and the shirt and the
 face give way where the head and the jaw move against them (docs/adr/0029). *Upcoming (#850): the rest of their
 [Seats](#seats-and-magnets), and room for them round the mechanism and the bones.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
 the hair and the shirt, for a plug.*
