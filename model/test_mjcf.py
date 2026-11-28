@@ -93,10 +93,14 @@ TOUCH = {
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("torso:1", "cervical carrier:1"),
+            ("torso:1", "neck socket:1"),
             ("torso:1", "torso lid:1"),
-            # the carrier's rails up through the lid's slots: the lid's pieces fill the slots (#838, #978)
-            ("torso lid:1", "cervical carrier:1"),
+            # the socket's tower and its tube up through the lid's slot: the lid's pieces fill the slot (#838, #1075)
+            ("torso lid:1", "neck socket:1"),
+            ("torso lid:1", "neck tube:1"),
+            # the tube in the socket's bore and in the carrier's: each part's pieces fill its bore (#1036, #1075)
+            ("neck socket:1", "neck tube:1"),
+            ("cervical carrier:1", "neck tube:1"),
             ("torso:1", "pack:1"),
             ("torso:1", "switch board:1"),
             ("torso:1", "power-path board:1"),
@@ -147,7 +151,7 @@ def test_every_part_sits_where_stages_places_it(doc):
     stage = stages.STAGES[doc]
     model, data = forward(doc)
     placed = {n: p.matrix for n, p in stage.parts.items()}  # pose()'s at 0 deg
-    assert {model.body(i).name for i in range(1, model.nbody)} == set(placed)
+    assert {model.body(i).name for i in mjcf.parts(model)} == set(placed)  # a bone's load is no part
     for name, expected in placed.items():
         body = data.body(name)
         lo, hi = trimesh.load(stage.parts[name].file, force="mesh").bounds
@@ -176,6 +180,25 @@ def test_no_two_parts_overlap_at_rest_unless_they_touch_by_design(doc):
             if mm > PENETRATION_MM:
                 overlaps[pair] = max(overlaps.get(pair, 0), round(mm, 2))
     assert not overlaps, overlaps
+
+
+@pytest.mark.model
+@pytest.mark.bones
+def test_the_whole_mech_carries_its_finished_bones_as_loads_on_their_carriers():
+    """ADR 0020, #874: the mechanical document, which physics runs on and which draws no bone, still carries every
+    finished bone (g.SKULL, as `just ours` left it) as a load: its printed mass (mjcf.mass()) at its own centre, the
+    skull on the head mount, the mandible on the jaw, C1 to C7 on the cervical carrier, with no geometry of its own."""
+    model, data = forward(DOC)
+    frame = stages.STAGES[DOC].horns["tilt horn"].frame
+    carriers = {"skull": "head mount:1", "mandible": "jaw:1"}
+    for stem in g.SKULL:
+        mesh = trimesh.load(stages.stl(stem), force="mesh")
+        body = model.body(f"anatomy {stem}")
+        assert model.body(body.parentid[0]).name == carriers.get(stem, "cervical carrier:1")
+        assert body.mass[0] == pytest.approx(mjcf.mass(mesh, stages.printed(stem)) / 1000)
+        assert body.geomnum[0] == 0
+        at = (frame @ [*mesh.center_mass, 1])[:3] / 1000
+        assert data.body(body.id).xipos == pytest.approx(at, abs=1e-4)
 
 
 # the viewer's tests on the worker that builds DOC for its own tests (CI's --dist loadgroup): one build, not three

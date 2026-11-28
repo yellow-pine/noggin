@@ -6,7 +6,7 @@ import pytest
 import trimesh
 from scipy.spatial import cKDTree
 
-from model.skeleton import envelope, fit
+from model.skeleton import budget, envelope, fit
 
 
 def _box():
@@ -190,3 +190,44 @@ def test_the_head_sees_the_neck_turn_back_as_it_tilts_and_pans():
     assert fit.seen(np.array([on, behind]), 90, 0) == pytest.approx(np.array([on, on - (0, 0, 10)]))
     beside = np.array(fit.PAN) + (10, 0, 0)
     assert fit.seen(beside[None], 0, 90) == pytest.approx((np.array(fit.PAN) - (0, 10, 0))[None])
+
+
+def test_the_budget_counts_what_slimmed_a_zone_before_the_field():
+    """A 40 mm box whose back half was drawn in to half its depth before the field (as budget.slim draws a vertebra's
+    zone in): the field moves nothing, the Jacobians it returns are that slimming's, and the budget refuses them
+    unless the zone's floor is declared."""
+    x = _box()
+    back = x[:, 1] > 0
+    pre = np.where(back[:, None, None], np.diag((1.0, 0.5, 1.0)), np.eye(3))
+    slimmed = x * np.where(back, 0.5, 1.0)[:, None] ** (0, 1, 0)
+    pairs = [((sx * 20, -20, sz * 20), (sx * 20, -20, sz * 20), (1, 1, 1)) for sx in (-1, 1) for sz in (-1, 1)]
+    caps, lows = np.full(len(x), 1.25), np.where(back, 0.4, fit.LOW)
+    y, f, _ = fit.solve(slimmed, caps, pairs, 1.0, lows=lows, pre=pre)
+    assert np.abs(y - slimmed).max() < 0.01
+    least, _ = fit.stretch(f, caps, lows)
+    assert least[back] == pytest.approx(0.5, abs=0.01) and least[~back] == pytest.approx(1.0, abs=0.01)
+    with pytest.raises(ValueError, match="local stretch"):
+        fit.stretch(f, caps)
+
+
+def test_a_vertebra_in_the_riding_skins_way_is_slimmed_toward_its_canal_and_the_others_are_not():
+    """Seven rings with spines, C5's and C6's spines past a skin's back wall (y 100): those two are slimmed (C6 all
+    round, C5 from its canal back), by a factor of fit.SLIMS that brings them RAW under the skin, their canals still
+    on the path and open; the others keep their size, and the report says what was allowed and used."""
+    ring = trimesh.creation.annulus(r_min=7, r_max=13, height=10).subdivide()
+    basis, faces = {}, {}
+    for i, n in enumerate(fit.NECK):
+        spine = trimesh.creation.box(extents=(6, 24 if n in ("c5", "c6") else 6, 6)).subdivide().subdivide()
+        one = trimesh.util.concatenate([ring, spine.apply_translation((0, 24 if n in ("c5", "c6") else 15, 0))])
+        basis[n], faces[n] = one.vertices + (0, 0, -14.0 * i), one.faces
+    skin = envelope.Skin(trimesh.creation.box(bounds=((-60, 20, -190), (60, 100, 0))))
+    out, report = fit.vertebrae(basis, faces, skin)
+    assert skin.depth(np.vstack(list(out.values()))).min() >= fit.RAW
+    for n in fit.NECK:
+        y = out[n]
+        deep, was = np.ptp(y[:, 1]) / report["scale"], np.ptp(basis[n][:, 1])  # front to back, fitted and before
+        assert deep < 0.85 * was if n in ("c5", "c6") else deep == pytest.approx(was, abs=1.0), n
+        assert fit.canal(trimesh.Trimesh(y, faces[n], process=False))[0] == pytest.approx(0, abs=1.0)
+    assert set(report["slimmed"]) == {"c5", "c6"}
+    for zone in report["slimmed"].values():
+        assert zone["factor"] in fit.SLIMS[1:] and 0 < zone["used"] <= zone["allowed"] and zone["least"] >= budget.SLIM

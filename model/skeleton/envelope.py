@@ -75,6 +75,46 @@ class Skin:
         return g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)
 
 
+def _read(grid, lo, floor=None):
+    """A Skin from its grid, as built or kept."""
+    out = Skin.__new__(Skin)
+    out.grid, out.lo, out.floor = grid, lo, floor
+    return out
+
+
+def _nodes(lo, hi):
+    """The GRID lattice over the box lo..hi: (its origin, its shape, its points)."""
+    lo = np.floor(lo / GRID) * GRID
+    shape = np.ceil((hi - lo) / GRID).astype(int) + 1
+    return lo, shape, np.indices(shape).reshape(3, -1).T * GRID + lo
+
+
+def turning(skin, mesh, rides, moves, lo, hi):
+    """`skin` (the Skin of `mesh`) as what stands still sees it over the box lo..hi while a part of it rides the head
+    (#893's decision of 2026-11-27: Morty's neck rides his, to the collar): a Skin whose depth at a still point is its
+    least under the still skin and under the riding part at each of `moves` (4x4, the still point into the riding
+    part's own frame at one pose). `rides`: (points) -> which of them ride. The riding part is `mesh`'s outer surface
+    there alone, open at its rim: a point past the rim is hidden behind what stands still, as deep as its distance to
+    that surface (model/review/test_nape.py reads the head's skin the same way)."""
+    lo, shape, still = _nodes(np.asarray(lo, float), np.asarray(hi, float))
+    corners = lo + np.indices((2, 2, 2)).reshape(3, -1).T * (shape - 1) * GRID
+    swept = np.vstack([trimesh.transform_points(corners, m) for m in moves])
+    rlo, rshape, nodes = _nodes(swept.min(0) - GRID, swept.max(0) + GRID)
+    centres = mesh.triangles_center
+    near = ((centres > rlo - BAND) & (centres < rlo + rshape * GRID + BAND)).all(1)
+    part = trimesh.Trimesh(mesh.vertices, mesh.faces[near], process=False)
+    points = trimesh.sample.sample_surface(part, int(part.area * DENSITY), seed=0)[0]
+    points = points[(np.abs(skin.depth(points)) < GRID / 2) & rides(points)]  # the outer surface's, not a sheet inside
+    off = cKDTree(points).query(nodes, workers=-1)[0]
+    riding = np.where((skin.depth(nodes) > 0) | ~rides(nodes), off, -off).reshape(rshape).astype(np.float32)
+    depth = skin.depth(still)
+    under = depth > -2 * GRID  # the rest is out of the still skin already, and stays as deep as that
+    for m in moves:
+        at = (trimesh.transform_points(still[under], m) - rlo) / GRID
+        depth[under] = np.minimum(depth[under], ndimage.map_coordinates(riding, at.T, order=1, mode="nearest"))
+    return _read(depth.reshape(shape).astype(np.float32), lo)
+
+
 def sculpt():
     """(The Sculpt in the head's frame, its file): model/morty's adopted copy (docs/adr/0027) where model/morty
     places it (placed(): his eyes on the Mech's, scaled to their spacing), which his Shells are cut from too. When
@@ -96,8 +136,6 @@ def morty():
         numbers = f"{GRID}{BAND}{DENSITY}{FLOOR}".encode() + morty_.placed().tobytes()
         key = hashlib.sha256(f.read() + numbers).hexdigest()[:16]
     cache = os.path.join(stages.REPO, "model", "build", f"envelope-{key}.npz")
-    out = Skin.__new__(Skin)
-    out.floor = FLOOR
     os.makedirs(os.path.dirname(cache), exist_ok=True)
     with open(cache + ".lock", "w") as lock:
         # one build a machine (2.5 GB, 144 s of CPU): a second process, a test run's other worker, waits and reads it
@@ -109,5 +147,4 @@ def morty():
             np.savez_compressed(whole, grid=built.grid, lo=built.lo)
             os.replace(whole, cache)
         with np.load(cache) as z:
-            out.grid, out.lo = z["grid"], z["lo"]
-    return out
+            return _read(z["grid"], z["lo"], FLOOR)

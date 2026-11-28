@@ -1,5 +1,5 @@
 """Seam: the Mech's Torso (model/printed/base.py) as model/stages.py places it at rest with the neck and the
-gimbal: the Torso holds the neck mount, the pack, the switch board and the power-path board inside its walls (the
+gimbal: the Torso holds the neck socket, the pack, the switch board and the power-path board inside its walls (the
 pan servo rides the head since #978); its boards, the cranium tray's and the tray overlap nothing."""
 
 import itertools
@@ -24,7 +24,7 @@ BASE += ("cranium tray", "Core", "Shield", "hub")
 
 
 @pytest.mark.model
-def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside_its_walls():
+def test_the_torso_holds_the_neck_socket_the_pack_and_the_power_path_board_inside_its_walls():
     """#685: the shirt is the base. In plan each lies inside the Torso's walls, the pack lying on its floor; the Torso's
     bottom is the foot, so nothing hangs below it."""
     (x0, x1), (y0, y1), (z0, z1) = base.TORSO
@@ -32,15 +32,15 @@ def test_the_torso_holds_the_neck_mount_the_pack_and_the_power_path_board_inside
     foot = printed_base.torso().val().BoundingBox()
     assert (foot.xmin, foot.xmax, foot.ymin, foot.ymax, foot.zmin) == pytest.approx((x0, x1, y0, y1, z0))
     for name in (
-        "cervical carrier:1",
+        "neck socket:1",
         "pack:1",
         "switch board:1",
         "power-path board:1",
     ):
         b = _shape(parts[name]).BoundingBox()
         assert x0 + WALL <= b.xmin and b.xmax <= x1 - WALL and y0 + WALL <= b.ymin and b.ymax <= y1 - WALL, name
-    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "cervical carrier:1", "power-path board:1")]
-    assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck mount stands on
+    lying = [_shape(parts[n]).BoundingBox().zmin for n in ("pack:1", "neck socket:1", "power-path board:1")]
+    assert lying[0] == pytest.approx(lying[1]) == pytest.approx(lying[2])  # on the floor the neck socket stands on
 
 
 @pytest.fixture(params=g.SIMULATED)  # the whole Mech and Stage 1's test stand (#720), mechanical (#809)
