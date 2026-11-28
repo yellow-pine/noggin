@@ -351,11 +351,28 @@ def _disc(r, z0, z1):
     return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((0, 0, z0))
 
 
-def seated(name, solid, whole):
+def _clear(boss, other, turns):
+    """`boss` less wherever `other`, a Shell that moves against it, comes within SEAM of it: `turns` are the 4x4s
+    `other` is seen through from the boss's own Shell, TURN apart. A boss is no skin, so it gives way where a skin
+    would not. Exact solids: the piece of `other` that ever comes near, grown by SEAM (a Minkowski sum with a
+    ball), at each turn."""
+    box = np.reshape(boss.bounding_box(), (2, 3))
+    corners = np.array([(x, y, z) for x in box[:, 0] for y in box[:, 1] for z in box[:, 2]])
+    seen = np.vstack([_turned(corners, np.linalg.inv(m)) for m in turns])  # the boss as `other` sees it
+    low, high = seen.min(axis=0) - 2 * SEAM, seen.max(axis=0) + 2 * SEAM
+    near = other ^ m3.Manifold.cube(high - low).translate(low)
+    if near.is_empty():
+        return boss
+    grown = near.minkowski_sum(m3.Manifold.sphere(SEAM, 24))
+    return boss - m3.Manifold.batch_boolean([grown.transform(m[:3]) for m in turns], m3.OpType.Add)
+
+
+def seated(name, solid, whole, other=None, turns=()):
     """The Shell `name` (`solid`) with its half of each of its Seats (skin.SEATS, model/skin.py), as
     model/printed/skin.py shell() draws a CadQuery Shell's: a boss in from its wall to a face skin.GAP off its
     carrier's, three balls standing out of that face, and its magnet's pocket open from it. The boss is cut at the
-    Sculpt's surface (`whole`, its outer skin's solid), so the outside stays the Sculpt's; ValueError when the pocket
+    Sculpt's surface (`whole`, its outer skin's solid), so the outside stays the Sculpt's, and gives way to `other`,
+    a Shell that moves against this one through `turns` (_clear()); ValueError when the pocket
     would leave under skin.SKIN of it over the magnet."""
     bore, gap, depth = skin.MAGNET[0] / 2 + skin.FIT, skin.GAP, skin.MAGNET[1]
     for seat in (s for s in skin.SEATS if s.shell == name):
@@ -364,6 +381,8 @@ def seated(name, solid, whole):
         if (over ^ whole).volume() < 0.999 * over.volume():
             raise ValueError(f"{name} at {seat.at}: under {skin.SKIN} mm of it would be left over its magnet")
         add = _disc(skin.PAD_R, gap, gap + seat.boss).transform(to) ^ whole
+        if other is not None:
+            add = _clear(add, other, turns)
         for deg in (0, 120, 240):
             a = np.radians(deg)
             ball = m3.Manifold.sphere(skin.BALL_R, 48).translate((skin.RING * np.cos(a), skin.RING * np.sin(a), gap))
@@ -415,7 +434,12 @@ def shells():
         out["face"] -= grown(brow, FIT) - under_its_bed
     out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), hair, out["chin"])
     assert set(out) == set(g.SHELLS["morty"]), sorted(out)
-    return {f"morty {name}": _mesh(_whole(name, seated(f"morty {name}", solid, whole))) for name, solid in out.items()}
+    # the chin's boss gives way to the face's edge under the jaw, which the opening jaw brings up behind its wall
+    away = {"chin": (out["face"], [np.linalg.inv(m) for m in moves("jaw horn", "jaw", TURN)])}
+    return {
+        f"morty {name}": _mesh(_whole(name, seated(f"morty {name}", solid, whole, *away.get(name, ()))))
+        for name, solid in out.items()
+    }
 
 
 def write():

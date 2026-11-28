@@ -254,9 +254,13 @@ forward on the forehead under the cap's seam.
 - **The mandible's Finish gets an exact cut of its own** (`export.seated`): a mesh boolean after the grid is meshed,
   as the capped skull has for its seam. A bone's cutters are its own collections, so no Finish is cut, or grown,
   by a helper that stands in another bone.
-- **The chin's Seat is at (0, −8.8, −78) in the head's frame, facing forward**: level with the carrier's bar across,
-  its flat 0.3 mm under the lowest of the bone's front within its grooves' reach, a notch 4.2 mm deep at its high
-  side, 5.2 mm of bone behind it. One Seat: three balls locate the chin whole, and one pair (4.6 N) holds its
+- **The chin's Seat is at (0, −7.8, −81) in the head's frame, facing forward.** It has 14 mm of height for its
+  14 mm boss and no more. Over it is the mouth line, the chin's top: at z −78 the boss stood 2.3 mm over it, in
+  the face's wall. Under it is the face's own edge under the jaw, which comes up between the bone and the chin's
+  wall as the jaw opens wide (to z −88 at the bone's front, 1.2 mm higher each mm forward): at z −82 the boss met
+  it. So the flat is 1.3 mm deeper than the lowest of the bone's front, where that edge is lower: a notch 5.2 mm
+  deep at its high side, 4 mm of bone behind it. And **the chin's boss gives way to the face's edge**, a seam's
+  gap round it over the jaw's range (`shells._clear`): a boss is no skin. One Seat: three balls locate the chin whole, and one pair (4.6 N) holds its
   few grams. **No ball behind its pocket**: the mandible is solid, unlike the skull's shell.
 - **The hold is two plain magnet pairs**, each a magnet flush in the front of the carrier's bar and one in the bone
   facing it, face to face (`model/neck.py` `JAW_HOLD`). No balls and no gap: the grooves the Finish cuts for the

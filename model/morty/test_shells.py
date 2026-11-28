@@ -480,9 +480,9 @@ def test_the_shells_are_cut_where_the_cuts_are(built):
     under the mouth line in front of the eyes, each brow out of the face. Read at each Shell's box and weight (g,
     solid PLA Pure)."""
     grams = {n: m.volume / 1000 * g.MATERIALS["PLA Pure"]["density_g_cm3"] for n, m in built.items()}
-    # each with its Seats' bosses: the face's three (3.3 g), the crown's (1.5 g) and the back's, its two low ones
-    # 13 mm long (5.9 g); the face runs on under each brow, which is BROW thick
-    weighed = {"hair crown": 107.2, "hair back": 80.6, "L brow": 0.59, "R brow": 0.59, "face": 92.4, "chin": 4.1}
+    # each with its Seats' bosses: the face's three (3.3 g), the crown's (1.5 g), the back's, its two low ones
+    # 13 mm long (5.9 g), and the chin's (1.9 g); the face runs on under each brow, which is BROW thick
+    weighed = {"hair crown": 107.2, "hair back": 80.6, "L brow": 0.59, "R brow": 0.59, "face": 92.4, "chin": 6.0}
     weighed |= {"shirt": 57}
     assert grams == pytest.approx({f"morty {n}": w for n, w in weighed.items()}, rel=0.05), grams
     collar = skin.contour("collar")[:, 1]

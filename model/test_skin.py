@@ -101,20 +101,24 @@ def test_mortys_hair_comes_off_in_two_pieces_the_crown_up_and_the_back_back():
 def test_mortys_chin_sits_on_one_seat_in_the_mandibles_front_and_comes_off_forward():
     """#893 (Cansin, 2026-11-28, sixth round): the chin Shell's Seat is flush in the front of the mandible's
     symphysis, on the midline, facing forward, so the chin comes off forward and rides the jaw with the bone. One
-    Seat, three balls: it locates the chin whole. The bone is solid there, so nothing is thickened behind it (no
-    pad), and it stands level with the bar across behind the bone, between the two magnet pairs that hold the bone
-    on (model/neck.py JAW_HOLD), the print floor of bone between its pocket and each of theirs."""
+    Seat, three balls: it locates the chin whole. Its boss, in from the chin's wall, stays half a mm and more under
+    the mouth line, the chin's top, all its width. The bone is solid there, so nothing is thickened behind it (no pad).
+    And the print floor of bone lies between its pocket and each of the two that hold the bone on its carrier
+    (model/neck.py JAW_HOLD), which stand behind it either side."""
     from model import neck, skeleton
 
     (seat,) = (s for s in skin.SEATS if s.shell == "morty chin")
     assert (seat.carrier, seat.normal, seat.pad, seat.polarity) == ("mandible", (0.0, -1.0, 0.0), 0.0, 1)
-    assert seat.at[0] == 0.0 and seat.at[2] == neck.JAW_CHIN[2] and seat.boss > 0
+    assert seat.at[0] == 0.0 and seat.boss > 0
     assert skin.MOTION[skin.region(seat.shell)] == "jaw" == stages.RIDES["mandible:1"].removesuffix(":1")
+    mouth = skin.contour("mouth", 0.5)  # (x, z), the front view's
+    over = mouth[np.abs(mouth[:, 0]) <= skin.PAD_R]
+    top = seat.at[2] + np.sqrt(skin.PAD_R**2 - over[:, 0] ** 2)  # the boss's top at each x
+    assert 0.5 < (over[:, 1] - top).min() < 1.0  # no lower: the face's edge under the jaw comes up under it
     bore = skin.MAGNET[0] / 2 + skin.FIT
     for x, y, z in neck.JAW_HOLD:
-        assert z == seat.at[2]
-        # the two pockets pass each other, floor by floor, the print floor of bone between them
-        assert np.hypot(abs(x) - 2 * bore, y - seat.at[1] - 2 * skin.MAGNET[1]) >= skeleton.FLOOR
+        beside = np.hypot(x, z - seat.at[2]) - 2 * bore  # between the two bores, seen along them
+        assert beside >= skeleton.FLOOR  # their floors pass each other: the pockets open opposite ways
 
 
 def test_mortys_seats_in_bone_are_three_for_each_piece_of_the_hair_and_the_faces_top_one():
