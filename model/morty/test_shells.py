@@ -11,7 +11,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import morty, review, skeleton, skin, stages
+from model import mjcf, morty, review, skeleton, skin, stages
 from model.morty import shells
 from model.test_skin import _inside
 
@@ -289,14 +289,16 @@ def test_shells_that_ride_together_keep_the_seams_gap(built):
 @pytest.fixture(scope="module")
 def places():
     """{part: [its solid, in the head's frame, at each place the head sees it in]}: every part of the document the
-    review wears the Shells on, at rest and with each servo at either end, the head held still."""
+    review wears the Shells on, at rest and with each servo at either end, the head held still. Each part's mesh is
+    closed as physics closes it (mjcf._mesh): Linux's OCCT leaves slivers on a few seams, and a solid needs none."""
     stage, eyes = review.worn(), stages.align(*stages.DOCS[morty.DOC]["eyes"])
     rest = {n: p.matrix for n, p in stage.parts.items()}
     head = f"{skin.MOTION['head']}:1"
     poses = [rest, *(stages.pose(stage, horn, deg).parts for horn, h in stage.horns.items() for deg in h.limits)]
     out = {}
     for name, part in stage.parts.items():
-        mesh = trimesh.load(part.file, force="mesh")
+        mesh = mjcf._mesh(part.file, None)
+        assert mesh.is_volume, name
         solid, seen = shells._solid(mesh.vertices, mesh.faces), []
         for pose in poses:
             at = np.linalg.inv(eyes) @ rest[head] @ np.linalg.inv(pose[head]) @ pose[name]
