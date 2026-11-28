@@ -362,20 +362,19 @@ def test_each_shell_in_bone_comes_off_straight(piece):
 
 
 @pytest.mark.parametrize("side", list(gm.EYE))
-def test_the_face_keeps_a_moving_parts_room_from_each_lid_through_its_travel(side):
+def test_the_face_keeps_a_moving_parts_room_from_each_lid_through_its_travel(built, side):
     """#850, #967 (Cansin's way C, 2026-11-28): thinned round each eye opening, the face keeps gm.LID_CLEAR_MM from
     the lids' own solids, not only from their shell: each lid of this eye at seven places over its servo's range,
-    and its eyeball cap with them. Exact solids."""
-    places = _places(skin.MOTION["head"])
-    (face,) = places["morty face"]
+    and its eyeball cap with them. Exact solids, each part's mesh closed as physics closes it."""
+    face = _solids({"morty face": built["morty face"]})["morty face"]
     stage, eyes = review.worn(), stages.align(*stages.DOCS[morty.DOC]["eyes"])
-    horn = f"{side} lid horn"
-    near = {}
-    for deg in np.linspace(*stage.horns[horn].limits, 7):
-        pose = stages.pose(stage, horn, float(deg)).parts
-        for part in (f"{side} upper lid", f"{side} lower lid", f"{side} eyeball cap"):
-            at = np.linalg.inv(eyes) @ pose[f"{part}:1"] @ np.linalg.inv(stage.parts[f"{part}:1"].matrix) @ eyes
-            near[part, round(float(deg), 1)] = face.min_gap(places[part][0].transform(at[:3]), 2.0)
+    horn, near = f"{side} lid horn", {}
+    for name in (f"{side} upper lid:1", f"{side} lower lid:1", f"{side} eyeball cap:1"):
+        mesh = mjcf._mesh(stage.parts[name].file, None)
+        part = shells._solid(mesh.vertices, mesh.faces)
+        for deg in np.linspace(*stage.horns[horn].limits, 7):
+            at = np.linalg.inv(eyes) @ stages.pose(stage, horn, float(deg)).parts[name]  # in the head's frame
+            near[name, round(float(deg), 1)] = face.min_gap(part.transform(at[:3]), 2.0)
     assert min(near.values()) > gm.LID_CLEAR_MM, sorted(near.items(), key=lambda kv: kv[1])[:4]
 
 
