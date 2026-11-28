@@ -307,8 +307,11 @@ def test_the_mandible_has_a_magnets_flush_pocket_at_each_pair_that_holds_it_on(s
     """#968 (Cansin, 2026-11-28, #893's sixth round): the mandible is held on its carrier by two magnet pairs, the
     bone's half a plain pocket at each (skeleton.POCKETS), in the bare bone and the worn one. Read in the pocket's
     frame, z out of the bone, toward the jaw's bar: the magnet's room is open from the pair's face, where the jaw's
-    magnet lies flush (model/printed/test_neck.py), a magnet deep into the bone, so the two stand face to face; and
-    the print floor of bone (skeleton.FLOOR) is behind it and round it at its floor."""
+    magnet lies flush (model/printed/test_neck.py), a magnet deep into the bone, so the two stand face to face; no
+    bone stands in the jaw's magnet's own place or its pocket's wall, a voxel round (the bar is let into the bone
+    there, and the Finish, which carves the bone round the bar at its voxel, left a ring of it round the bar's
+    empty pocket, 0.3 mm into the bar); and the print floor of bone (skeleton.FLOOR) is behind it and round it at
+    its floor."""
     at, out = pocket
     to = np.array(g.align_rows(at, (1, 0, 0), out))[:3]
     bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
@@ -316,7 +319,8 @@ def test_the_mandible_has_a_magnets_flush_pocket_at_each_pair_that_holds_it_on(s
     def disc(r, z0, z1):
         return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((0, 0, z0)).transform(to)
 
-    assert _share(solids[stem], disc(sk.MAGNET[0] / 2, -depth, 1.0)) < 1e-3
+    assert _share(solids[stem], disc(sk.MAGNET[0] / 2, -depth, 0.02)) < 1e-3
+    assert _share(solids[stem], disc(bore + skeleton.PITCH - 0.05, 0.02, 2 * depth - 0.02)) < 1e-3
     assert _share(solids[stem], disc(bore, -depth - skeleton.FLOOR, -depth - 0.01)) > 0.99
     round_it = disc(bore + skeleton.FLOOR, -depth, -depth + skeleton.PITCH) - disc(bore, -depth - 1.0, 1.0)
     assert _share(solids[stem], round_it) > 0.99
