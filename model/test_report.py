@@ -68,27 +68,13 @@ def problems(report):
                     out.append(
                         f"electrical {core}: {v} V on a {e[case]['pack_v']} V pack < the {e['brownout_v']} V brownout"
                     )
-    return out + mujoco_problems(report) + gimbal_problems(report) + neck_problems(report) + variant_problems(report)
-
-
-def variant_problems(report):
-    """The Mech's head variant (model/candidates.py report(), #686): what rides the head fits gimbal.HEAD_MM and its
-    eyes sit in its lower half (base.EYES_UP, #708), in each look: a hard gate."""
-    v, out = report.get("variant"), []
-    if not v:
-        return out
-    if any(s > h for s, h in zip(v["head_mm"], gimbal.HEAD_MM)):
-        size, head = (" x ".join(map(str, x)) for x in (v["head_mm"], gimbal.HEAD_MM))
-        out.append(f"variant head: {size} mm (W x D x H) past the compact head's {head}")
-    if v["eyes_up"] > base.EYES_UP:
-        out.append(f"variant eyes: {v['eyes_up']} of the head's height up > {base.EYES_UP}")
-    return out
+    return out + mujoco_problems(report) + gimbal_problems(report) + neck_problems(report)
 
 
 def gimbal_problems(report):
     """The Mech's eye gimbal (model/gimbal.py report(), #630): gaze with play and pupil seating, the caps' gap, the
-    lids' clearance to what moves inside them and to each other, their servo range, its bounding box in the compact
-    head (#684), and the lid drives' sweep (#650, model/printed/gimbal.py sweep())."""
+    lids' clearance to what moves inside them and to each other, their servo range, and the lid drives' sweep (#650,
+    model/printed/gimbal.py sweep()). Its place in the head is held on Morty's Sculpt (model/review/test_hidden.py)."""
     m, out = report.get("gimbal"), []
     if not m:
         return out
@@ -108,9 +94,6 @@ def gimbal_problems(report):
     out += [
         f"gimbal lid servo: {d} deg past its {gimbal.SERVO_DEG}" for d in lid["servo_deg"] if abs(d) > gimbal.SERVO_DEG
     ]
-    if any(b > h for b, h in zip(m["block_mm"], gimbal.HEAD_MM)):
-        size, head = (" x ".join(map(str, v)) for v in (m["block_mm"], gimbal.HEAD_MM))
-        out.append(f"gimbal block: {size} mm (W x D x H) past the compact head's {head}")
     s = m.get("sweep")
     if s and s["clearance_mm"] < gimbal.LID_CLEAR_MM:
         out.append(
@@ -278,7 +261,6 @@ FIXTURE_PROBLEMS = {
         "gimbal caps: 0.8 mm apart < 1.0",
         "gimbal lids: 0.3 mm clear of the parts inside them, 0.4 mm apart < 0.5",
         "gimbal lid servo: -95.0 deg past its 90.0",
-        "gimbal block: 170.0 x 106.2 x 97.5 mm (W x D x H) past the compact head's 160.0 x 176.0 x 175.0",
         "gimbal sweep: L lid bar:1 / L lid shank 0.2 mm apart at {'lid_deg': -65.0, 'pitch_deg': -15.0} < 0.5",
         "gimbal sweep: L lid bar:1 / gimbal frame:1 overlap at {'lid_deg': 15.0, 'pitch_deg': -15.0}",
         "neck pan: the bar meets its lever at 35.0 deg < 40.0",
@@ -286,8 +268,6 @@ FIXTURE_PROBLEMS = {
         "neck tilt: holds the head with 3.45 kgf.cm > the rated 3.222",
         "neck tilt: holds the bare head (its Skin off) with 3.42 kgf.cm > the rated 3.222",
         "neck tilt span: bends to 12.0 mm < 14.0",
-        "variant head: 120.0 x 177.5 x 149.0 mm (W x D x H) past the compact head's 160.0 x 176.0 x 175.0",
-        "variant eyes: 0.62 of the head's height up > 0.55",
     ],
 }
 

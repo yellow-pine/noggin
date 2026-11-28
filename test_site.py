@@ -205,7 +205,8 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
         # Morty's Shells, cut from his Sculpt (#850)
-        "| Skin | morty | hair | morty hair, morty L brow, morty R brow | PLA Basic Cocoa Brown (10802) | #6F5034 |",
+        "| Skin | morty | hair | morty hair crown, morty hair back, morty L brow, morty R brow | PLA Basic Cocoa Brown"
+        " (10802) | #6F5034 |",
         "| Skin | default | face | morty face, morty chin | PLA Pure Milky Pink (17200) | #F7CED7 |",
         "| Skin | default | accessories |  | PLA Pure Apricot (17300) | #FFB673 |",
     ]:
@@ -460,10 +461,10 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
     # #876: where Stage 3 has its GLB; no Skin shape has Shells of its own to draw (#850)
     assert unranked["skins"] == {"none": "-bare"}
-    fails = {"mech-back-mechanical": ["head size", "tilt loop"]}
+    fails = {"mech-back-mechanical": ["clearance", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))
-    assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]
+    assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: clearance, tilt loop"]
     macros.RANKING.write_text(json.dumps({"order": ["mech-a"], "variants": {"mech-a": {"fails": []}}}))
     assert macros.stage_switch() == unranked
 

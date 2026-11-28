@@ -5,12 +5,10 @@ pan servo rides the head since #978); its boards, the cranium tray's and the tra
 import itertools
 
 import cadquery as cq
-import numpy as np
 import pytest
 
-from model import base, skin, stages
+from model import base, stages
 from model import geometry as g
-from model import gimbal as gm
 from model import neck as nk
 from model.printed import base as printed_base
 from model.printed import bone
@@ -58,37 +56,6 @@ def test_each_variants_carriers_and_boards_overlap_nothing_at_rest(placed):
         if (a.startswith(BASE) or b.startswith(BASE)) and frozenset((a, b)) not in PLUGGED
     ]
     assert _overlaps(placed, pairs) == []
-
-
-@pytest.fixture(
-    params=[pytest.param(d, marks=pytest.mark.bones) if g.SKULL_SUB in g.MECH[d] else d for d in sorted(g.MECH)]
-)
-def head(request):
-    """(the document, the box round the mechanism its tilt turns at rest: no Skin, no bone), built in setup: CI's 15 s
-    times the test alone."""
-    stage = stages.STAGES[request.param]
-    tilt = stage.horns["tilt horn"]
-    rides = [
-        n
-        for n in (tilt.direct.driven if tilt.direct else tilt.loops[0].rockers)
-        if n.removesuffix(":1") not in (*skin.DRAWN, *g.BONES)
-    ]
-    return request.param, cq.Compound.makeCompound([_shape(stage.parts[n]) for n in rides]).BoundingBox()
-
-
-@pytest.mark.model
-def test_what_rides_the_head_fits_the_compact_head_its_eyes_in_its_lower_half(head):
-    """#708, a hard gate in both Skeletons: the mechanism the tilt turns, at rest, under the head's shell (#828,
-    base.shelled), fits gimbal.HEAD_MM (W x D x H), the eye centres at most base.EYES_UP of the way up them (the sim
-    report reads the same off the MJCF, which holds no bone: model/candidates.py). The realistic skull and mandible
-    rode in this box until #874. Cansin retired the box for them on 2026-11-27 (#893's directive, "Envelope": "The
-    skull's limit is Morty's skin ... not the 160 x 176 x 175 box"): model/skeleton/test_skeleton.py holds each bone
-    2.1 mm under his skin, where the skull stands 186 x 194 x 177 mm, so they are no longer measured here."""
-    doc, b = head
-    eyes = np.array(stages.DOCS[doc]["eyes"][0])
-    lo, hi = base.shelled(np.array((b.xmin, b.ymin, b.zmin)) - eyes, np.array((b.xmax, b.ymax, b.zmax)) - eyes)
-    assert all(s <= h for s, h in zip(hi - lo, gm.HEAD_MM))
-    assert -lo[2] / (hi[2] - lo[2]) <= base.EYES_UP
 
 
 def test_the_pedestal_as_bones_rounds_its_corners_sinks_its_plaque_and_prints_its_two_parts_as_drawn():

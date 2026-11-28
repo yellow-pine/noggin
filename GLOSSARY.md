@@ -36,8 +36,8 @@ the head, the neck cable up inside it; its bottom is the foot the Mech stands on
 _Avoid_: base plate, body, stand
 
 **Head variant**:
-One way to place the Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
-shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores and
+One way to place the Mech's boards in its head, under the Skin, ranked against any others. Cansin picked Back, and
+it is the one variant today; since #858 the Cores and
 the hub ride the head in the realistic skull's cranium, the pack, the switch board and the power-path board lie low
 in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
@@ -52,7 +52,8 @@ _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 **Shell**:
 One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
 Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). None is drawn by
-hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair, his face, each brow (its
+hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair (in two pieces, its crown and
+its back), his face, each brow (its
 ridge, in the hair's filament, glued in the face), his chin (under the mouth line, on the jaw) and his shirt (under
 the collar, the whole fixed body). The face has its two lower Seats. *Upcoming (#850): the rest of the Seats of Morty's Shells.*
 _Avoid_: cover, cosmetic

@@ -5,7 +5,7 @@ head: the cervical carrier with its reaction anchor stands still, the nod plate 
 tilt lever and its bar swing besides. Through tilt and pan together each keeps a Shell's wall and its clearance from
 that skin, read on the Sculpt git holds (model/morty) as test_hidden.py reads the eye gimbal, so every run of the
 Model's tests holds it. So does each finished vertebra, C1 to C7 (#874), which stands still with the carrier. The jaw's
-parts are #968's."""
+parts and the cranium's are test_head.py's."""
 
 import functools
 

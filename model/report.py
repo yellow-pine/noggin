@@ -38,11 +38,7 @@ def report(doc, part=(0, 1)):
     stage, first = stages.STAGES[doc], part[0] == 0
     out = {"doc": doc}
     if "eyes" in stages.DOCS[doc] and first:  # the Mech's eye gimbal moves by its own kinematics (#630)
-        out["gimbal"] = {
-            **gimbal.report(),
-            "block_mm": gimbal_parts.bounds(gimbal_parts.at_rest(mechanical=True)),
-            "sweep": gimbal_parts.sweep(),
-        }
+        out["gimbal"] = {**gimbal.report(), "sweep": gimbal_parts.sweep()}
     if {"Core 1:1", "Core 2:1"} <= set(stage.parts) and first:  # the whole Mech: both Cores
         out["electrical"] = electrical.worst_case()
     # the MuJoCo half, measured on the MJCF written beside the report
@@ -50,7 +46,7 @@ def report(doc, part=(0, 1)):
     if "neck" in stages.DOCS[doc] and first:  # the Mech's neck moves by its own kinematics (#641)
         out["neck"] = neck.report(mjcf.head(doc, model), mjcf.head(doc, model, bare=True))
     if doc in g.MECH and first:  # its head variant's figures for the ranking (#686)
-        out["variant"] = candidates.report(doc, model)
+        out["variant"] = candidates.report(doc)
     out["mujoco"] = mujoco_report.measure(doc, model, part)
     return out
 

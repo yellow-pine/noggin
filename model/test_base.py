@@ -149,15 +149,6 @@ def test_the_hubs_port_is_at_the_back_of_the_realistic_skulls_base():
     assert np.abs(_depth_in_skull(_hub_mouth())).max() <= 4.0
 
 
-def test_the_heads_box_takes_in_the_skull_over_the_parts():
-    """#828, #838, #874: the gates measure the compact head's shell (base.DOME, the box the realistic skull filled before
-    Morty's skin became its limit): from 93.4 under the eyes to 80 over them, about 78 each side, so parts within it
-    make a head 173.4 tall, the eyes 0.539 up it; a part out past it still counts."""
-    lo, hi = base.shelled(np.array((-50.0, -40.0, -74.5)), np.array((50.0, 80.0, 30.0)))
-    assert lo == pytest.approx((-78.2, -40.0, -93.4)) and hi == pytest.approx((77.6, 134.9, 80.0))
-    assert -lo[2] / (hi[2] - lo[2]) == pytest.approx(0.5386, abs=1e-4)
-
-
 def test_stage_1s_test_stand_stands_on_the_desk():
     """#720: geometry's copy of the stand's height (ADR 0011): Stage 1's frame puts the stand's foot (base.STAND_Z, the
     gimbal frame plate's underside less STAND_H) on z 0, the eye block on it."""
@@ -178,9 +169,7 @@ def test_the_leads_that_cross_pan_and_tilt_are_the_neck_servos_and_the_neck_cabl
     assert base.leads(stages.STAGES["mech-back"]) == {"pan pivot": 4, "tilt pivot": 2}
 
 
-def _report(
-    pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, head=None, tilt=0.03, eyes=0.45
-):
+def _report(pairs=(), hold=0.1, peak=0.2, rest=0.0, hz=20.0, leads=None, tip=30.0, printed=2, tilt=0.03):
     servo = {"hold_kgf_cm": hold, "peak_kgf_cm": peak, "rest_kgf_cm": rest, "rated_kgf_cm": 0.4, "stall_kgf_cm": 1.0}
     return {
         "mujoco": {
@@ -197,8 +186,6 @@ def _report(
             "parts": ["torso:1", "Shield 1:1", "shelf:1"],
             "printed": printed,
             "leads": leads or {"pan pivot": 2},
-            "head_mm": head or [118.0, 117.0, 140.0],  # gimbal.HEAD_MM's order: W, D, H,
-            "eyes_up": eyes,
         },
     }
 
@@ -209,25 +196,6 @@ def test_a_variant_whose_boards_meet_the_head_ranks_last_whatever_its_figures():
     assert ranked["order"] == ["mech-back", "mech-later"]
     assert ranked["variants"]["mech-later"]["gates"]["clearance"] == [["L upper lid:1", "shelf:1"]]
     assert ranked["variants"]["mech-later"]["fails"] == ["clearance"]
-
-
-def test_a_head_past_160_w_176_d_175_h_fails_the_head_gate_and_ranks_after_one_that_fits():
-    """#51, #838, #901: everything that rides the head fits a head of at most 160 W x 176 D x 175 H mm, Morty's life-size
-    cranium; a variant 2 mm too deep ranks after one that fits, though its servo holds less."""
-    ranked = base.rank({"mech-back": _report(hold=0.05, head=[120.0, 178.0, 140.0]), "mech-later": _report(hold=0.3)})
-    assert ranked["order"] == ["mech-later", "mech-back"]
-    assert ranked["variants"]["mech-back"]["gates"]["head"] == ["depth"]
-    assert ranked["variants"]["mech-back"]["fails"] == ["head size"]
-    assert ranked["variants"]["mech-later"]["fails"] == []
-
-
-def test_a_variant_whose_eyes_sit_in_its_heads_upper_half_fails_the_eyes_gate_and_ranks_after_one_that_fits():
-    """#708, #838: the eye centres at most 0.55 of the way up what rides the head (the realistic skull's 0.53); 0.56 up
-    ranks after 0.5, though its servo holds less."""
-    ranked = base.rank({"mech-back": _report(hold=0.05, eyes=0.56), "mech-later": _report(hold=0.3, eyes=0.5)})
-    assert ranked["order"] == ["mech-later", "mech-back"]
-    assert ranked["variants"]["mech-back"]["fails"] == ["eyes up"]
-    assert ranked["variants"]["mech-later"]["fails"] == []
 
 
 def test_a_variant_whose_tilt_loop_opens_past_the_gate_ranks_last_and_names_it():
@@ -257,16 +225,18 @@ def test_the_first_criterion_in_51s_order_that_differs_decides():
     assert ranked["order"] == ["mech-later", "mech-back"]
 
 
-def test_the_head_fit_decides_after_the_mode_and_before_the_leads():
-    """#51's order: ... lowest mode, fits the big head, fewest leads: of two that fit, the one with more room left
-    in its tightest direction ranks first, though it has more leads."""
+def test_the_leads_decide_after_the_mode_and_before_the_tip_over_margin():
+    """#51's order: ... lowest mode, fewest leads, tip-over margin: all else equal, the one with fewer leads across
+    pan and tilt ranks first, though the other stands further inside its footprint. The head's fit is neither a
+    figure nor a gate here since #1089: model/review's tests hold every part under Morty's skin."""
     ranked = base.rank(
         {
-            "mech-back": _report(head=[135.0, 100.0, 120.0], leads={"pan pivot": 1}),
-            "mech-later": _report(head=[115.0, 110.0, 140.0], leads={"pan pivot": 6}),
+            "mech-back": _report(leads={"pan pivot": 6}, tip=40.0),
+            "mech-later": _report(leads={"pan pivot": 1}, tip=30.0),
         }
     )
     assert ranked["order"] == ["mech-later", "mech-back"]
+    assert set(ranked["variants"]["mech-back"]["gates"]) == {"clearance", "loops"}
 
 
 def test_a_mark_missed_outranks_a_better_figure_after_it_and_names_what_it_fails():

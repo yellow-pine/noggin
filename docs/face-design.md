@@ -44,8 +44,9 @@ The table of each Palette's filaments is [on the site](https://yellowpine.com/no
 
 ## Morty's Shells
 His Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surface the outside from the crown to the
-base, the wall grown inward, open underneath (docs/adr/0027, 0028). Six Shells, split along his cuts: the hair, above
-and behind his hairline; the face, with his nose and ears; each brow, its ridge over the eye, in the hair's filament,
+base, the wall grown inward, open underneath (docs/adr/0027, 0028). Seven Shells, split along his cuts: the hair, above
+and behind his hairline, in two pieces on a level seam 10 mm above his eyes' centres, a crown that lifts straight up
+and a back that slides straight back; the face, with his nose and ears; each brow, its ridge over the eye, in the hair's filament,
 glued in the face on a tab behind each end;
 the chin, under the mouth line, which opens with the jaw; and the shirt, under the collar, the whole fixed body. The face is open inside each eye's own outline, where the
 eyeball is the eye white; an open lid's edge shows at the rim. Every seam is a 0.8 mm gap, and the shirt and the
