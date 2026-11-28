@@ -11,7 +11,7 @@ from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
-from model import morty, skin, stages
+from model import morty, skeleton, skin, stages
 from model.morty import shells
 from model.test_skin import _inside
 
@@ -110,6 +110,18 @@ def _on_a_seat(name, points):
     return out
 
 
+def _on_a_tab(name, points):
+    """Which points are a brow's tab's on the face: behind a brow or within shells.LAP (and 0.5 mm) of its outline, as
+    its view sees it, in the brows' box. There the face runs on under the brow, deeper than its wall (shells.TAB)."""
+    out = np.zeros(len(points), bool)
+    if name == "morty face":
+        for side in gm.EYE:
+            view, cut = skin.cuts()[f"{side} brow"]
+            seen = skin.facing(points, view)[:, [0, 2]]
+            out |= _box(points, shells.BROWS) & (_inside(seen, cut) | (_off(seen, cut) < shells.LAP + 0.5))
+    return out
+
+
 def test_each_shell_is_one_closed_solid(built):
     """A printable piece: every edge shared by two faces, wound one way, facing out, in one piece."""
     for name, mesh in built.items():
@@ -135,12 +147,14 @@ def test_no_shell_holds_surface_buried_under_the_outer_skin(built, sculpt, outer
     """#850: the Shells are cut from the Sculpt's outer skin alone. None of the walls of the pockets behind its brows
     is a Shell's, so each brow is its ridge on the face and nothing behind it; and no Shell reaches deeper under the
     outer skin than its wall and 0.5 mm, a pocket's walls followed in (2.4 mm at each brow's inner end before), but
-    at its Seats, each on a boss in from the wall."""
+    at its Seats, each on a boss in from the wall, and at the face's tabs behind each brow (the test for those
+    holds their depth)."""
     assert (buried & (sculpt.vertices[:, 2] > shells.base())).sum() > 20_000  # the pockets are there to be left out
     assert not (kept & buried).any(), sculpt.vertices[kept & buried][:5]
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     for name, mesh in built.items():
-        centres = mesh.triangles_center[~_on_a_seat(name, mesh.triangles_center)]
+        centres = mesh.triangles_center
+        centres = centres[~_on_a_seat(name, centres) & ~_on_a_tab(name, centres)]
         deep = surface.query(centres, workers=-1)[0]
         assert deep.max() < skin.WALL + 0.5, (name, deep.max(), centres[deep.argmax()])
 
@@ -150,7 +164,7 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
     along its cut's sweep: x, or y as a front view turns it), the base's, or the inside, which lies within 0.15 mm of
     WALL under the outer skin for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone
     may begin (WALL and 0.5 mm of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the
-    wall, and from its Seats' bosses. A brow is 8 mm across, all of it within 3 mm of its own seam, and a slab with a
+    wall, from its Seats' bosses and from the face's tabs behind each brow. A brow is 8 mm across, all of it within 3 mm of its own seam, and a slab with a
     step each side: its whole inside is held to the bounds, and 90% of it to WALL."""
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     gave = cKDTree(shells._points(sculpt.triangles[gone[sculpt.faces].any(axis=1)], 0.5))
@@ -162,7 +176,7 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
         seam = (np.abs(mesh.face_normals @ np.transpose(sweeps)) < 1e-3).any(axis=1)
         seam |= mesh.face_normals[:, 2] < -0.9999
         points = mesh.triangles_center[~seam & (mesh.area_faces > 0.02)]  # a sliver's normal is noise
-        points = points[~_on_a_seat(name, points)]
+        points = points[~_on_a_seat(name, points) & ~_on_a_tab(name, points)]
         brow = "brow" in name
         if not brow:
             points = points[gave.query(points)[0] > 3.0]
@@ -255,9 +269,38 @@ def test_shells_that_ride_together_keep_the_seams_gap(built):
     a part it does not sit on (model/printed/test_skin.py CLEAR_MM), nor further apart at their seam than SEAM and a
     bit."""
     solid = _solids(built)
-    for other in ("morty hair", *(f"morty {side} brow" for side in gm.EYE)):
-        gap = solid[other].min_gap(solid["morty face"], 5.0)
-        assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, (other, gap)
+    gap = solid["morty hair"].min_gap(solid["morty face"], 5.0)
+    assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, gap
+
+
+def test_each_brow_is_keyed_in_the_face_and_lies_on_a_tab_behind_each_end(built, outer):
+    """#850: a brow is glued in the face (skin.GLUED), so it needs no seam's gap: its own outline locates it, the
+    fit shells.FIT off the face all round. Behind its nose end and its temple end the face runs on as a tab, the
+    glue's room (shells.GLUE) under the brow: pushed 0.8 mm into the head along its view, a brow meets the face behind
+    each end (over 16 mm3 in all) and nowhere between, where the lids stow close behind it (#967). A tab's under side
+    lies no deeper under the outer skin than the wall, the glue's room and shells.TAB, and no nearer its eye than the
+    lids' shell (skeleton.LID_SHELL) and 1 mm."""
+    solid = _solids(built)
+    face = solid["morty face"]
+    surface = cKDTree(shells._points(outer.triangles, 0.3))
+    inside = shells._points(built["morty face"].triangles, 0.3)
+    inside = inside[_box(inside, shells.BROWS) & ~_on_a_seat("morty face", inside)]
+    deep = surface.query(inside, workers=-1)[0]
+    assert -0.2 < deep.max() - (skin.WALL + shells.GLUE + shells.TAB) < 0.35  # as the wall is read: 0.3 over at a step
+    under = inside[deep > skin.WALL + 0.3]  # the tabs' under sides
+    assert min(np.linalg.norm(under - eye, axis=1).min() for eye in gm.EYE.values()) > skeleton.LID_SHELL + 1.0
+    for side in gm.EYE:
+        brow = solid[f"morty {side} brow"]
+        assert 0.1 < brow.min_gap(face, 5.0) < shells.FIT + 0.1, side
+        view, cut = skin.cuts()[f"{side} brow"]
+        to = skin.facing(np.eye(3), view)  # its columns: the head's x, y, z as the view sees them
+        low, high = np.abs(cut[:, 0]).min() + shells.TABS[0], np.abs(cut[:, 0]).max() - shells.TABS[1]
+        pushed = (brow.translate(tuple(0.8 * to[:, 1])) ^ face).to_mesh()
+        met = trimesh.Trimesh(pushed.vert_properties[:, :3], pushed.tri_verts)
+        assert met.volume > 16, (side, met.volume)
+        across = np.abs(skin.facing(met.vertices, view)[:, 0])
+        assert (across < low + 1).any() and (across > high - 1).any(), side  # behind each end
+        assert not ((across > low + 2) & (across < high - 2)).any(), side  # and nowhere between
 
 
 @pytest.mark.parametrize("jaw", [0.0, 0.07, 0.5, 1.0])

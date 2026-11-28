@@ -82,10 +82,12 @@ def _poses(doc=DOC):
 
 
 def _carriers():
-    """{Shell: the parts it sits on}: its Seats' carriers, and what it RIDES."""
-    out = {s: set() for s in sk.SHELLS}
+    """{Shell: the parts it sits on}: its Seats' carriers, the Shell it is glued in, and what it RIDES."""
+    out = {s: set() for s in (*sk.SHELLS, *sk.GLUED)}
     for s in sk.SEATS:
         out[s.shell].add(s.carrier)
+    for shell, carrier in sk.GLUED.items():
+        out[shell].add(carrier)
     for rider, carrier in stages.RIDES.items():
         if rider.removesuffix(":1") in out:
             out[rider.removesuffix(":1")].add(carrier.removesuffix(":1"))
