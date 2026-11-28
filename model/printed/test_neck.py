@@ -345,7 +345,7 @@ def test_the_neck_socket_and_its_fixing_to_the_torso_hold_each_head_servo_at_sta
     pull = max(pulls)
     seat = math.pi / 4 * (nk.M3["nut_flats"] ** 2 - 3.4**2)
     cone = math.pi * (base.SINK[0] ** 2 - base.SINK[1] ** 2)
-    ring = 2 * math.pi * base.SINK[0] * (floor - base.nb.TORSO[2][0] - (base.SINK[0] - base.SINK[1]))
+    ring = 2 * math.pi * base.SINK[0] * (floor - base.nb.TORSO[2][0] - base.SINK[2])
     assert strength / (pull / min(seat, cone)) >= beams.MIN_SF
     assert strength / math.sqrt(3) / (pull / ring) >= beams.MIN_SF
     assert nk.M3["proof_mpa"] * nk.M3["stress_mm2"] / pull >= beams.MIN_SF

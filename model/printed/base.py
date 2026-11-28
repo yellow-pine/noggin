@@ -21,7 +21,9 @@ CORNER = 4.0  # as Bones: the Torso's upright corners round
 # the pedestal's look as Bones (#838): the plaque sunk 1 mm in its front, (x, z), and the lid's panel inside a border
 # 1 mm down, BORDER in from its edge
 PLAQUE, BORDER = ((-16.0, 16.0), (-168.0, -158.0)), 9.0
-SINK = (3.4, 1.7)  # an M3 countersunk head's seat, 90 deg: its radius under the floor, and the hole's (ISO 10642)
+# an M3 countersunk head's seat (ISO 10642's 90 deg): its radius under the floor, the hole's, and its depth, a hair
+# steeper than the head so the Torso prints on its floor with no overhang past 45 deg
+SINK = (3.4, 1.7, 1.8)
 LEDGE, FIT = 3.0, 0.3  # the ledge inside the walls the lid lies on, flush with their top; its room inside them
 
 
@@ -51,7 +53,7 @@ def torso(mechanical=False):
     out = out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
     for x, y in nk.SOCKET_SCREWS:  # #1062: each M3 up through the floor, its head countersunk, to a nut on the socket
         out = out.cut(cyl("z", (x, y, 0), 1.7, (z0, floor)))
-        out = out.cut(cq.Workplane().add(cq.Solid.makeCone(*SINK, SINK[0] - SINK[1], cq.Vector(x, y, z0))))
+        out = out.cut(cq.Workplane().add(cq.Solid.makeCone(*SINK, cq.Vector(x, y, z0))))
     return out
 
 
