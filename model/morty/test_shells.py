@@ -281,16 +281,23 @@ def test_shells_that_ride_together_keep_the_seams_gap(built):
     assert gm.LID_CLEAR_MM < gap < shells.SEAM + 0.1, gap
 
 
-def _tabs_under_sides(face, outer):
-    """Points on the face's inside behind the brows, deeper under the outer skin than a wall: its tabs' under sides;
-    and each one's depth."""
-    inside = shells._points(face.triangles, 0.3)
+def _by_the_brows(triangles, room=0.0):
+    """The triangles that reach into the brows' box (shells.BROWS), grown by `room`: all a reading there needs."""
+    low, high = np.array(shells.BROWS)
+    return triangles[((triangles.max(axis=1) > low - room) & (triangles.min(axis=1) < high + room)).all(axis=1)]
+
+
+@pytest.fixture(scope="module")
+def tabs(built, outer):
+    """(Points on the face's inside behind the brows, deeper under the outer skin than a wall: its tabs' under sides;
+    each one's depth.) Read round the brows alone: the outer skin within 5 mm of their box, past any depth read."""
+    inside = shells._points(_by_the_brows(built["morty face"].triangles), 0.3)
     inside = inside[_box(inside, shells.BROWS) & ~_on_a_seat("morty face", inside)]
-    deep = cKDTree(shells._points(outer.triangles, 0.3)).query(inside, workers=-1)[0]
+    deep = cKDTree(shells._points(_by_the_brows(outer.triangles, 5.0), 0.3)).query(inside, workers=-1)[0]
     return inside[deep > skin.WALL + 0.3], deep[deep > skin.WALL + 0.3]
 
 
-def test_each_brow_is_keyed_in_the_face_and_lies_on_a_tab_behind_each_end(built, outer):
+def test_each_brow_is_keyed_in_the_face_and_lies_on_a_tab_behind_each_end(built, tabs):
     """#850: a brow is glued in the face (skin.GLUED), so it needs no seam's gap: its own outline locates it, the
     fit shells.FIT off the face all round. Behind a stretch of its nose end and of its temple end (shells.TABS) the
     face runs on as a tab, the glue's room (shells.GLUE) under the brow: pushed 0.8 mm into the head along its view,
@@ -301,7 +308,7 @@ def test_each_brow_is_keyed_in_the_face_and_lies_on_a_tab_behind_each_end(built,
     (2.4 measured)."""
     solid = _solids(built)
     face = solid["morty face"]
-    under, deep = _tabs_under_sides(built["morty face"], outer)
+    under, deep = tabs
     assert -0.2 < deep.max() - (skin.WALL + shells.GLUE + shells.TAB) < 0.35
     assert min(np.linalg.norm(under - eye, axis=1).min() for eye in gm.EYE.values()) > skeleton.LID_SHELL + 1.0
     for side in gm.EYE:
@@ -321,14 +328,14 @@ def test_each_brow_is_keyed_in_the_face_and_lies_on_a_tab_behind_each_end(built,
 
 
 @pytest.mark.bones
-def test_no_tab_behind_a_brow_asks_the_skull_to_give_way(built, outer):
+def test_no_tab_behind_a_brow_asks_the_skull_to_give_way(tabs):
     """#850: a tab is the one place the face reaches deeper under Morty's surface than its wall. As built it keeps a
     worn Shell's room (gm.LID_CLEAR_MM) from the worn skull as that stands (1.13 mm measured, at the nose end), so
     wearing the face asks nothing more of the bone there: the frontal bone's ring is at its thinnest just above
-    (#874). Read on sampled surfaces, 0.3 mm apart."""
-    under, _ = _tabs_under_sides(built["morty face"], outer)
+    (#874). Read on sampled surfaces, 0.3 mm apart, the skull's within 5 mm of the brows' box."""
+    under, _ = tabs
     skull = trimesh.load(stages.stl("worn skull"), process=False)
-    near = cKDTree(shells._points(skull.triangles, 0.3)).query(under, workers=-1)[0]
+    near = cKDTree(shells._points(_by_the_brows(skull.triangles, 5.0), 0.3)).query(under, workers=-1)[0]
     assert near.min() > gm.LID_CLEAR_MM + 0.3, (near.min(), under[near.argmin()])
 
 
