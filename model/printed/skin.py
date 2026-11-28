@@ -151,12 +151,6 @@ def _window(deg, n=4):
     return ring
 
 
-# the level way each yaw bearing runs back from under its eye, deg from straight back toward the other eye, about the
-# yaw axis (gm.RAIL_EXIT, as model/printed/gimbal.py rail lays it out): the pad's front face is the upright plane
-# through that axis square to it. A copy, held by the liner's foot meeting that face (model/printed/test_gimbal.py)
-RAIL_TURN = math.degrees(math.atan2(math.sin(math.radians(gm.RAIL_EXIT[0])), -math.cos(math.radians(gm.RAIL_EXIT[1]))))
-
-
 def liner(side):
     """The `side` eye liner (#967, GLOSSARY Eye liner), drawn about its eye's centre (the L one's, the R its mirror):
     a shell gm.LINER_R in front of the plane gm.LINER_RIM ahead of the centre, open where the cap's stem sweeps
@@ -168,7 +162,7 @@ def liner(side):
     (lo, hi), room = gm.LINER_R, gm.LID_CLEAR_MM + gm.LID_OVER
     under, top = gm.FINGER_Z[0] - RAIL_ROOM, gm.YAW_CRANK_Z[0] - gm.CLIP["under"]  # the pad's top; under the yoke's bar
     r0, r1 = gm.POST_R + fits.CLEARANCE[0], gm.POST_R + gm.CLIP["wall"]
-    behind = lambda y0, z: box((-hi, hi), (y0, hi), z).rotate((0, 0, 0), (0, 0, 1), RAIL_TURN)  # noqa: E731
+    behind = lambda y0, z: box((-hi, hi), (y0, hi), z).rotate((0, 0, 0), (0, 0, 1), gm.RAIL_TURN)  # noqa: E731
     out = ball(hi).cut(ball(lo)).intersect(box((-hi, hi), (-hi, -gm.LINER_RIM), (-hi, hi)))
     out = out.cut(fan(_window(gm.CAP_STEM + math.degrees(math.asin(room / lo))))).cut(
         _ring(gm.LINER_HUBS, gm.LINER_MIDDLE)
@@ -186,6 +180,6 @@ def liner(side):
         (20 * math.sin(gap), 20 * math.cos(gap)),
     ]
     mouth = cq.Workplane("XY", origin=(0, 0, under)).polyline(mouth).close().extrude(top - under + 1)
-    collar = collar.cut(mouth.rotate((0, 0, 0), (0, 0, 1), RAIL_TURN)).cut(behind(0.0, (-hi - 1, under)))
+    collar = collar.cut(mouth.rotate((0, 0, 0), (0, 0, 1), gm.RAIL_TURN)).cut(behind(0.0, (-hi - 1, under)))
     out = out.union(collar)
     return out if side == "L" else out.mirror("YZ")

@@ -75,6 +75,40 @@ def test_each_cap_clears_the_lids_and_their_drive_at_every_combined_travel_end(r
     cap = _posed(rest, moved, f"{side} eyeball cap:1")
     for name in (*(f"{side} {part}" for part in BETWEEN), "lid shank", "gimbal frame:1"):
         assert cap.distance(_posed(rest, moved, name)) >= gm.LID_CLEAR_MM - 1e-4, name
+    # grown round its sphere (#967), it comes by the yoke, the push-rod and the tie-bar too
+    for name in (f"{side} yaw yoke:1", f"{side} push-rod:1", "tie-bar:1"):
+        assert cap.distance(_posed(rest, moved, name)) >= gm.LID_CLEAR_MM, name
+
+
+# what turns inside a cap's shell, where its liner stands still (#967)
+INSIDE = ("eyeball cap:1", "eyeball core:1", "yaw yoke:1", "push-rod:1", *BETWEEN)
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+@pytest.mark.parametrize("yaw", [-gm.YAW, gm.YAW])
+@pytest.mark.parametrize("pitch", [-gm.PITCH, gm.PITCH])
+@pytest.mark.parametrize("lid", list(np.subtract(gm.LID_EDGES, gm.LID_REST)))
+def test_each_liner_clears_all_that_turns_by_it_at_every_combined_travel_end(rest, side, yaw, pitch, lid):
+    """#967: the liner stands on the frame inside its cap's shell, gm.LID_CLEAR_MM under it and round its stem as the
+    eye yaws and pitches, and that far from the core, the yoke over its collar, the push-rod, the tie-bar, each lid's
+    crank and spoke, the bar, the link and the lids' shank, with the lids open and shut."""
+    moved = gm.moved(lid, pitch, yaw)
+    liner = rest[f"{side} eye liner:1"]
+    for name in (*(f"{side} {part}" for part in INSIDE), "lid shank", "tie-bar:1"):
+        assert liner.distance(_posed(rest, moved, name)) >= gm.LID_CLEAR_MM - 1e-4, name
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+def test_each_liners_collar_sits_on_its_yaw_bearing_and_the_rest_of_it_clears_the_frame(rest, side):
+    """#967: the liner's foot is a collar round the yaw bearing's post, on the pad's top, its ends on the pad's front
+    face (gm.RAIL_TURN lays that face out as gimbal.rail does): it meets the frame there and shares no volume with
+    it, and but for that collar the liner keeps gm.LID_CLEAR_MM from the frame."""
+    liner, frame = rest[f"{side} eye liner:1"], rest["gimbal frame:1"]
+    assert liner.intersect(frame).Volume() < 1e-3 and liner.distance(frame) < 1e-6
+    collar = gimbal.cyl("z", (gm.EYE[side][0], 0, 0), gm.POST_R + gm.CLIP["wall"] + 0.01, (-99, 0)).val()
+    assert liner.cut(collar).distance(frame) >= gm.LID_CLEAR_MM - 1e-4
 
 
 @pytest.mark.model
@@ -178,11 +212,12 @@ def test_the_lids_travels_and_the_caps_reach_are_read_off_his_eye_openings():
     assert max(corners) - 3.0 < gm.CAP_IN < min(corners)  # short of the corner: the lids' sleeves (gm.CAP_IN)
 
 
-def _seen(mesh, points, eye):
+def _seen(mesh, points, eye, least=gm.LID_R[0] - 0.01):
     """Which of the (x, z) `points` about `eye` a line of sight from the front meets the lid `mesh`'s band at: its
-    triangles ahead of the eyes' plane, on the band's radii."""
+    triangles ahead of the eyes' plane, on the band's radii (`least` mm or more from the eye's centre: 0 for all of
+    a cap or a liner)."""
     t = mesh.triangles - eye
-    t = t[(t[:, :, 1] < 0).all(axis=1) & (np.linalg.norm(t, axis=2) > gm.LID_R[0] - 0.01).all(axis=1)][:, :, [0, 2]]
+    t = t[(t[:, :, 1] < 0).all(axis=1) & (np.linalg.norm(t, axis=2) > least).all(axis=1)][:, :, [0, 2]]
     a, b, c = t[:, 0], t[:, 1], t[:, 2]
     d = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (c[:, 0] - a[:, 0]) * (b[:, 1] - a[:, 1])
     a, b, c, d = (v[np.abs(d) > 1e-9] for v in (a, b, c, d))
@@ -225,6 +260,39 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
     )
     assert (~(_seen(shut[0], inside, eye) | _seen(shut[1], inside, eye))).sum() <= 0.015 * len(inside)
     assert _seen(wide[0], inside, eye).sum() * 0.25 < 50.0 and _seen(wide[1], inside, eye).sum() < 0.75 * under.sum()
+
+
+# The dark inside the head seen in an opening from the front, mm2 at most, with its eye at (yaw toward its outside,
+# pitch): the figures Cansin picked the grown cap and the liner on were 1, 60, 1, 3 and 1 (#967's preview, comment
+# 7236532060, read on points with the lid bar at rest); these are the built parts'. Yawed out, 70 of it is the slit
+# between the cap's edge at the lids' hubs (gm.CAP_IN) and the liner's window, which ends where the stem comes yawed
+# in, and the rest lies along the rim where the lid bar's sweep keeps the liner back
+DARK_MM2 = {(0.0, 0.0): 3.0, (gm.YAW, 0.0): 97.0, (-gm.YAW, 0.0): 2.0, (0.0, gm.PITCH): 5.0, (0.0, -gm.PITCH): 3.0}
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+def test_from_the_front_each_opening_shows_white_beside_its_turned_eye(side):
+    """#967 (Cansin, 2026-11-28, #893's eighth round): a turned eye's cap left its opening and showed the dark inside
+    the head beside it (560 mm2 of an opening's 3,650 yawed out, 275 pitched up). Seen from the front as the lids'
+    test sees it, inside the eyeball's own outline (past it no cap can stand), with the lids open at rest: what
+    neither the cap, grown round its sphere, nor the liner inside it, nor a lid covers stays under DARK_MM2."""
+    import trimesh
+
+    from model import skin, stages
+
+    eye, sign = np.array(gm.EYE[side]), 1 if side == "L" else -1
+    rim = gimbal.opening(side) * (sign, 1)
+    grid = np.stack(np.meshgrid(np.arange(-34, 38, 0.5), np.arange(-36, 37, 0.5)), axis=-1).reshape(-1, 2)
+    inside = grid[skin.inside(grid, gimbal._offset(rim, -0.3)) & (np.linalg.norm(grid, axis=1) < gm.CAP_R)]
+    load = lambda stem: trimesh.load(stages.stl(f"{side} {stem}"), force="mesh").apply_translation(eye)  # noqa: E731
+    white = _seen(load("eye liner"), inside, eye, 0.0)
+    for lid in ("upper lid", "lower lid"):
+        white |= _seen(load(lid), inside, eye)
+    cap = load("eyeball cap")
+    for (out, pitch), most in DARK_MM2.items():
+        turned = cap.copy().apply_transform(gm.moved(0.0, pitch, sign * out)[f"{side} eyeball cap:1"])
+        assert (~(white | _seen(turned, inside, eye, 0.0))).sum() * 0.25 <= most, (out, pitch)
 
 
 def _lids_shell(side):

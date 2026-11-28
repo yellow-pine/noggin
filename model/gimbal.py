@@ -71,6 +71,10 @@ POST_R = 4.5
 RAIL_R = (LIDS_SHELL[0] - 2.0, LIDS_SHELL[0])
 # 25 deg inboard: past the tie-bar's fingers, which stand outboard of their pins, and 3 mm outboard of the lid bars
 RAIL_EXIT = (25.0, -150.0)
+# the bearing's way back from under its eye, level: deg from straight back toward the other eye, about the yaw axis
+# (as model/printed/gimbal.py rail lays it out). The pad's front face is the upright plane through that axis square to
+# it, which each liner's foot meets (model/printed/test_gimbal.py holds this copy to it)
+RAIL_TURN = math.degrees(math.atan2(math.tan(math.radians(RAIL_EXIT[0])), -math.cos(math.radians(RAIL_EXIT[1]))))
 FINGER_X = (0.0, 8.0)
 # the cross-bar: 2.8 mm behind the shut lower lids' hoops over the yaw, 4 mm in front of the lid servos' cases
 CROSS_Y, CROSS_Z = (38.5, 46.5), (-16.0, -12.0)
@@ -439,10 +443,15 @@ def _grid(n_yaw=11, n_pitch=7):
 
 
 def cap_points(side, n=40):
-    """Points on the `side` cap's sphere about its eye's centre, at rest: from CAP_IN toward the other eye round to its
-    outer pole, the front half (more than the cap, which ends on its opening's outline)."""
-    u, phi = np.meshgrid(np.radians(np.linspace(-CAP_IN, 90.0, n)), np.radians(np.linspace(-90.0, 90.0, n)))
-    out = CAP_R * np.stack([np.sin(u), -np.cos(u) * np.cos(phi), np.cos(u) * np.sin(phi)], -1).reshape(-1, 3)
+    """Points on the `side` cap's sphere about its eye's centre, at rest: from as far round toward the other eye as the
+    cap reaches (CAP_HUBS' first ring) round its outside to CAP_OUT from the gaze, at every height (more than the cap,
+    which is cut short at the lids' hubs and below)."""
+    inward = min(az for az, _ in CAP_HUBS[0])
+    az, el = (
+        np.radians(v).ravel() for v in np.meshgrid(np.linspace(inward, 180.0, 2 * n), np.linspace(-90.0, 90.0, n))
+    )
+    out = CAP_R * np.stack([np.sin(az) * np.cos(el), -np.cos(az) * np.cos(el), np.sin(el)], -1)  # as ray()
+    out = out[out[:, 1] <= -CAP_R * math.cos(math.radians(CAP_OUT))]
     return out * ((1, 1, 1) if side == "L" else (-1, 1, 1))
 
 
