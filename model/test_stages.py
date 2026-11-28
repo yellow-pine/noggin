@@ -107,10 +107,9 @@ def _pinned(stage, posed, horn, pins):
 
 @pytest.mark.parametrize("side", "LR")
 def test_a_lid_horn_turns_its_lower_lid_on_the_lid_link(side):
-    """#967: pose() closes a horn's Rods too. The lid link rides the lid bar (a Rod, #698), so over the lid horn's
-    range the lower lid turns as the link's four-bar has it (gimbal.lower: 65 deg against the upper's 79) and the link
-    keeps its pin on the bar and its pin on the lower lid's crank. Before, pose() left both at rest, so the review's
-    animation never moved a lower lid."""
+    """#967: the lid link runs from the lid horn's inner hole to the lower lid's crank, a four-bar of its own beside the
+    bar's, so over the lid horn's range the lower lid turns as it has it (gimbal.lower: 65.9 deg against the upper's
+    81.3) and the link keeps its pin on the horn and its pin on the lower lid's crank."""
     stage, horn, x = stages.STAGES["mech-back"], f"{side} lid horn", gimbal.EYE[side][0]
     lo, hi = stage.horns[horn].limits
     lower, link = f"{side} lower lid:1", f"{side} lid link:1"
@@ -121,7 +120,7 @@ def test_a_lid_horn_turns_its_lower_lid_on_the_lid_link(side):
         assert np.degrees(np.arccos((np.trace(turned[:3, :3]) - 1) / 2)) == pytest.approx(
             abs(gimbal.lower(deg)), abs=0.01
         )
-        pins = {(f"{side} lid bar:1", link): (x, *gimbal.LINK_PIN), (link, lower): (x, *gimbal.LOWER_PIN)}
+        pins = {(f"{side} lid horn:1", link): (x, *gimbal.LINK_PIN), (link, lower): (x, *gimbal.LOWER_PIN)}
         _pinned(stage, posed, horn, pins)
     assert gimbal.lower(lo) - gimbal.lower(hi) > 60
 
@@ -147,8 +146,9 @@ def test_the_pitch_horn_pitches_each_eye_on_its_push_rod():
 
 def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take():
     """#964: a Stage's fasteners, counted from the model's pivots, servos and head screws, by hand from the parts' bores:
-    Stage 1's eyes take 23 shanks (the yaw 5, the pitch 8 with the bail's and each core's pair, each lid drive 5, its
-    lower lid on the upper's shank, the push-rods on balls), 2 screws per servo and the test stand's 4 screws and nuts;
+    Stage 1's eyes take 22 shanks (the yaw 5, the pitch 8 with the bail's and each core's pair, the lid drives 9: each
+    one's bar and link, two pins apiece, and the one shank all four lids turn on, #967; the push-rods on balls), 2
+    screws per servo and the test stand's 4 screws and nuts;
     Stage 2 adds the pan's 3 and the tilt's 4 (its horn's and reaction bar's pins, its trunnions' pair), 4 screws
     per standard servo, and moves the stand's screws to the head mount, and the neck tube's (#1075): a pivot screw
     across it in the socket and in the carrier, and the socket's 4 countersunk screws through the Torso's floor with
@@ -156,9 +156,9 @@ def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take()
     shank, tab, head, nut = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x 10 mm head screw", "M3 nut"
     foot = "M3 x 12 mm countersunk screw"
     assert [stages.fasteners(d) for d in ("stage1", "stage2", "mech-back")] == [
-        {shank: 23, tab: 8, head: 4, nut: 4},
-        {shank: 32, tab: 16, head: 4, nut: 8, foot: 4},
-        {shank: 36, tab: 18, head: 4, nut: 8, foot: 4},
+        {shank: 22, tab: 8, head: 4, nut: 4},
+        {shank: 31, tab: 16, head: 4, nut: 8, foot: 4},
+        {shank: 35, tab: 18, head: 4, nut: 8, foot: 4},
     ]
 
 

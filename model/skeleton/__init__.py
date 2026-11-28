@@ -32,7 +32,9 @@ SEAL = 1.5
 # its remesh can thin a bone by. The parietals are 0.8 to 2.2 mm thick at the temples (#874)
 THICK = FLOOR + PITCH / 2
 KEEP = 0.02  # a piece carving leaves, of the bone's largest, under which it is dropped
-REACH = 16.0  # the orbits opened round each eye to its lids' outer radius, back to where their spokes reach
+# the orbits opened round each eye, ORBIT in radius (the lids' before #967 hid them, 47.5 mm, and the room round a
+# moving part: the skull keeps the orbits it was fitted with, #874), back to where those lids' spokes reached
+ORBIT, REACH = 49.1, 16.0
 # #967's re-laid lids (Cansin, 2026-11-27, its comment 7208456325): they stow all round each eye centre (gimbal.EYE,
 # on the Sculpt's own eyeballs' since #1035) in a shell of radius up to LID_SHELL (their band 36.3 to 37.5 mm and
 # 0.5 over it, #967's comment 7209215753), and the yaw rails, the tie-bar's fingers and the pitch rods leave it through the belt behind
@@ -93,7 +95,7 @@ def job():
         "bones": bones,
         "worn": g.WORN,
         "orbits": [
-            *([list(e), gm.LOWER_R[1] + CLEAR_MM, REACH] for e in gm.EYE.values()),
+            *([list(e), ORBIT, REACH] for e in gm.EYE.values()),
             *([list(e), LID_SHELL + CLEAR_MM, None] for e in gm.EYE.values()),
         ],
         "belts": [

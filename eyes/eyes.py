@@ -117,12 +117,12 @@ def mirror(pin, a):
 
 
 DEFAULT_CAL = {
-    "l_lid_lo": 41,
+    "l_lid_lo": 8.7,
     "l_lid_rest": 90,
-    "l_lid_hi": 105,
-    "r_lid_lo": 41,
+    "l_lid_hi": 90,
+    "r_lid_lo": 8.7,
     "r_lid_rest": 90,
-    "r_lid_hi": 105,
+    "r_lid_hi": 90,
     "yaw_lo": 65,
     "yaw_hi": 115,
     "pitch_lo": 62.5,

@@ -132,10 +132,10 @@ def _boards(stem, placed):
 def eyes_sub():
     """eyes: the Mech's eye gimbal (#630, model/gimbal.py) at rest, in its own frame: per eye the core, its
     cap, yoke, push-rod, upper and lower lid, lid bar and link; the tie-bar, the bail, the pitch bar and the frame; the
-    eyes Core's servos with their horns on the drives, each a hinge MuJoCo drives (#663): the upper lids and the pitch
-    horn's bail through their four-bars, both yokes off the yaw horn's tie-bar, each core pitched on its yoke by its
-    push-rod off the bail and each lower lid by its link off the lid bar (Rods, #698). Kinematics and its report:
-    model/gimbal.py."""
+    eyes Core's servos with their horns on the drives, each a hinge MuJoCo drives (#663): each eye's two lids (the upper
+    by its bar, the lower by its link off the same horn's inner hole, #967) and the pitch horn's bail through their
+    four-bars, both yokes off the yaw horn's tie-bar, and each core pitched on its yoke by its push-rod off the bail (a
+    Rod, #698). Kinematics and its report: model/gimbal.py."""
     parts, horns = {}, {}
     for s, (cx, _, _) in gimbal.EYE.items():
         at = translate(gimbal.EYE[s])
@@ -234,22 +234,20 @@ def eyes_sub():
                     (-1, 0, 0),
                     f"{s} lid bar:1",
                     [f"{s} upper lid:1"],
-                )
+                ),
+                rocker_loop(
+                    f"{s} lower lid pivot",  # up positive, as gimbal.lower
+                    horn,
+                    (x, *gimbal.LINK_PIN),
+                    (x, 0.0, 0.0),
+                    (x, *gimbal.LOWER_PIN),
+                    (-1, 0, 0),
+                    f"{s} lid link:1",
+                    [f"{s} lower lid:1"],
+                ),
             ],
             [],
             None,
-            [
-                Rod(
-                    f"{s} lid link",
-                    f"{s} lid link:1",
-                    f"{s} lid bar:1",
-                    (x, *gimbal.LINK_PIN),
-                    (-1, 0, 0),
-                    (f"{s} lower lid pivot", (x, 0.0, 0.0), (-1, 0, 0)),  # up positive, as gimbal.lower
-                    [f"{s} lower lid:1"],
-                    (x, *gimbal.LOWER_PIN),
-                )
-            ],
         )
     return Sub(parts, horns)
 
@@ -459,12 +457,13 @@ class _Stages(dict):
 STAGES = _Stages()  # built on first use: a document per DOCS key
 
 
-# The pivots whose shanks are not one (#964): the bail, each core and the head turn on a pair, one each side, each lower
-# lid on its upper lid's shank
+# The pivots whose shanks are not one (#964): the bail, each core and the head turn on a pair, one each side, and all
+# four lids on one shank through the frame's wall between the eyes (#967), counted at the L upper lid's
 SHANKS = {
     "bail pivot": 2,
     **{f"{s} eyeball pitch": 2 for s in gimbal.EYE},
     **{f"{s} lower lid pivot": 0 for s in gimbal.EYE},
+    "R lid pivot": 0,
     "tilt pivot": 2,
     "jaw pivot": 2,
 }
@@ -474,7 +473,7 @@ FOOT = "M3 x 12 mm countersunk screw"
 
 def fasteners(doc):
     """{fastener: count} the document takes (#964), counted from its horns, servos and head screws: per horn its pin on
-    the coupler, per loop the coupler's pin on the rocker and the rocker's pivot (SHANKS), per rod its two pins (none on
+    each coupler, per loop the coupler's pin on the rocker and the rocker's pivot (SHANKS), per rod its two pins (none on
     balls, a universal joint) and its hinge, per direct drive its reaction bar's anchor pin and its joint's shanks; two
     tab screws per servo, four per standard servo; the head screws (model/neck.py), each with its
     nut, through the test stand or the head mount; with the neck tube (#1075), a pivot screw across it per printed
@@ -483,7 +482,8 @@ def fasteners(doc):
     d = STAGES[doc]
     pins = 0
     for horn in d.horns.values():
-        pins += 1 + sum(1 + SHANKS.get(loop.joint, 1) for loop in horn.loops)
+        pins += max(1, len({loop.coupler for loop in horn.loops}))
+        pins += sum(1 + SHANKS.get(loop.joint, 1) for loop in horn.loops)
         pins += sum((0 if np.ndim(r.axes) == 2 else 2) + SHANKS.get(r.hinge[0], 1) for r in horn.rods)
         if horn.direct and horn.direct.reaction:  # its reaction bar's pin on the fixed part, and the joint's own shanks
             pins += 1 + SHANKS.get(horn.direct.joint, 1)

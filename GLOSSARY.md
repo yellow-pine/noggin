@@ -365,7 +365,7 @@ A part we print, by our name (model/printed); the Skeleton's:
 - eyeball core: turns up and down in its yoke, its eyeball cap (a Shell) on it;
 - bail, push-rod, pitch bar: turn both cores up and down from the pitch Horn;
 - upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
-  off the lid bar;
+  from the same Horn's inner hole;
 - test stand: the Test stand;
 - torso: the Torso; torso lid: its lid; neck socket: bolted on the Torso's floor, holding the Neck tube's foot;
   cervical carrier: fixed on the Neck tube's top, the nod plate's trunnions and the tilt's reaction anchor on it;

@@ -1,4 +1,4 @@
-"""Seam: the Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, each lid's
+"""Seam: the Mech's eye gimbal parts (model/printed/gimbal.py) as model/stages.py places them at rest, the lids'
 shank beside them: no two overlap."""
 
 import itertools
@@ -47,17 +47,24 @@ def test_no_two_parts_overlap_at_rest(rest):
     assert _overlaps(rest, pairs) == []
 
 
+# what turns or stands between the eyes, where each cap's shell sweeps as its eye yaws in (#967)
+BETWEEN = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1")
+
+
 @pytest.mark.model
 @pytest.mark.parametrize("side", "LR")
 @pytest.mark.parametrize("yaw", [-gm.YAW, gm.YAW])
 @pytest.mark.parametrize("pitch", [-gm.PITCH, gm.PITCH])
 @pytest.mark.parametrize("lid", list(np.subtract(gm.LID_EDGES, gm.LID_REST)))
-def test_each_lower_lid_clears_the_exact_cap_at_every_combined_travel_end(rest, side, yaw, pitch, lid):
-    """#937: a rearward spoke stays clear even with the eye yawed and pitched under the closing lid."""
+def test_each_cap_clears_the_lids_and_their_drive_at_every_combined_travel_end(rest, side, yaw, pitch, lid):
+    """#937, #967: the cap's shell reaches its opening's inner corner and yaws 25 deg further in, between the eyes;
+    each lid's band rides gm.LID_CLEAR_MM over it, and each lid's sleeve, spoke and crank, the bar, the link, the
+    lids' shank and the frame with its wall keep that from it, with the eye yawed and pitched under the lids open and
+    shut (the sweep reads the lids over their travel at yaw 0)."""
     moved = gm.moved(lid, pitch, yaw)
-    cap, lower = (f"{side} {part}:1" for part in ("eyeball cap", "lower lid"))
-    a, b = (rest[name].moved(gimbal._at(moved[name])) for name in (cap, lower))
-    assert a.distance(b) >= gm.LID_CLEAR_MM
+    cap = _posed(rest, moved, f"{side} eyeball cap:1")
+    for name in (*(f"{side} {part}" for part in BETWEEN), "lid shank", "gimbal frame:1"):
+        assert cap.distance(_posed(rest, moved, name)) >= gm.LID_CLEAR_MM - 1e-4, name
 
 
 @pytest.mark.model
@@ -142,15 +149,85 @@ def test_each_lid_servo_keeps_room_from_the_pitch_servo_and_its_horn_from_the_pa
         assert horn.distance(cap) >= gm.BACK_ROOM_MM
 
 
+def _rims(outline, a):
+    """(lowest, highest) lid angle, deg, at which the column `a` deg along the eye line crosses `outline` (x, z) on his
+    eyeball."""
+    x, rho = (gm.MORTY_BALL_R * f(math.radians(a)) for f in (math.sin, math.cos))
+    p, q = outline, np.roll(outline, -1, axis=0)
+    cross = (p[:, 0] - x) * (q[:, 0] - x) < 0
+    z = p[cross, 1] + (x - p[cross, 0]) / (q[cross, 0] - p[cross, 0]) * (q[cross, 1] - p[cross, 1])
+    return tuple(math.degrees(math.asin(min(1.0, max(-1.0, v / rho)))) for v in (z.min(), z.max()))
+
+
+def test_the_lids_travels_and_the_caps_reach_are_read_off_his_eye_openings():
+    """#967 (ADR 0011): the lower lid turns from where the cap's bottom edge shows at the eye's middle (the bottom rim
+    drawn in by gm.CAP_LOW, as the front sees it) up to gm.LID_SHUT; the upper lid from there up by the greatest height
+    either opening has over that curve, and 4 deg (its edge's cut); and a cap reaches gm.CAP_IN toward the other eye,
+    where the front sees the further of the two openings' inner corners on it. All read off the eye whites' cuts."""
+    heights, corners = [], []
+    for side in gm.EYE:
+        rim = gimbal.opening(side)
+        low = np.where(rim[:, 1:] < 0, rim * gm.CAP_LOW, rim)
+        assert gm.LID_SHUT - _rims(low, 0.0)[0] == pytest.approx(gm.LOWER_TRAVEL, abs=0.1)
+        heights.append(max(_rims(rim, a)[1] - _rims(low, a)[0] for a in np.arange(-50.0, 80.0)))
+        corners.append(math.degrees(math.asin(-rim[:, 0].min() / gm.CAP_R)))
+    assert max(heights) - gm.LOWER_TRAVEL + 4.0 == pytest.approx(gm.UPPER_TRAVEL, abs=0.1)
+    assert max(corners) == pytest.approx(gm.CAP_IN, abs=0.1)
+
+
+def _seen(mesh, points, eye):
+    """Which of the (x, z) `points` about `eye` a line of sight from the front meets the lid `mesh`'s band at: its
+    triangles ahead of the eyes' plane, on the band's radii."""
+    t = mesh.triangles - eye
+    t = t[(t[:, :, 1] < 0).all(axis=1) & (np.linalg.norm(t, axis=2) > gm.LID_R[0] - 0.01).all(axis=1)][:, :, [0, 2]]
+    a, b, c = t[:, 0], t[:, 1], t[:, 2]
+    d = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (c[:, 0] - a[:, 0]) * (b[:, 1] - a[:, 1])
+    a, b, c, d = (v[np.abs(d) > 1e-9] for v in (a, b, c, d))
+    out = np.zeros(len(points), bool)
+    for i in range(0, len(points), 200):
+        p = points[i : i + 200, None, :]
+        u = ((p[..., 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (c[:, 0] - a[:, 0]) * (p[..., 1] - a[:, 1])) / d
+        v = ((b[:, 0] - a[:, 0]) * (p[..., 1] - a[:, 1]) - (p[..., 0] - a[:, 0]) * (b[:, 1] - a[:, 1])) / d
+        out[i : i + 200] = ((u >= 0) & (v >= 0) & (u + v <= 1)).any(axis=1)
+    return out
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(side):
+    """#967 (Cansin, 2026-11-28): each opening is his Sculpt's own. Seen from the front, on a 0.5 mm grid inside its
+    outline: open, the upper lid shows nowhere but 0.5 mm of its edge past the top rim's outer part (under 5 mm2), and
+    the lower lid only under the cap's bottom edge, the sliver along the bottom rim (under 100 mm2: 1.2 mm wide); shut,
+    the two lids cover it all but a point or two at its outer corner, past the lids' ends."""
+    import trimesh
+
+    from model import linkage, skin, stages
+
+    eye, sign = np.array(gm.EYE[side]), 1 if side == "L" else -1
+    rim = gimbal.opening(side) * (sign, 1)
+    low = np.where(rim[:, 1:] < 0, rim * gm.CAP_LOW, rim)
+    grid = np.stack(np.meshgrid(np.arange(-34, 38, 0.5), np.arange(-36, 37, 0.5)), axis=-1).reshape(-1, 2)
+    inside = grid[skin.inside(grid, gimbal._offset(rim, -0.3))]
+    lids = {
+        k: trimesh.load(stages.stl(f"{side} {k} lid"), force="mesh").apply_translation(eye) for k in ("upper", "lower")
+    }
+    under = _seen(lids["lower"], inside, eye)
+    assert _seen(lids["upper"], inside, eye).sum() * 0.25 < 5.0
+    assert 40.0 < under.sum() * 0.25 < 100.0 and not (under & skin.inside(inside, gimbal._offset(low, -0.3))).any()
+    moved = gm.moved(float(gm.LID_EDGES[0] - gm.LID_REST), 0.0)
+    shut = [lids[k].copy().apply_transform(moved[f"{side} {k} lid:1"]) for k in lids]
+    assert (~(_seen(shut[0], inside, eye) | _seen(shut[1], inside, eye))).sum() <= 4
+    del linkage
+
+
 def _lids_shell(side):
-    """What the hidden lids and their cap will sweep about the `side` eye (#967): the shell gm.LIDS_SHELL through
-    gm.LIDS_SWEEP about the eye line, from the lids' inboard ends out to short of today's lid uprights, which go
-    with today's lids."""
+    """What the hidden lids and their cap sweep about the `side` eye where the yaw drive stands (#967): the shell
+    gm.LIDS_SHELL through gm.LIDS_SWEEP about the eye line, from the lids' bands' inboard ends out to 30 mm outboard."""
     eye, (lo, hi) = gm.EYE[side], gm.LIDS_SHELL
     arc = np.radians(np.linspace(*gm.LIDS_SWEEP, 64))
     fan = [(0.0, 0.0)] + [(-(hi + 5) * math.cos(t), (hi + 5) * math.sin(t)) for t in arc]
     # along the eye line, + outboard: from the lids' inboard ends, 58 deg inboard of straight ahead (#967's layout)
-    reach = (-hi * math.sin(math.radians(58.0)), gm.LID_X["upright"][0] - 3.0)
+    reach = (-hi * math.sin(math.radians(58.0)), gm.FOOT_X[0] - 3.0)
     x = sorted(eye[0] + (1 if side == "L" else -1) * u for u in reach)
     wedge = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
     return gimbal.ball(hi, eye).cut(gimbal.ball(lo, eye)).intersect(wedge).val()
@@ -581,11 +658,16 @@ def test_each_push_rod_stays_within_its_cups_reach_of_the_balls_line():
     assert max(np.linalg.norm(np.cross(np.subtract(p.toTuple(), a), along)) for p in v) <= gm.ROD_R + 1e-6
 
 
-# The lid drives' Bones (#698, #704): each lies on its slab's face, its pins along x; (part, its joints in turn)
+# The lid drives' arms (#698, #967): each lies on its slab's face, its pins along x; (part, its joints in turn, how
+# many times the lid servo's stall force at the bar's pin it carries: the link pins nearer the horn's hub)
 LID_HORN_PIN = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
 LID_BONES = {
-    "lid bar": (gimbal.lid_bar, [gm.LID_PIN, gm.LINK_PIN, LID_HORN_PIN]),
-    "lid link": (gimbal.lid_link, [gm.LINK_PIN, gm.LOWER_PIN]),
+    "lid bar": (gimbal.lid_bar, [gm.LID_PIN, tuple(np.add(LID_HORN_PIN, gimbal.BAR_JOG)), LID_HORN_PIN], 1.0),
+    "lid link": (
+        gimbal.lid_link,
+        [gm.LOWER_PIN, tuple(np.add(gm.LINK_PIN, gimbal.LINK_JOG)), gm.LINK_PIN],
+        gm.CRANK / gm.LINK_CRANK,
+    ),
 }
 
 
@@ -617,11 +699,10 @@ def _slice(solid, a, b, t, eps=0.01):
 def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
     """SF 2 (beams.MIN_SF) in PETG across its layers along every span, the servo's stall force pulling or pushing it
     between its end pins: on its strength, a span's offset from that line bending it in its plane (out to its
-    half-width), and the straight link against Euler buckling. On the mechanical part, which its Bone is carved from
-    (#809)."""
-    make, joints = LID_BONES[part]
-    solid, mat = make(mechanical=True).val(), g.MATERIALS[g.PRINTED[part][1]]
-    force, (y0, z0), (y1, z1) = beams.stall_force_n(), joints[0], joints[-1]
+    half-width), and against Euler buckling out of its slab between its end pins."""
+    make, joints, load = LID_BONES[part]
+    solid, mat = make().val(), g.MATERIALS[g.PRINTED[part][1]]
+    force, (y0, z0), (y1, z1) = load * beams.stall_force_n(), joints[0], joints[-1]
     for a, b in zip(joints, joints[1:]):
         for t in (0.3, 0.5, 0.7):
             area, _, bend, half = _slice(solid, a, b, t)
@@ -629,6 +710,5 @@ def test_each_lid_bone_holds_its_lid_servo_at_stall(part):
             off = abs((y - y0) * (z1 - z0) - (z - z0) * (y1 - y0)) / math.dist(joints[0], joints[-1])
             stress = force / area + force * off * half / bend
             assert mat["tensile_mpa"]["z"] / stress >= beams.MIN_SF, (a, b, t)
-    if len(joints) == 2:
-        least = min(_slice(solid, *joints, t)[1] for t in (0.3, 0.5, 0.7))
-        assert math.pi**2 * mat["E_mpa"]["z"] * least / math.dist(*joints) ** 2 / force >= beams.MIN_SF
+    least = min(_slice(solid, joints[0], joints[1], t)[1] for t in (0.3, 0.5, 0.7))
+    assert math.pi**2 * mat["E_mpa"]["z"] * least / math.dist(joints[0], joints[-1]) ** 2 / force >= beams.MIN_SF

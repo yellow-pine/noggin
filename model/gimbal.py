@@ -8,9 +8,10 @@ cranks, equal, pinned to one tie-bar, which reaches each yoke's by a finger thro
 One servo pitches both cores: its horn drives the bail (a rocker on an x axis up behind the eyes, over the lid servos,
 #967) through a bar, and each bail arm, hanging forward of that axis, pushes a rod that leans up to its ball end on the
 core's lever, up the yaw axis, so a yaw moves it only at second order: the Hooke form, sin(pitch) cos(yaw)
-(docs/research/2026-11-02-literature-mechanical.md 2). Each lid is a shell wedge about the up/down axis through its
-eye centre, on its own servo through a parallelogram. Angles are degrees: yaw positive toward +x, pitch and lid
-positive up. Every size is ours and inferred (no build settles one yet), each chosen against the gates in report()."""
+(docs/research/2026-11-02-literature-mechanical.md 2). Each lid is a band of a sphere about its eye's centre, under
+Morty's skin, turning about the eye line on a hub between the eyes: the upper on its servo through a parallelogram,
+the lower off the same horn's inner hole, the other way (#967). Angles are degrees: yaw positive toward +x, pitch
+and lid positive up. Every size is ours and inferred (no build settles one yet), each chosen against the gates in report()."""
 
 import math
 
@@ -22,12 +23,9 @@ from scipy.spatial.transform import Rotation
 from model import fits, linkage
 from model import geometry as g
 
-# Morty at life size (#872 step 3 round 2, his sculpt x7.126, #901): his eye a sphere this radius (the cap and the lids
-# follow his fitted ball, MORTY_BALL_R, with the lids' re-layout, #967); its outline's radius about its centre every
-# 30 deg from +x (outward on the L eye) toward up, seen from the front; his eyeballs' centres this far apart
-MORTY_EYE_R = 40.4
-MORTY_BALL_R = 37.1  # his eyeball, a sphere fitted to each dome of his Sculpt (#967, model/review MORTY_EYES)
-MORTY_OUTLINE = (39.5, 39.0, 39.0, 37.5, 35.5, 33.0, 31.0, 29.5, 30.0, 32.0, 35.0, 37.5)
+# Morty at life size (his Sculpt x7.126, #901): his eyeball, a sphere fitted to each dome of his Sculpt (#967,
+# model/review MORTY_EYES); his eyeballs' centres this far apart
+MORTY_BALL_R = 37.1
 SPACING = 73.3  # eye centres apart: his Sculpt's eyeballs', each fitted to its dome (#967, model/review MORTY_EYES)
 # the eye's growth, x1.4, from the 27 mm cap the gimbal was first drawn round (#630): the core, its lever and the yoke
 # are sized to his eyeball's own radius (x1.5, to the 40.4 mm cap's, before #967), so they turn inside the lids' shell
@@ -43,10 +41,12 @@ LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
 # its bed with (#967, model/printed/gimbal.py push_rod)
 ROD_R = BALL_R + 1.7
 YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from below, round the core
-# The yaw drive round the lids' shell (#967, the re-layout). The hidden lids and their cap will sweep a shell
-# LIDS_SHELL from each eye's centre (the cap's 35.8, the lids' band 36.3 to 37.5, 0.5 clear), through LIDS_SWEEP deg
-# about the eye line (from forward, up positive: both lids as plain bands, open to shut), and nothing else may cross
-# it: only the belt behind the eye, between the two stowed lids' back edges, is a way out of the eye's sphere. So each
+# The yaw drive round the lids' shell (#967, the re-layout). The hidden lids and their cap sweep a shell
+# LIDS_SHELL from each eye's centre (the cap's 35.8, the lids' band 36.3 to 37.1, 0.5 clear: CAP_R, LID_R), through
+# LIDS_SWEEP deg about the eye line where the yaw drive stands (from forward, up positive), and nothing else may
+# cross it: only the belt behind the eye, between the two stowed lids' back edges, is a way out of the eye's sphere,
+# and the lids' own hubs between the eyes. The face's wall comes no nearer an eye's centre than LIDS_SHELL[1] where
+# a lid ever is (#850: the band is 0.8 mm, not 1.2, so a brow laid on the face has 1.4 mm under it). So each
 # yoke has no stem: its crank lies at its bottom bar's level and it turns on a post (POST_R) on its yaw bearing, which
 # lies inside the shell (out to RAIL_R[1], the lids' band less its clearance: the cap never comes behind the yaw axis
 # inboard), runs back and inboard from under the yoke and leaves the shell RAIL_EXIT (deg inboard along the eye line,
@@ -55,7 +55,7 @@ YOKE = {"inner": 14.0 * K, "wall": 3.0, "half_y": 4.0}  # the yoke's U from belo
 # (y, z) line, FINGER_X outboard of the pin) to a cross-bar behind the eyes (CROSS_Y, CROSS_Z), and a tail down the
 # midline to the yaw horn's pin, which stays in TIE_Z with the horn and its servo. Inferred, from the rough CAD of the
 # layout (#967, comment 7209502441) and the exact solids since
-LIDS_SHELL = (35.8, 38.0)
+LIDS_SHELL = (35.8, 37.6)
 LIDS_SWEEP = (-144.0, 166.0)
 YAW_CRANK_Z = (-(YOKE["inner"] + YOKE["wall"]), -YOKE["inner"])  # the yokes' cranks, at their bottom bars' level
 FINGER_Z = (YAW_CRANK_Z[0] - 3.0, YAW_CRANK_Z[0])  # the tie-bar's fingers' pins, under the cranks
@@ -93,30 +93,46 @@ BAIL_TIP = (
 # the bail's rod's ends past each eye's centre, on the frame's uprights outside the pitch servo (#838)
 BAIL_END = 18.0
 PITCH_HORN = (72.25, -20.0)  # its arm along +y at rest: where the bail's old axis put it (60 behind the eyes, #838)
-CAP_R, CAP_HALF = MORTY_EYE_R, 45.0  # each Character's largest eyeball cap, Morty's eye: a sphere segment this wide
+GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
+# Each eyeball cap (#967): his eye white, a sphere 1.3 mm under his Sculpt's eye (Cansin: 35.8), solid within CAP_HALF
+# of the gaze (its flat back on the core's seat, where the old cap's was) and a shell CAP_WALL thick from there out
+# to its eye opening's own outline as the front sees it (model/printed/skin.py cap): the opening is the Sculpt's, and
+# the eye has no Shell. Below the eye line it ends on the rim's own way out from the eye's centre instead, CAP_LOW of
+# the outline as the front sees it: pitched down, a cap that filled the outline there met the yaw bearing under it
+CAP_R, CAP_HALF, CAP_WALL = LIDS_SHELL[0], 37.0, 1.6
+CAP_LOW = CAP_R / MORTY_BALL_R
+# how far toward the other eye a cap reaches, deg off its gaze: where the front sees its opening's inner corner on
+# it (30.9 mm from the eye's middle, the R eye's), through the shell's depth, so yawed in it stays 3.5 mm from the
+# eye line
+CAP_IN = 59.7
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
-LID_R = (CAP_R + 1.0, CAP_R + 3.1)  # the upper lid's shell, inner and outer radius: 1 mm off Morty's eye (#872)
-# the lower lid's, outside the upper's: tracking a pitch down, shut, they pass
-LOWER_R = (LID_R[1] + 1.5, LID_R[1] + 4.0)
-LID_COVER = 3.0  # how far past the cap's rim a shut lid reaches
-
-
-def _outline(deg):
-    """The angle off the gaze where Morty's eye outline meets his eye's sphere, `deg` from +x toward up."""
-    return math.degrees(math.asin(min(1.0, MORTY_OUTLINE[round(deg / 30) % 12] / MORTY_EYE_R)))
-
-
-# at the lid servo's centre, each lid's edge on Morty's outline (#872) but within the cap, whose rim is the most eye
-# white there is to show (#901: his outline, 68 deg up and 52 down, lies past the cap's 45)
-LID_REST = min(_outline(90), CAP_HALF)
-LOWER_EDGE = -min(_outline(270), CAP_HALF)  # the lower lid's, which its drive sets (LOWER_REST)
-LID_SHUT, LID_GAP = -4.0, 1.5  # shut, the upper lid's edge slightly below the eye's middle, the lower's this far under
-LID_SPAN = CAP_HALF + LID_COVER - LID_SHUT  # the upper wedge's width about x: shut, it covers the cap's top
-LOWER_SPAN = CAP_HALF + LID_COVER + LID_SHUT - LID_GAP  # the lower wedge's: shut, it covers the cap's bottom
-# the upper lid's edge over the servo's range: shut tracking a pitch down, open tracking a pitch up (#51, #698)
-LID_EDGES = (LID_SHUT - PITCH, LID_REST + PITCH)
-LID_FOLLOW = 1.0  # lid = rest + k*pitch (#51 Gestures): k 1 keeps the lid's edge where it sits on the eye
+# The lids (#967, Cansin, 2026-11-28: "the shut line works, build it"): both in one band LID_R, two perimeters, its
+# outer face on his eye's own surface, so no lid stands proud of his skin at an opening's rim. Open, the lower lid's
+# edge lies along its opening's bottom rim, where the cap's bottom edge shows (CAP_LOW: cut to the rim's curve, seen
+# from the front, so the sliver of lid Cansin accepted, 1.2 mm, fills the opening under the cap), and the upper
+# lid's, the same curve, is parked wholly behind the top rim; shut, the two edges meet LID_SLIT apart on that curve
+# lifted LOWER_TRAVEL, LID_SHUT deg over the eye's middle. The upper lid turns UPPER_TRAVEL: the opening's greatest
+# height about the eye line over that curve, less the lower's, and 4 deg, since its edge is cut along the lower lid's
+# view and lies further round on the band's inside (parked, 3 mm2 of it still show past the top rim's outer part;
+# 7 deg would hide all of it and reach the bail's arm). The same for both eyes (the R eye's opening is 1.2 deg lower:
+# its upper lid parks that far behind its rim). Each lid covers LID_COVER deg past the rim it hides behind (and LID_TIPS mm past its opening's inner corner,
+# seen from the front, within that far of the eye line's height), but the upper lid along the top rim's middle,
+# COVER_FREE mm either side of the eye's (its back edge is the rim itself there, so open it stops 154 deg round,
+# short of the bail's arm at 157: comment 7226349814's cure 1). The travels are read off his Sculpt's eye whites' cuts
+# (model/printed/test_gimbal.py holds them to it); every other size here is inferred
+LID_R = (LIDS_SHELL[0] + LID_CLEAR_MM, LIDS_SHELL[1] - LID_CLEAR_MM)
+LID_SHUT, LOWER_TRAVEL, UPPER_TRAVEL = 6.5, 65.9, 81.3
+LID_SLIT = 0.6  # between the shut lids' edges: the lids' clearance, and a tenth for what a sampled sweep misreads
+LID_COVER, LID_TIPS, COVER_FREE = 4.0, (2.6, 12.0), 5.2
+LID_ENDS = (-62.0, 82.0)  # the lids' ends along the eye line, deg from the eye's middle (outward positive)
+# the upper lid's edge at the eye's middle with the lid servo at its centre: open, the lids' rest (no lid shows but
+# the sliver of lower lid along the bottom rim)
+LID_REST = LID_SHUT + UPPER_TRAVEL
+LOWER_REST = LID_SHUT - LOWER_TRAVEL  # the lower lid's: the cap's bottom edge there, 3.7 deg over the bottom rim
+# the upper lid's edge over the servo's range: shut, open. No lid follows the eyes' pitch any more (#51 Gestures,
+# #698): a hidden lid has no edge on the eye to keep there
+LID_EDGES = (LID_SHUT, LID_REST)
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
 # #967: its case stood across the belt behind the eye, where the push-rod, the tie-bar and the yaw bearing's rail have
@@ -126,7 +142,7 @@ LID_HORN = (56.5, -8.4)
 
 
 # the upper lid's crank at rest, deg from forward toward up: square to the bar (from the lid's pivot to the horn's)
-# mid-range, so the bar meets it at 64 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
+# mid-range, so the bar meets it at 49 deg at either end of the lid's range (#684; the MuJoCo report's floor is 40)
 def _crank(horn):
     return math.degrees(math.atan2(horn[1], -horn[0])) % 360 - 90.0 - (sum(LID_EDGES) / 2 - LID_REST)
 
@@ -135,16 +151,21 @@ LID_CRANK = _crank(LID_HORN)
 LID_PIN = (-CRANK * math.cos(math.radians(LID_CRANK)), CRANK * math.sin(math.radians(LID_CRANK)))  # (y, z) at rest
 
 
-# The lower lid (#698): the bar turns none (a parallelogram), so a link from a pin on it to the lower lid's crank is a
-# four-bar whose crank pivots at LINK_PIN - LID_PIN and turns as the servo; crossed, it turns the lower lid against the
-# upper about 0.8x. Inferred, searched (#901, again for the horn's axis behind the belt, #967) for the lower lid's edge
-# from its rest on the cap's rim to shut, its link meeting the crank at 52 deg or more (54 before: the bar now keeps
-# 8 mm off where the tie-bar's cross-bar is to pass behind the eyes, y 36.5 to 46.5, z -16.9 to -13.9), every pin behind
-# the cap's flat back however the eye turns and above the frame's plate
-LINK_PIN = (41.0, -3.0)  # (y, z) of the link's pin on the bar at rest
-LOWER_PIN = (8.24, -11.32)
+# The lower lid (#698, #967): its link runs from the lid horn's inner hole (LINK_CRANK from its hub, on the arm the
+# bar's pin is on: model/envelopes.py HORN) forward under the eye line to the lower lid's crank, which points down:
+# a crossed four-bar, so the lower lid turns against the upper, LOWER_TRAVEL for its UPPER_TRAVEL. A link from the bar
+# (#698) needs a crank about 14 mm long, and between the eyes the cap's shell, which reaches its opening's inner
+# corner and yaws 25 deg further in, sweeps everything past 10 mm from the eye line. Searched for the two travels,
+# the link meeting the crank at 56 deg or more
+LINK_CRANK = 6.75
+LINK_PIN = tuple(np.add(LID_HORN, np.multiply(LID_PIN, LINK_CRANK / CRANK)))  # (y, z) of the link's pin on the horn
+LOWER_CRANK = (7.91, -126.0)  # the lower lid's crank at rest: mm, deg from forward toward up
+LOWER_PIN = (
+    -LOWER_CRANK[0] * math.cos(math.radians(LOWER_CRANK[1])),
+    LOWER_CRANK[0] * math.sin(math.radians(LOWER_CRANK[1])),
+)
 _LOWER = linkage.four_bar(
-    (0, *np.subtract(LINK_PIN, LID_PIN)), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
+    (0, *LID_HORN), (0, *LINK_PIN), (0, 0, 0), (0, *LOWER_PIN), (-1, 0, 0)
 )  # about -x: up positive, as the lids
 
 
@@ -153,33 +174,35 @@ def lower(lid):
     return _LOWER(lid)[0]
 
 
-LOWER_REST = LID_SHUT - LID_GAP - lower(LID_SHUT - LID_REST)  # the lower lid's edge at the servo's centre
 CONVERGE_MM = 1000.0  # the fixed toe-in converges the gazes here (#51), set in the caps' pupil seats
 TOE_IN = math.degrees(math.atan(SPACING / 2 / CONVERGE_MM))
 PRINT_SCALE = 0.0075  # in-plane print error (docs/research/2026-11-02-literature-cams-am.md [ZF]), on one eye's cranks
-GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
 PITCH_BAR_X = (24.0, 27.0)  # #978: translate the planar drive along its X axis, clear of the C0 bearing/cable
 BAIL_INPUT_X = (PITCH_BAR_X[0] - 4.0, PITCH_BAR_X[0])  # face-to-face with the bar; YZ linkage unchanged
-# |x| from each eye's centre (#698): outboard each lid's boss, clear of the yawing yoke (24.3), which turns on a shank
-# from the frame's upright beside the caps; inboard the lid bar on the horn's face (behind the yoke, so nearer the eye:
-# its servo under the eye then clears the pitch servo's collar), then the link and the lids' ears face to face, within
-# SPACING / 2 so the two eyes' drives turn apart about their shared axis (#838). Every pin the cap could reach lies
-# behind its flat back (gimbal.report, the sweep); the slabs moved out with the eye (#901), 3 mm each as before
+# The lids' hubs (#967), |x| from each eye's centre, inboard: both lids turn on one M3 shank along the eye line, held
+# in the frame's wall on the midline (WALL_X either side of it), each on a sleeve HUB_R in radius (the cap's shell
+# passes 3.6 mm from the eye line in front of them), the lower lid's nearer the midline, face to face. In slabs along
+# it: the lower lid's spoke, back and down to its band; its crank, far enough from the midline that the cap's shell is
+# 12 mm from the eye line there, its pin's boss out to the link; the bar and the link, side by side on the horn's
+# face (the bar above, the link under it), 3 mm for the link's buckling; and the upper lid's crank and spoke, short of
+# the yawing yoke (22.95), the 1.45 mm the lid servo leaves them (0.15 mm further in than it stood: further, and the
+# bail's input arm comes under 1.9 mm from its tab). No lid has a guide at its outer end (comment 7209505450); a
+# sleeve is 5.4 to 5.8 mm long where that layout had lands 11 mm apart, which two lids a side do not fit: about
+# 0.5 mm of tilt at the band's middle (inferred), all of the band's room, until a build shows it
 LID_X = {
-    **{"upper boss": (27.0, 30.0), "lower boss": (30.0, 33.0), "upright": (33.3, 36.3)},
-    **{"bar": (24.75, 27.75), "link": (27.75, 30.75), "ear": (30.75, 33.75)},
+    **{"upper": (23.45, 24.9), "bar": (24.9, 27.9), "link": (24.9, 27.9), "crank": (29.05, 31.0)},
+    **{"lower": (32.45, 34.85), "upper sleeve": (23.45, 28.85), "lower sleeve": (29.05, 34.85)},
 }
-# each lid's main shell ends this far inside its boss's slab, so a cover on it stays 0.6 mm off the frame's upright;
-# the boss itself still turns 0.3 mm off the upright
-LID_SHELL_IN = 0.3
-# Each main shell's ends; the upper's inboard end clears the lower lid's rising hoop.
-LID_SHELL_X = {
-    "upper": (-LID_X["ear"][0] + LID_CLEAR_MM, LID_X["upper boss"][1] - LID_SHELL_IN),
-    "lower": (-LID_X["ear"][0], LID_X["lower boss"][1] - LID_SHELL_IN),
-}
+HUB_R, WALL_X = 2.5, 1.3
+# each lid's spoke from its hub to its band, deg from forward toward up, shut: the edge of it nearer the front, which
+# lies on a line through the eye line, so all of the spoke is behind what the cap's shell sweeps between the eyes
+# (lid angles -93 to 105, read on its mesh over the yaw and the pitch); SPOKE_W wide behind that edge, for the
+# lid servo's stall through a jammed lid at SF 2 across the layers (a hand sum: 9 and 12 MPa)
+SPOKES, SPOKE_W = {"upper": 108.0, "lower": -98.0}, {"upper": 8.0, "lower": 6.0}
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
-# to the lids' uprights, and a bar under the eyes (CHEEK_Y, BEAM_Z) hung from those uprights' feet
+# to a foot behind each cheek (FOOT_X: where the lids' uprights stood before the lids' hubs moved between the eyes,
+# #967), and a bar under the eyes (CHEEK_Y, BEAM_Z) hung from those feet: Morty's face sits on it (model/skin.py)
 PLATE_Z = (-38.0, -35.0)
 # under the eyes' centres, behind the lower lids' sweep (#901: in front of the coronoids before), to past the head
 # mount's rear screws (model/neck.py)
@@ -187,22 +210,23 @@ PLATE_Y = (16.0, 87.0)
 PLATE_X, BACK_Y = 33.5, 40.0  # the body's half-width, out under the jaw's lugs (model/neck.py JAW_LUG_X)
 BACK_X = SPACING / 2 + BAIL_END + 4.0  # behind BACK_Y (the condyles') the back's, out to the bail's uprights
 CHEEK_Y = (-10.0, -6.0)
-# the bar a beam down its whole width, under the lower lids' sweep (#901), hung from the lid uprights' feet
-BEAM_Z = (-(LOWER_R[1] + 16.0), -(LOWER_R[1] + 4.0))  # a cover's room under the lower lids
+# the bar a beam down its whole width, under the lids (#901: where the old lower lids' sweep, 47.5 mm, left it)
+BEAM_Z = (-63.5, -51.5)
 # #967: Morty's life-size cheeks narrow under his eyes and widen behind them (the private reference, read locally by
 # model/review/test_hidden.py), so the beam ends inside them, and an arm at its level runs
-# back from each end to its lid upright's foot, behind the lower lids' sweep; the upright leans back down to the plate's
-# level, where its rail reaches forward to meet it; his cheeks curve in under the beam, so its lower outer corners are
-# cut back BEAM_CUT and the arms start that far up
+# back from each end to its foot, FOOT_X from the eye's centre; his cheeks curve in under the beam, so its lower outer
+# corners are cut back BEAM_CUT and the arms start that far up
 BEAM_X, BEAM_CUT = 53.0, 4.0
-FOOT_Y = (14.0, 20.0)
-# each lid upright's head is flat in front, this far from the lids' axis, inside the temple's Skin, its outer front
-# edge cut back UPRIGHT_EDGE; the mechanical yoke's lower corners are cut back YOKE_CUT, which yawed near the cheek's
-UPRIGHT_FLAT, UPRIGHT_EDGE, YOKE_CUT = 3.5, 2.0, 2.0
+FOOT_X, FOOT_Y = (33.3, 36.3), (14.0, 20.0)
+YOKE_CUT = 2.0  # the mechanical yoke's lower corners are cut back, which yawed near the cheek's Skin
+# The lids' carrier (#967): a wall on the midline, WALL_X either side, from a boss HUB_R round the lids' shank back
+# over the tie-bar's cross-bar (WALL_Z, 4 mm over it) to a post down to the plate behind it (WALL_POST: its y span,
+# and its half-width), in the plane the lid drives' loads lie in
 # #967: a window through the plate either side of the yaw servo's collar, out to WINDOW_X and back to WINDOW_Y: the
 # realistic skull's maxillae rise through them from the palate to the cranium's base, behind the orbits' openings
 # (model/skeleton REACH), so the palate stays on the skull; open in front since the yaw bearings left the plate's front
 WINDOW_X, WINDOW_Y = 30.0, 21.0
+WALL_Z, WALL_POST = (-8.0, 4.0), ((48.5, 56.0), 4.0)
 # #967, #978: nodded, with the pan half a degree past either end (where its loaded servo sags to), the plate's back edge
 # passed 0.5 mm from the tilt servo's tab and 0.9 mm from the nod plate, less than their collision pieces stray: Linux's
 # sim read the frame 0.35 mm into each. A pocket in the edge at each, (x span, depth, how far its inboard end flares
@@ -224,7 +248,7 @@ def drives():
         "pitch": ((PITCH_BAR_X[1], *PITCH_HORN), (-1, 0, 0), (0, 0, -1), g.Y),
     }
     for s, sign in (("L", 1), ("R", -1)):
-        x = EYE[s][0] - sign * LID_X["bar"][0]
+        x = EYE[s][0] - sign * LID_X["bar"][0]  # the bar's and the link's slab's face on the horn
         out[f"{s} lid"] = ((x, *LID_HORN), (-sign, 0, 0), (0, 0, -1), (0, *np.divide(LID_PIN, CRANK)))
     return out
 
@@ -304,8 +328,8 @@ def moved(lid, pitch, yaw=0.0):
         low_m = linkage.rotation(g.X, -lower(lids[s]), (x, 0, 0))
         crank, pin, link, low = ((x, *p) for p in (LID_PIN, np.add(LID_HORN, LID_PIN), LINK_PIN, LOWER_PIN))
         out[f"{s} upper lid:1"], out[f"{s} lower lid:1"], out[f"{s} lid horn:1"] = lid_m, low_m, horn_m
-        bar = out[f"{s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
-        out[f"{s} lid link:1"] = _carry(link, low, (bar @ [*link, 1])[:3], (low_m @ [*low, 1])[:3])
+        out[f"{s} lid bar:1"] = _carry(crank, pin, (lid_m @ [*crank, 1])[:3], (horn_m @ [*pin, 1])[:3])
+        out[f"{s} lid link:1"] = _carry(link, low, (horn_m @ [*link, 1])[:3], (low_m @ [*low, 1])[:3])
     yaw_servo, servo = servos(yaw, pitch)
     if yaw:  # else they stay at rest, left out: the lid drives' sweep (model/printed/gimbal.py) poses what is here
         out["yaw horn:1"] = horn = linkage.rotation(g.Z, yaw_servo, (0, YAW_Y, 0))
@@ -358,39 +382,12 @@ def _grid(n_yaw=11, n_pitch=7):
     return [(y, p) for y in np.linspace(-YAW, YAW, n_yaw) for p in np.linspace(-PITCH, PITCH, n_pitch)]
 
 
-def _moving(yaw, pitch):
-    """The capsules (a, b, r) inside the L lid at the eye's pose, about its centre: the lever and its ball, the
-    push-rod with its sockets, the yoke's arms and the post it turns on."""
-    rot = core(yaw, pitch)
-    ball = rot @ (0, 0, LEVER)
-    bail = _PITCH(servos(yaw, pitch)[1])[0]
-    pin = np.array([0, *BAIL]) + _rot(g.X, bail) @ _BAIL_ARM  # the bail arm's ball, behind this eye
-    x, bottom = YOKE["inner"] + YOKE["wall"] / 2, -(YOKE["inner"] + YOKE["wall"])
-    arm_r = math.hypot(YOKE["wall"] / 2, YOKE["half_y"])
-    yaw_rot = _rot(g.Z, yaw)
-    out = [(rot @ (0, 0, CORE_R), ball, BALL_R), (ball, pin, ROD_R)]
-    out += [(yaw_rot @ (s * x, 0, YOKE["half_y"]), yaw_rot @ (s * x, 0, bottom), arm_r) for s in (-1, 1)]
-    return out + [((0, 0, bottom), (0, 0, -RAIL_R[0]), POST_R)]
-
-
-def lid_points(edge, n=48, radii=LID_R, span=LID_SPAN):
-    """Points on an L lid's two faces (about its eye centre), its wedge about x from `edge` deg up `span`: the upper
-    lid's from its edge, the lower lid's (LOWER_R, LOWER_SPAN) from its edge less its span."""
-    u, phi = np.meshgrid(np.linspace(0.02, math.pi - 0.02, n), np.radians(np.linspace(edge, edge + span, n)))
-    unit = np.stack([np.cos(u), -np.sin(u) * np.cos(phi), np.sin(u) * np.sin(phi)], -1).reshape(-1, 3)
-    return np.concatenate([r * unit for r in radii])
-
-
-def _to_segment(p, a, b):
-    a, b = np.asarray(a, float), np.asarray(b, float)
-    t = np.clip((p - a) @ (b - a) / max(float((b - a) @ (b - a)), 1e-12), 0, 1)
-    return np.linalg.norm(p - (a + t[:, None] * (b - a)), axis=1)
-
-
-def cap_points(n=40):
-    """Points on the L cap's dome and rim (about its eye centre, at rest): the sphere within CAP_HALF of the gaze."""
-    u, phi = np.meshgrid(np.radians(np.linspace(0, CAP_HALF, n)), np.linspace(0, 2 * math.pi, n))
-    return CAP_R * np.stack([np.sin(u) * np.cos(phi), -np.cos(u), np.sin(u) * np.sin(phi)], -1).reshape(-1, 3)
+def cap_points(side, n=40):
+    """Points on the `side` cap's sphere about its eye's centre, at rest: from CAP_IN toward the other eye round to its
+    outer pole, the front half (more than the cap, which ends on its opening's outline)."""
+    u, phi = np.meshgrid(np.radians(np.linspace(-CAP_IN, 90.0, n)), np.radians(np.linspace(-90.0, 90.0, n)))
+    out = CAP_R * np.stack([np.sin(u), -np.cos(u) * np.cos(phi), np.cos(u) * np.sin(phi)], -1).reshape(-1, 3)
+    return out * ((1, 1, 1) if side == "L" else (-1, 1, 1))
 
 
 def _link_deg(lid):
@@ -403,8 +400,9 @@ def _link_deg(lid):
 def report():
     """The gimbal's numbers against #630's gates (model/test_report.py), over the (yaw, pitch) grid: the worst gaze
     error through the command map with every pin's play, the yaw-pitch crosstalk (the pitch a yaw adds when the pitch
-    servo ignores it) beside the Hooke form's, the vergence error a print error makes, the lids' clearance to the
-    parts moving inside them over the pitch x lid grid and their servo range, and the caps' closest approach. The gaze
+    servo ignores it) beside the Hooke form's, the vergence error a print error makes, the lids' band's room over the
+    cap and their servo range, and the caps' closest approach (the lids against every other part: the sweep,
+    model/printed/gimbal.py). The gaze
     error adds the pupil's seating (#650): the pupil strays up to PUPIL_FIT from its seat's centre, which on the cap
     turns the gaze the way the play may, so the two add."""
     grid = _grid()
@@ -426,23 +424,12 @@ def report():
         abs(math.degrees(math.asin(math.sin(math.radians(p)) / math.cos(math.radians(y)))) - p) for y, p in grid
     )
     edges = LID_EDGES
-    shells = [
-        p
-        for edge in np.linspace(*edges, 9)
-        for p in (
-            lid_points(edge),
-            lid_points(LOWER_REST + lower(edge - LID_REST) - LOWER_SPAN, 48, LOWER_R, LOWER_SPAN),
-        )
-    ]
-    clear = min(
-        min(float(_to_segment(shell, a, b).min()) - r for a, b, r in _moving(yaw, pitch))
-        for yaw in (-YAW, 0, YAW)
-        for pitch in np.linspace(-PITCH, PITCH, 7)
-        for shell in shells
-    )
     link = min(_link_deg(lid) for lid in np.linspace(*np.subtract(edges, LID_REST), 41))
-    cap, offset = cap_points(), np.subtract(EYE["L"], EYE["R"])
-    gap = min(float(cKDTree(cap @ core(*pose).T + offset).query(cap @ core(*pose).T)[0].min()) for pose in grid)
+    caps = {side: cap_points(side) for side in EYE}
+    gap = min(
+        float(cKDTree(caps["R"] @ core(*e["R"]).T + EYE["R"]).query(caps["L"] @ core(*e["L"]).T + EYE["L"])[0].min())
+        for e in (eyes(*servos(*pose)) for pose in grid)
+    )
     return {
         "gaze_deg": round(gaze_err + pupil, 2),
         "play_deg": round(math.hypot(*play), 2),
@@ -457,7 +444,7 @@ def report():
             "servo_deg": [e - LID_REST for e in edges],
             "shut_deg": [LID_SHUT, round(LOWER_REST + lower(LID_SHUT - LID_REST), 2)],  # upper, lower
             "link_deg": round(link, 1),
-            "clearance_mm": round(min(clear, LID_R[0] - CAP_R), 2),
-            "apart_mm": SPACING - 2 * LID_X["ear"][1],  # the two eyes' lid drives, between the eyes
+            "clearance_mm": round(LID_R[0] - CAP_R, 2),
+            "apart_mm": round(SPACING - 2 * LID_X["lower"][1], 2),  # the two eyes' lids' hubs, between the eyes
         },
     }

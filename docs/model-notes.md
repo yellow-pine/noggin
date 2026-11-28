@@ -149,11 +149,16 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   pitch pin through the angle its link meets its arm at (1.73 deg with the pupil's seating).
   Since #901 the eyes are Morty's at life size (#872's round 2), since #967 on his Sculpt's own eyeballs, each a
   sphere fitted to its dome: 73.3 mm apart, a 37.1 mm ball (his pupils sit 9 deg outward on it; the domes' feet, seen
-  from the front, are 80 mm apart, as each dome faces outward). The cap is still a 40.4 mm
-  sphere and the upper lid 1 mm off it, but the core, its lever and the yoke are x1.4 of the gimbal's first 27 mm
-  since #967, sized to his eyeball's own 37.1 mm, so they turn inside the shell the hidden lids and their 35.8 mm cap
-  will sweep (35.8 to 38.0 mm from each eye's centre, `gimbal.LIDS_SHELL`). Nothing else may cross that shell but
-  in the belt behind the eye, between the two stowed lids, so the yaw drive is laid out round it: each yoke has no
+  from the front, are 80 mm apart, as each dome faces outward). The core, its lever and the yoke are x1.4 of the
+  gimbal's first 27 mm since #967, sized to his eyeball's own 37.1 mm, so they turn inside the shell the hidden lids
+  and their cap sweep (35.8 to 37.6 mm from each eye's centre, `gimbal.LIDS_SHELL`: the cap a 35.8 mm sphere, 1.3 mm
+  under his eye's; the lids' band 0.5 mm over it and 0.8 mm thick, its outer face on his eye's own surface, so no
+  lid stands proud of his skin and a brow laid on the face has 1.4 mm under it, #850). The cap is solid in front, on
+  the core's seat, and from there a 1.6 mm shell out to its opening's own outline as the front sees it; below the
+  eye line it ends 1.2 mm inside the outline, on the rim's own way out from the eye's centre, since pitched down a
+  cap that filled it met the yaw bearing. Nothing else may cross that shell but
+  in the belt behind the eye, between the two stowed lids, and between the eyes, where the lids' hubs are, so the yaw
+  drive is laid out round it: each yoke has no
   stem, its crank lies at its bottom bar's level, and it turns on a post on its yaw bearing, a pad and a web inside
   the shell that run back and 25 deg inboard from under the yoke, leave the shell through the belt by a neck and stand
   on a buttressed pylon on the plate (`model/printed/gimbal.py` `rail`; it holds SF 2 with the eye held against the
@@ -161,27 +166,27 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   by a finger, under the crank, back and up inside the shell and level out through the belt to a cross-bar behind the
   eyes, with a tail down the midline to the yaw horn's pin, which stays with its horn and servo (the finger is as
   thick as the cross-bar where the stalled servo twists it: SF 3.1). Each keeps 1.9 mm or more from what it passes,
-  on the exact solids, and neither shares volume with the shell (`model/printed/test_gimbal.py`); each eye's inboard drives (bar,
-  link, ears) within 33.75 mm of it, the two eyes' 5.2 mm apart about their shared axis. The bigger lower lids sweep
-  under the eyes, so the frame's plate starts behind that sweep and its bar,
-  a beam the face sits on, hangs under it from the lids' uprights; the yaw servo hangs behind it too. Since #967 the
-  frame hides inside Morty's Skin: the beam ends inside his cheeks, its lower outer corners cut back, an arm runs back
-  from each end to its lid upright's foot behind the lower lid's sweep, and each upright leans back down to the plate,
+  on the exact solids, and neither shares volume with the shell (`model/printed/test_gimbal.py`). The frame's plate
+  starts behind the eyes and its bar, a beam the face sits on, hangs under them from a foot behind each cheek; the
+  yaw servo hangs behind it too. Since #967 the frame hides inside Morty's Skin: the beam ends inside his cheeks, its
+  lower outer corners cut back, and an arm runs back from each end to its foot,
   so the frame and the eyes' drives lie a Shell's wall and its clearance inside Morty's Sculpt at rest and over each
   eye servo's range (model/review/test_hidden.py, on the Sculpt git holds, in every run of the Model's tests; over the
   head's turns it reads the private reference's regions, with the review's checks). A
   window through the plate either side of the yaw servo's collar lets the realistic skull's maxillae up from the
   palate to the cranium's base, so the bare skull is one piece (`gimbal.WINDOW_X`). Each eye has an
-  upper and a lower lid on that one servo: the upper lid's crank through the lid bar (a
-  parallelogram, bent at the link's pin), the lower lid's through a link from a pin on that bar, a crossed
-  four-bar turning it against the upper about 0.8x (`gimbal.lower`; searched again for #901's layout, and for #967's
-  lid servos: its link meets its crank at 52 deg or more, the bar clear of where the tie-bar is to cross behind the
-  eyes); at rest each
-  edge sits on the cap's rim (Morty's outline, 68 deg up and 52 down, lies past the cap's 45); shut they meet 4 deg
-  below the eye's middle,
-  1.5 deg apart, the lower lid's shell just outside the upper's so tracking a pitch down they pass. Each lid turns on a
-  shank from the frame's upright just outside the caps, its outboard spoke behind the cap and inboard spoke above it, so
-  the face is as wide as the lids' frame (145 mm since #901), each lower lid's boss 0.3 mm off its upright, and `HEAD_MM`
+  upper and a lower lid on that one servo, hidden under his skin since #967 (Cansin, 2026-11-28): both in the one
+  band, in his face's filament. Open, at the servo's centre, the lower lid's edge lies along the bottom rim where
+  the cap's bottom edge shows, cut to the rim's curve as the front sees it (the sliver of lid under the cap, 1.2 mm),
+  and the upper lid's, the same curve, is parked behind the top rim; shut they meet on that curve lifted, 6.5 deg
+  over the eye's middle, 0.6 mm apart. The lower lid turns 65.9 deg and the upper 81.3, read off the eye whites' cuts
+  on his Sculpt. Each lid covers 4 deg past the rim it hides behind; the upper lid's back edge is the top rim itself
+  for 5 mm either side of the eye's middle, where the bail's arm comes. The upper lid's crank is driven through the
+  lid bar (a parallelogram), the lower lid's through a link from the lid horn's inner hole to a crank pointing down,
+  a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 56 deg or more). All
+  four lids turn on one shank along the eye line, in a wall of the frame on the midline, each on a sleeve between
+  the eyes; a spoke runs from each sleeve back to a tail of its lid's band, behind everything the cap's shell sweeps
+  as its eye yaws in. No lid has a bearing at its outer end. `HEAD_MM`
   is Morty's life-size cranium (160 x 176 x 175 since #901, #893). The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
@@ -210,9 +215,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   other way round until it and its union are valid and keep both heads.
   In MuJoCo its four servos drive it (#663): the upper lids and the bail through their four-bars, both yokes off the
   yaw horn's tie-bar, each core pitched on its yoke by its push-rod (a universal joint on the bail, a connect at the
-  lever's ball), each lower lid by its link (a hinge on the lid bar, a connect at its crank pin, #698). It plays the eye program's gestures and Rest (traces.commands): its yaw, in the gimbal's own
+  lever's ball), each lower lid by its link off the lid horn's inner hole, a four-bar of its own (#967). It plays the eye program's gestures and Rest (traces.commands): its yaw, in the gimbal's own
   degrees since its servos are Stage 1's (#896), through `gimbal.servos`, the gaze level (the program holds the pitch), each lid level to its edge
-  (closed where the lids meet, rest on the cap's rim, open) plus the pitch (`lid = rest + k*pitch`, k 1, #51),
+  (closed where the lids meet; rest and open both open, hidden behind the opening's rim, #967),
   so its sim report reads each servo's torque along them and the clearance is certified along them
   (model/test_trajectories.py). Its neck joins the gaze shifts past ~15 deg (#688): the program's head share under
   the Mech's calibration (traces.HEAD_CAL, 0.6, inferred), the pan in the eyes' degrees scaled as the yaw and

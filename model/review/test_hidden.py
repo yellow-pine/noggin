@@ -6,7 +6,8 @@ from each region of his Skin that moves against the gimbal then: the regions are
 meshes, read through Blender (review.MORTY), so that half is one of the review's own checks, as test_review.py's on
 the written file (`just review` sets NOGGIN_REVIEW; by hand `NOGGIN_REVIEW=1 pytest model/review/test_hidden.py` after
 `just ours`), skips in CI, and nothing of the reference leaves the run. The caps and lids are the eyes' own surfaces,
-seen through his eye openings, so they are left out."""
+seen through his eye openings, so they are left out of those; the lids, his skin's moving covers, stand proud of his
+outer surface nowhere over their travel."""
 
 import functools
 import os
@@ -173,6 +174,26 @@ def test_the_eye_gimbal_hides_inside_mortys_sculpt(doc, sculpt):
             if worst > -MARGIN and worst > near.get(n, (-np.inf,))[0]:
                 near[n] = (round(worst, 2), pose)
     assert near == {}
+
+
+PROUD_MM = 0.3  # what depth()'s voxels can misread at a crease: his skin is 37.0 mm from an eye's centre at its nearest
+
+
+@pytest.mark.model
+@pytest.mark.parametrize("side", "LR")
+def test_no_lid_stands_proud_of_his_skin(side, sculpt):
+    """#967 (the skin keeps its shape): the lids' band's outer face is his eyeball's own surface, so over the lid
+    servo's range no point of either lid lies outside his outer surface, in an eye opening (his dome's) or past its
+    rim, by more than PROUD_MM; nor of the cap, 1.3 mm under his eye."""
+    stage = stages.STAGES["mech-back-mechanical"]
+    horn, proud = stage.horns[f"{side} lid horn"], {}
+    for deg in np.linspace(*horn.limits, STEPS):
+        mats = stages.pose(stage, f"{side} lid horn", deg).parts
+        for n in (f"{side} upper lid:1", f"{side} lower lid:1", f"{side} eyeball cap:1"):
+            worst = float(sculpt(trimesh.transform_points(_cloud(stages.stem(stage.parts[n].file)), mats[n])).max())
+            if worst > PROUD_MM and worst > proud.get(n, (0,))[0]:
+                proud[n] = (round(worst, 2), round(float(deg), 1))
+    assert proud == {}
 
 
 @pytest.mark.parametrize("doc", list(g.MECH))
