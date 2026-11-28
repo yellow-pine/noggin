@@ -116,7 +116,7 @@ def test_mortys_chin_sits_on_one_seat_in_the_mandibles_front_and_comes_off_forwa
     top = seat.at[2] + np.sqrt(skin.PAD_R**2 - over[:, 0] ** 2)  # the boss's top at each x
     assert 0.5 < (over[:, 1] - top).min() < 1.0  # no lower: the face's edge under the jaw comes up under it
     bore = skin.MAGNET[0] / 2 + skin.FIT
-    for x, y, z in neck.JAW_HOLD:
+    for x, _, z in neck.JAW_HOLD:
         beside = np.hypot(x, z - seat.at[2]) - 2 * bore  # between the two bores, seen along them
         assert beside >= skeleton.FLOOR  # their floors pass each other: the pockets open opposite ways
 
