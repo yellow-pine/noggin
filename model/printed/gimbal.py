@@ -432,10 +432,10 @@ def _spoke(deg, back, x, w):
 
 
 # Each lid's tail (#967): its band running on behind its inner end to its spoke, under his skin. Between the planes
-# TAIL_X (from the eye's centre: the upper's from 0.3 mm off the bar's and the link's slab, which cross the band's
-# radius beside it, out to short of the yaw bearing's neck; the lower's from its spoke's slab out to its band) and
+# TAIL_X (from the eye's centre: the upper's from its spoke's slab, 0.2 mm off the bar's and the link's, which cross
+# the band's radius beside it, out to short of the yaw bearing's neck; the lower's from its spoke's slab out to its band) and
 # the lid angles TAIL_DEG (shut)
-TAIL_X = {"upper": (-gm.LID_X["upper"][1] + 0.3, -21.5), "lower": (-gm.LID_X["lower"][1] + 0.05, -31.0)}
+TAIL_X = {"upper": (-gm.LID_X["upper"][1], -21.5), "lower": (-gm.LID_X["lower"][1] + 0.05, -31.0)}
 TAIL_DEG = {"upper": (20.0, 131.0), "lower": (-134.0, 28.0)}
 CRANK_W = {"upper": 8.0, "lower": 7.0}  # each lid's crank's width, for its servo's stall at SF 2 (a hand sum)
 # A lid's edges follow every third point of its opening's outline, 6 mm apart, straight between them (0.13 mm inside
@@ -481,7 +481,8 @@ def _lid(band, travel, which, name, pin, side):
     slab, sleeve, crank = (tuple(sorted(-u for u in gm.LID_X[k])) for k in (which, which + " sleeve", name))
     out = _up(band, travel).union(_spoke(gm.SPOKES[which] + travel, back, slab, gm.SPOKE_W[which]))
     out = out.union(cyl("x", (0, 0, 0), gm.HUB_R, sleeve)).union(lid_mechanical([(0, 0), pin], crank, CRANK_W[which]))
-    out = holes(out, [pin], (crank[0], max(crank[1], -gm.LID_X["bar"][1])), CRANK_W[which] / 2)
+    reach = (min(crank[0], -gm.LID_X["bar"][0]), max(crank[1], -gm.LID_X["bar"][1]))  # to the bar's, the link's face
+    out = holes(out, [pin], reach, CRANK_W[which] / 2)
     out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, (sleeve[0] - 1, sleeve[1] + 1)))
     return out if side == "L" else out.mirror("YZ")
 

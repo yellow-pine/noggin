@@ -179,11 +179,12 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   band, in his face's filament. Open, at the servo's centre, the lower lid's edge lies along the bottom rim where
   the cap's bottom edge shows, cut to the rim's curve as the front sees it (the sliver of lid under the cap, 1.2 mm),
   and the upper lid's, the same curve, is parked behind the top rim; shut they meet on that curve lifted, 6.5 deg
-  over the eye's middle, 0.6 mm apart. The lower lid turns 65.9 deg and the upper 81.3, read off the eye whites' cuts
-  on his Sculpt. Each lid covers 4 deg past the rim it hides behind; the upper lid's back edge is the top rim itself
+  over the eye's middle, 0.6 mm apart. The lower lid turns 65.9 deg and the upper 76.8, read off the eye whites' cuts
+  on his Sculpt, and the servo has 4.5 deg more to open them wider, which the eye program's lid map needs over its
+  rest (a blink takes about 0.7 s: the servo's slew over 77 deg). Each lid covers 4 deg past the rim it hides behind; the upper lid's back edge is the top rim itself
   for 5 mm either side of the eye's middle, where the bail's arm comes. The upper lid's crank is driven through the
   lid bar (a parallelogram), the lower lid's through a link from the lid horn's inner hole to a crank pointing down,
-  a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 56 deg or more). All
+  a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 54 deg or more). All
   four lids turn on one shank along the eye line, in a wall of the frame on the midline, each on a sleeve between
   the eyes; a spoke runs from each sleeve back to a tail of its lid's band, behind everything the cap's shell sweeps
   as its eye yaws in. No lid has a bearing at its outer end. `HEAD_MM`

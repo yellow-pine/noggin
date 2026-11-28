@@ -6,8 +6,7 @@ import os
 import pytest
 
 from model import geometry as g
-from model import gimbal
-from model import trajectories
+from model import gimbal, trajectories
 
 HERE = os.path.dirname(__file__)
 spec = importlib.util.spec_from_file_location(

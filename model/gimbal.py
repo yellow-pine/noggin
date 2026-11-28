@@ -187,19 +187,19 @@ BAIL_INPUT_X = (PITCH_BAR_X[0] - 4.0, PITCH_BAR_X[0])  # face-to-face with the b
 # it: the lower lid's spoke, back and down to its band; its crank, far enough from the midline that the cap's shell is
 # 12 mm from the eye line there, its pin's boss out to the link; the bar and the link, side by side on the horn's
 # face (the bar above, the link under it), 3 mm for the link's buckling; and the upper lid's crank and spoke, short of
-# the yawing yoke (22.95), the 1.45 mm the lid servo leaves them (0.15 mm further in than it stood: further, and the
-# bail's input arm comes under 1.9 mm from its tab). No lid has a guide at its outer end (comment 7209505450); a
+# the yawing yoke (22.95), 0.2 mm off the link, which passes beside the spoke: the 1.25 mm the lid servo leaves them
+# (0.15 mm further in than it stood: further, and the bail's input arm comes under 1.9 mm from its tab). No lid has a guide at its outer end (comment 7209505450); a
 # sleeve is 5.4 to 5.8 mm long where that layout had lands 11 mm apart, which two lids a side do not fit: about
 # 0.5 mm of tilt at the band's middle (inferred), all of the band's room, until a build shows it
 LID_X = {
-    **{"upper": (23.45, 24.9), "bar": (24.9, 27.9), "link": (24.9, 27.9), "crank": (29.05, 31.0)},
+    **{"upper": (23.45, 24.7), "bar": (24.9, 27.9), "link": (24.9, 27.9), "crank": (29.05, 31.0)},
     **{"lower": (32.45, 34.85), "upper sleeve": (23.45, 28.85), "lower sleeve": (29.05, 34.85)},
 }
 HUB_R, WALL_X = 2.5, 1.3
 # each lid's spoke from its hub to its band, deg from forward toward up, shut: the edge of it nearer the front, which
 # lies on a line through the eye line, so all of the spoke is behind what the cap's shell sweeps between the eyes
 # (lid angles -93 to 105, read on its mesh over the yaw and the pitch); SPOKE_W wide behind that edge, for the
-# lid servo's stall through a jammed lid at SF 2 across the layers (a hand sum: 9 and 12 MPa)
+# lid servo's stall through a jammed lid at SF 2 across the layers (a hand sum: 11 and 12 MPa)
 SPOKES, SPOKE_W = {"upper": 108.0, "lower": -98.0}, {"upper": 8.0, "lower": 6.0}
 # The gimbal frame's plate (#838): up under the tie-bar, above the mandible, the yaw servo hanging under it through its
 # hole: its body PLATE_X either side from PLATE_Y[0] to the bail's uprights, wider behind them (BACK_X), its front out
