@@ -9,7 +9,7 @@ import math
 import cadquery as cq
 import numpy as np
 
-from model import envelopes
+from model import envelopes, fits
 from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box, hull
@@ -34,7 +34,8 @@ TILT_ARM_X, TILT_STEP = (1.0, 5.0), 15.6
 # #1075 it leaves the carrier's sleeve across the Mech first, outboard of the bar, then runs back
 # (model/printed/test_neck.py holds it at the tilt servo's stall)
 ANCHOR_STRUT = ((6.0, 5.0), (5.5, 4.5))
-FIT = 0.1  # the neck tube in a printed bore, radial (model/fits.py's tightest)
+FIT = fits.CLEARANCE[0]  # the neck tube in a printed bore, radial: a pin's tightest
+SLEEVE_R = 7.5  # the carrier's sleeve on the tube
 # #1075: the carrier's wings, each a slab from the sleeve out under the nod plate's sweep to a riser up to its C0
 # trunnion: the slab's (y) depth, the heights of its root's two ends on the sleeve and of its tip, and the riser's x.
 # The slab stands forward of the trunnion: behind it the nod plate's L arm swings down as the face goes up
@@ -64,7 +65,7 @@ def _screwed(out, s):
     tip, seat = nk.SCREW_X
     out = out.union(cyl("x", (0, y, z), 3.5, (0, seat))).cut(cyl("x", (0, y, z), 3.0, (seat, seat + 6.0)))
     out = out.cut(_along(nk.tube_at(-30.0), nk.tube_at(nk.TUBE[2] + 30.0), nk.TUBE[0] + FIT))
-    return out.cut(cyl("x", (0, y, z), 1.7, (0, seat))).cut(cyl("x", (0, y, z), TAP_R, (tip - 6.0, 0)))
+    return out.cut(cyl("x", (0, y, z), 1.7, (0, seat))).cut(cyl("x", (0, y, z), TAP_R, (tip - 1.5, 0)))
 
 
 def cervical_carrier():
@@ -76,7 +77,7 @@ def cervical_carrier():
     _, ay, az = nk.TILT_ANCHOR
     s = nk.TUBE_SCREWS[1]
     _, ty, tz = nk.tube_at(s)  # the strut's root, on its screw
-    out = _along(nk.tube_at(s - ANCHOR_STRUT[0][0] - 0.5), nk.TUBE_TOP, nk.SLEEVE_R)
+    out = _along(nk.tube_at(s - ANCHOR_STRUT[0][0] - 0.5), nk.TUBE_TOP, SLEEVE_R)
     for sign in (-1, 1):
         root = [(sign * 6.0, WING_Z[0], 4.0), (sign * 6.0, WING_Z[1], 4.0)]
         tip = (sign * (sum(RISER_X) / 2 - 0.3), WING_Z[2], 3.3)

@@ -116,8 +116,8 @@ TUBE_SCREWS = (6.0, 66.0)
 TUBE_HOLE_R = 1.75  # each screw's hole through the tube: a 3.5 mm bit
 SCREW_X = (-8.5, 7.5)
 # the lowest cited 0.2 % proof stress of a 6060, 6063 or 6061 tube in T6 or T66, MPa: EN AW-6060 T6 by EN 1999-1-1
-# Table 3.2b (retail 10 x 1 tube is 6060 T66, 160 by EN 755-2: the note above); Young's and the shear modulus, its 3.2.5
-TUBE_PROOF_MPA, TUBE_E_MPA, TUBE_G_MPA = 140.0, 70_000.0, 27_000.0
+# Table 3.2b (retail 10 x 1 tube is 6060 T66, 160 by EN 755-2: the note above); Young's modulus, its 3.2.5
+TUBE_PROOF_MPA, TUBE_E_MPA = 140.0, 70_000.0
 # an M3 in the weakest common steel, stainless A2-70: its stress area (ISO 898-1:2013 Table 4), its proof and tensile
 # stress (EN 1999-1-1 Table 3.4, after ISO 3506-1), all in that note; its nut's width across flats (ISO 4032's,
 # recalled, not read)
@@ -125,7 +125,6 @@ M3 = {"stress_mm2": 5.03, "proof_mpa": 450.0, "tensile_mpa": 700.0, "nut_flats":
 # the neck socket (model/printed/neck.py): its tower grips the tube from its foot up to C7's foot (the path's third
 # point), through the lid's slot; its flange lies on the Torso's floor under four M3, countersunk from under the floor,
 # a nut on each over the flange (#1062): SOCKET_SCREWS, (x, y)
-SLEEVE_R = 7.5  # the carrier's sleeve on the tube
 SOCKET_TOP_Z = CERVICAL_PATH[2][1]
 SOCKET_FLANGE = ((-22.0, 22.0), (48.0, 78.0), 5.0)  # x, y, its thickness
 SOCKET_SCREWS = ((-15.0, 51.5), (15.0, 51.5), (-15.0, 61.0), (15.0, 61.0))

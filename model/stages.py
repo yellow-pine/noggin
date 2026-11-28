@@ -22,10 +22,8 @@ OURS = os.path.join(
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
-ALUMINIUM = (
-    2.70,
-    "aluminium, 2.70 g/cm3",
-)  # the neck tube, solid metal (docs/research/2026-11-28-neck-tube-aluminium.md)
+# the neck tube, solid metal (docs/research/2026-11-28-neck-tube-aluminium.md)
+ALUMINIUM = (2.70, "aluminium, 2.70 g/cm3")
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
