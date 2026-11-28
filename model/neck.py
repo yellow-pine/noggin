@@ -162,34 +162,36 @@ JAW_PIN = (35.5, -48.0)  # in the ramus' plate, under the notch (inferred)
 MOUTH_HORN, JAW_BAR_X = (31.0, -70.0), (24.4, 27.4)
 # #968: the carrier's chain of joints down each side of the mandible (the Skeleton scene's, as #1032 refitted it inside
 # Morty's skin: docs/adr/0025), measured on it: the pivot, the condyle's neck, the pin, then down the ramus' plate and
-# along the body's deepest line to where the arch turns across. From the third joint on, each x is mid-wall there
-# (model/skeleton/test_skeleton.py holds the chain to the finished bone, ADR 0011); the condyle's neck and the pin's
-# joint stay at the ramus' inner face, 7.4 to 7.7 mm in from its outer one, so the pin's post is no longer and the bone
-# keeps 4.5 mm outboard of them. Their (y, z) path is inferred
+# along the body to where the arch turns across. The carrier is laid on the bone's inner face, half let in (Cansin,
+# 2026-11-28, #893's sixth round), so the one-piece bone comes off it (model/skeleton OFF): each joint's x is that
+# face's there. But the L chain's fifth joint, which stands 7.0 mm outboard of it: the mouth Horn and the jaw bar
+# sweep past the face there as the jaw opens (their outer faces at x 24.5 and 27.5), and the Finish carves the bone
+# back from them. model/skeleton/test_skeleton.py holds the chain to the finished bone (ADR 0011). Their (y, z) path
+# is inferred
 MANDIBLE_CHAIN = {
     "L": (
         (40.5, *JAW),
         (43.3, 50.5, -47.5),
         (39.6, *JAW_PIN),
-        (38.8, 27.0, -57.0),
-        (30.9, 18.0, -67.0),
-        (26.1, 8.0, -72.5),
-        (12.0, -3.0, -78.0),
+        (33.0, 27.0, -57.0),
+        (30.0, 19.0, -65.5),
+        (19.5, 13.0, -70.0),
+        (9.7, 0.0, -78.0),
     ),
     "R": (
         (-40.5, *JAW),
         (-42.8, 50.5, -47.5),
         (-40.1, *JAW_PIN),
-        (-39.3, 27.0, -57.0),
-        (-31.4, 18.0, -67.0),
-        (-26.4, 8.0, -72.5),
-        (-13.5, -3.0, -78.0),
+        (-33.7, 27.0, -57.0),
+        (-23.4, 19.0, -65.5),
+        (-19.9, 13.0, -70.0),
+        (-10.7, 0.0, -78.0),
     ),
 }
-# where the bar across between the two chains' last joints crosses the head's middle, in the mandible's symphysis:
-# level, 2 mm of bone in front of it (the symphysis is 6.5 to 7.5 mm thick there, so the bar stands 3 mm out of its
-# back face), and so 6 mm or more under his chin's skin and from the skin under his chin as the jaw opens
-# (model/review/test_head.py; #976's chains met 1.9 mm under it and swung through it)
+# where the bar across between the two chains' last joints crosses the head's middle: level, behind the mandible's
+# symphysis, let into the bone's inner face by half at its two ends and 0.6 mm clear of it at the middle, where the
+# chin Shell's Seat sits in the bone's front (#850). So 6 mm or more under his chin's skin and from the skin under
+# his chin as the jaw opens (model/review/test_head.py; #976's chains met 1.9 mm under it and swung through it)
 JAW_CHIN = (0.0, *MANDIBLE_CHAIN["L"][-1][1:])
 # the thickest lead that crosses, a 22 AWG conductor (inferred insulation OD): the neck cable's four conductors
 # VBUS and GND down from the head's USB-C to the power-path board, its switched output and GND up to the Shields,

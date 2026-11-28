@@ -688,6 +688,20 @@ def test_the_lid_bones_print_as_drawn_with_no_overhang_past_45_deg(part):
     assert bone.overhang_deg(_bed_down(LID_BONES[part][0]().val())) <= 45
 
 
+@pytest.mark.parametrize("mechanical", [False, True])
+@pytest.mark.parametrize("part", LID_BONES)
+def test_each_lid_arm_keeps_its_end_pins_bores_in_both_styles(part, mechanical):
+    """#1097: a bore for the M3 shank at each end pin, with wall round it through the slab's whole 3 mm, as a Bone and
+    mechanical: the same interfaces (docs/adr/0020)."""
+    make, joints, _ = LID_BONES[part]
+    arm, w = make(mechanical=mechanical).val(), (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
+    for y, z in (joints[0], joints[-1]):
+        for x in (-w + 0.05, 0.0, w - 0.05):
+            for dy, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                assert not arm.isInside(cq.Vector(x, y + dy * (gm.PIN_R - 0.05), z + dz * (gm.PIN_R - 0.05)))
+                assert arm.isInside(cq.Vector(x, y + dy * (gm.PIN_R + 0.5), z + dz * (gm.PIN_R + 0.5)))
+
+
 def _slice(solid, a, b, t, eps=0.01):
     """(mm2, the least mm4, the in-plane mm4, mm) of `solid`'s section square to the span a-b ((y, z), in its slab
     about x 0) at t: its area, its least second moment, the one that bends it in its plane, and its half-width there."""
