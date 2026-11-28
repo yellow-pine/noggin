@@ -200,7 +200,6 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
     bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
     out = np.array([x, y]) - fit.MIDDLE[:2]
     out /= np.linalg.norm(out)
-    solid = solids
     for stem, up in ((skull, -1.0), (cap, 1.0)):  # the pocket runs down into the skull, up into its calvaria
 
         def disc(r, z0, z1, up=up):
@@ -208,14 +207,14 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
             lo, hi = sorted(skeleton.SEAM_Z + up * (sk.GAP / 2 + z) for z in (z0, z1))
             return m3.Manifold.cylinder(hi - lo, r, circular_segments=96).translate((x, y, lo))
 
-        assert _share(solid[stem], disc(sk.MAGNET[0] / 2, -0.05, depth)) < 1e-3  # the magnet's room, flush
+        assert _share(solids[stem], disc(sk.MAGNET[0] / 2, -0.05, depth)) < 1e-3  # the magnet's room, flush
         top = sk.GROOVE_D + 0.01 if stem == cap else 0.0  # a Seat's grooves start 0.9 mm from its pocket
-        assert _share(solid[stem], disc(bore + skeleton.FLOOR, top, depth) - disc(bore, -1.0, depth + 1.0)) > 0.99
-        assert _share(solid[stem], disc(bore, depth + 0.01, depth + skeleton.FLOOR)) > 0.99
+        assert _share(solids[stem], disc(bore + skeleton.FLOOR, top, depth) - disc(bore, -1.0, depth + 1.0)) > 0.99
+        assert _share(solids[stem], disc(bore, depth + 0.01, depth + skeleton.FLOOR)) > 0.99
         v = _bones()[stem].vertices
         outer = v[(v[:, :2] - (x, y)) @ out > sk.RING + sk.GROOVE + 0.2]  # past the Seat's own grooves
         assert np.linalg.norm(outer - (x, y, skeleton.SEAM_Z), axis=1).min() >= sk.PAD_R + 0.5
-    assert (solid[skull] ^ solid[cap]).volume() < 0.1
+    assert (solids[skull] ^ solids[cap]).volume() < 0.1
     for deg in (0, 120, 240):
         at = (
             x + sk.RING * np.cos(np.radians(deg)),
@@ -223,18 +222,16 @@ def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
             skeleton.SEAM_Z - sk.GAP / 2,
         )
         above = m3.Manifold.sphere(sk.BALL_R, 48).translate(at).trim_by_plane((0, 0, 1), at[2] + 0.01)
-        assert _share(solid[skull], above) > 0.99
-        assert (solid[cap] ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at)).volume() > 0
+        assert _share(solids[skull], above) > 0.99
+        assert (solids[cap] ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at)).volume() > 0
 
 
+@pytest.mark.model
+@pytest.mark.bones
 def test_the_seats_magnets_hold_the_calvaria_on_whichever_way_up_the_head_is():
     """#874: the three pairs, skin.GAP apart, pull the calvaria on with at least skin.SF times its printed weight
     (inferred, like every Seat's hold: no build settles one yet)."""
-    pytest.importorskip("magpylib")
-    if not os.path.exists(stages.stl(skeleton.CAP)):
-        pytest.skip("no finished calvaria here (just ours, with Blender)")
-    mesh = trimesh.load(stages.stl(skeleton.CAP), force="mesh")
-    newtons = mjcf.mass(mesh, stages.printed(skeleton.CAP)) / 1000 * 9.81
+    newtons = mjcf.mass(_bones()[skeleton.CAP], stages.printed(skeleton.CAP)) / 1000 * 9.81
     assert len(skeleton.SEATS) * sk.hold_n() >= sk.SF * newtons
 
 
