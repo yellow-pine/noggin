@@ -23,7 +23,12 @@ and nods ±20° round what stands still inside it.
   only with the Skin off.
 - **The rails and the mechanism clear both rims; C5 and C6 do not, at any path.** A vertebra here is about 47 mm front
   to back, and the room between the rims is 24 mm. y 72 is where #874 measured the least of them left in the rims' way
-  (#1039's comments). What gives for those two (the tilt's range, the seam, or the bones) is open, on #874.
+  (#1039's comments).
+- **C5 and C6 are slimmed for it** (Cansin, 2026-11-27, #893's third round): the head keeps its ±20° nod and the seam
+  stays at the collar, so those two vertebrae give, and only those two. Each is drawn in toward its own canal where
+  the rim swings through, past the anatomy's usual length budget, in a zone declared on the original anatomy (ADR
+  0025's amendment of 2026-11-28 has the rule and the numbers). `model/review/test_nape.py` holds every finished
+  vertebra, C1 to C7, 2.1 mm under the head's skin through tilt and pan together.
 - **The mechanism moves, the skin and the range stay.** The tilt lever's arm steps inboard round its horn, so the pan
   swings its tip across the nape nearer the pan axis. The reduction's arms, the tilt's hold and the range are
   unchanged.
