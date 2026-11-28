@@ -409,9 +409,12 @@ def test_the_tilt_lever_swings_beside_its_case_with_room():
 @pytest.mark.model
 def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
     """#968: SF 2 (beams.MIN_SF) in PETG across its layers along each of the carrier's chains, pivot to chin, the jaw
-    blocked anywhere along them: every section bends under at most the bar's worst moment about the pivot over the
-    jaw's sweep, in the jaw's plane, and pulls with its worst force (the crank's tangent force over the sine of the
-    crank-to-bar angle). Along each span and at each joint between two. On the mechanical part (ADR 0020)."""
+    blocked anywhere along them: every section carries at most the bar's worst moment about the pivot over the jaw's
+    sweep, in the jaw's plane, and pulls with its worst force (the crank's tangent force over the sine of the
+    crank-to-bar angle). The moment turns about x: a section square to x bends under all of it, the bar across at the
+    chin (along x) twists under all of it, one askew takes its share of each (von Mises; the twist as on an ellipse
+    as thick as the section's thin way). Along each span and at each joint between two. On the mechanical part (ADR
+    0020)."""
     # shortcut: the pin's post (r 3.5, 12 mm) is not sectioned: SF 6 by hand as a cantilever under this force. Nor is
     # the twist its 14 mm offset puts on the L chain: 3.8 MPa of shear in the ramus by hand, SF 2.5 with its bending.
     # Add both if the post thins or lengthens
@@ -432,13 +435,23 @@ def test_the_jaw_carrier_holds_the_mouth_servo_at_stall():
         # each joint too, square to its two spans' mean: where Bones ending flat on a bend left a notch
         cuts += [(joint, (v + w) / np.linalg.norm(v + w)) for joint, v, w in zip(chain[1:], ways, ways[1:])]
         for at, along in cuts:
-            u = np.subtract(g.X, along * along[0])
-            u /= np.linalg.norm(u)  # the bending axis, x in the section's plane
+            u = np.subtract(g.X, along * along[0])  # x in the section's plane: the bending axis, its length the share
+            bends = float(np.linalg.norm(u))
+            u = u / bends if bends > 1e-6 else np.cross(along, g.Z)  # the bar across: nothing bends it, any axis
+            v = np.cross(along, u)
             cut = _section(solid, tuple(at), tuple(along), tuple(u), (16, 16))
             area, centre = cut.Volume() / 0.01, np.array(cut.Center().toTuple())
-            inertia = u @ np.array(cq.Shape.matrixOfInertia(cut)) @ u / 0.01
-            fibre = max(abs((np.array(v.toTuple()) - centre) @ np.cross(along, u)) for v in cut.Vertices())
-            sf = mat["tensile_mpa"]["z"] / (force / area + moment * fibre / inertia)
+            tensor = np.array(cq.Shape.matrixOfInertia(cut)) / 0.01
+            inertia = u @ tensor @ u
+            fibre = max(abs((np.array(p.toTuple()) - centre) @ v) for p in cut.Vertices())
+            # an ellipse of this area and least second moment is this thick the thin way; its worst shear is 2T/(A b)
+            thin = 2 * math.sqrt(
+                np.linalg.eigvalsh([[inertia, u @ tensor @ v], [u @ tensor @ v, v @ tensor @ v]])[0] / area
+            )
+            shear = 2 * moment * abs(along[0]) / (area * thin)
+            sf = mat["tensile_mpa"]["z"] / math.hypot(
+                force / area + moment * bends * fibre / inertia, math.sqrt(3) * shear
+            )
             if sf < beams.MIN_SF:
                 weak.append((tuple(np.round(at, 1)), round(sf, 2)))
     assert weak == []
@@ -457,12 +470,13 @@ def test_the_jaw_turns_with_room_from_the_gimbal_frame(style):
 
 
 @pytest.mark.model
-def test_the_jaw_carriers_chains_meet_at_the_chin_without_a_sliver():
-    """#850: the two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a
-    document's STEP as an invalid jaw (model/test_ours.py), once nothing fused onto the chin covered it. No edge of the
-    Bone jaw within 9 mm of the chin is that marginal."""
-    chin = np.array(nk.JAW_CHIN)
-    edges = [e for e in _built("jaw").Edges() if np.linalg.norm(np.array(e.Center().toTuple()) - chin) < 9.0]
+@pytest.mark.parametrize("side", list(nk.MANDIBLE_CHAIN))
+def test_the_jaw_carriers_bar_meets_each_chain_without_a_sliver(side):
+    """#850: two chains ending together at the chin met in a 0.015 mm edge, which Linux's OCCT read back from a
+    document's STEP as an invalid jaw (model/test_ours.py), once nothing fused onto the chin covered it. One bar runs
+    across there now (#968), and no edge of the Bone jaw within 9 mm of where it meets a chain is that marginal."""
+    end = np.array(nk.MANDIBLE_CHAIN[side][-1])
+    edges = [e for e in _built("jaw").Edges() if np.linalg.norm(np.array(e.Center().toTuple()) - end) < 9.0]
     assert edges and min(e.Length() for e in edges) > 0.5
 
 

@@ -20,22 +20,6 @@ from model.review.test_hidden import HORNS, MARGIN, _cloud, depth
 PARTS = sorted({*stages.cranium_sub().parts, *stages.jaw_sub().parts})
 PIECES = ("head", "jaw")  # the Motion regions whose skin moves against a part here (review.CARRIERS)
 STEP = 0.5  # each horn's range is sampled this often, deg: the jaw's chin end moves 0.4 mm between two poses
-# {part: why it fails}, each another ticket's, held as a strict expected failure until that ticket moves the part
-REST = {
-    "jaw:1": "#968's follow-up: the jaw carrier's chin end lies 1.88 mm under his chin's skin, 0.22 short, where the"
-    " two chains meet at the symphysis"
-}
-MOVING = {
-    "jaw:1": "#968's follow-up: the jaw carrier's chin end swings down and back into the skin under his chin, which"
-    " stays with the head: within 2.1 mm of it from 15 deg of the jaw's 25, and through it from 16"
-}
-
-
-def _known(why):
-    return [
-        pytest.param(n, marks=pytest.mark.xfail(strict=True, raises=AssertionError, reason=why[n])) if n in why else n
-        for n in PARTS
-    ]
 
 
 def _piece(points):
@@ -80,7 +64,7 @@ def test_his_skin_is_cut_into_the_pieces_that_move_against_each_other():
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("part", _known(REST))
+@pytest.mark.parametrize("part", PARTS)
 @pytest.mark.parametrize("doc", list(g.MECH))
 def test_each_part_of_the_cranium_and_the_jaw_lies_under_mortys_skin_at_rest(doc, part, whole):
     """#1089: at rest every point of the part lies MARGIN inside his outer surface, above the collar's cut (under it
@@ -92,7 +76,7 @@ def test_each_part_of_the_cranium_and_the_jaw_lies_under_mortys_skin_at_rest(doc
 
 
 @pytest.mark.model
-@pytest.mark.parametrize("part", _known(MOVING))
+@pytest.mark.parametrize("part", PARTS)
 @pytest.mark.parametrize("doc", list(g.MECH))
 def test_no_piece_of_his_skin_comes_near_a_part_of_the_cranium_or_the_jaw_it_moves_against(doc, part, pieces):
     """#1089: over the tilt's, the pan's and the jaw's range, each piece of his skin keeps MARGIN from every point of

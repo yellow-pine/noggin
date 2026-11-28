@@ -22,11 +22,12 @@ BAR_BONE = ((3.0, 2.9), (2.4, 2.6))  # the jaw bar's Bones: their heads the mech
 # its half-depth fore and aft, then across. The condyle's neck is stout across, where the bone is narrow fore and aft;
 # the ramus' plate deep fore and aft, where it is thin across; the body between the two
 _CONDYLE, _RAMUS, _BODY = ((3.4, 3.2), (3.6, 3.0)), ((4.2, 2.4), (5.0, 2.2)), ((4.0, 2.6), (3.6, 2.4))
-JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, _BODY, _BODY, _BODY)
+JAW_SPANS = (_CONDYLE, _RAMUS, _RAMUS, _BODY, _BODY, _BODY)
+# the bar across at the chin, one Bone from one chain's last joint to the other's, its long axis upright in the thin
+# symphysis: no waist, since it carries the drive to the R chain as twist (model/printed/test_neck.py), and nothing
+# crossing at the chin, where two chains ending together left a 0.015 mm edge Linux's OCCT read as invalid (#850)
+JAW_CHIN_BAR = (4.0, 2.6)
 JAW_LAP = 2.0  # each Bone runs this far past its joints: flat ends meeting on a bend leave a notch to mid-section
-# at the chin the R chain ends this far past it, short of the L one's: ending together, their flat ends crossed on the
-# chains' own crossing and left a 0.015 mm edge, an invalid jaw in a document's STEP on Linux's OCCT (#850)
-JAW_CHIN_LAP_R = 1.0
 # #1039: the tilt lever's arm, from the shaft: its slab along x, 0.9 mm off the case's face, and where it steps in from
 # the disc's slab, 0.6 mm outside the horn's rim (inferred)
 TILT_ARM_X, TILT_STEP = (1.0, 5.0), 15.6
@@ -301,23 +302,25 @@ def pan_wire_candidate():
 
 
 def jaw_chains():
-    """{side: the jaw's chain of joints}: down the mandible's ramus and body (nk.MANDIBLE_CHAIN) to the chin."""
+    """{side: the jaw's chain of joints}: down the mandible's ramus and body (nk.MANDIBLE_CHAIN), then half the bar
+    across to the chin."""
     return {side: [*chain, nk.JAW_CHIN] for side, chain in nk.MANDIBLE_CHAIN.items()}
 
 
 @bone.grown
 def jaw(mechanical=False):
     """Hidden spatial carrier inside the mandible's ramus and body (#968), turning at its condyles: a chain of Bones
-    down each side to the chin, and the drive's pin on a post inboard from the L chain to the jaw bar."""
-    points = jaw_chains()
-    out = None
-    for side, chain in points.items():
+    down each side, a bar across between their last joints at the chin, and the drive's pin on a post inboard from the
+    L chain to the jaw bar."""
+    points = nk.MANDIBLE_CHAIN
+    a, b = (np.array(points[side][-1]) for side in "LR")
+    lap = (b - a) / np.linalg.norm(b - a) * JAW_LAP
+    out = bone.bone(a - lap, b + lap, JAW_CHIN_BAR, JAW_CHIN_BAR, up=(0, 1, 0), round=True, heads=False)
+    for chain in points.values():
         for i, ((a, b), size) in enumerate(zip(itertools.pairwise(np.array(chain)), JAW_SPANS, strict=True)):
             lap = (b - a) / np.linalg.norm(b - a) * JAW_LAP
-            end = lap * (JAW_CHIN_LAP_R / JAW_LAP if side == "R" and i == len(JAW_SPANS) - 1 else 1.0)
             # but at the pivot, where a longer end would sweep into the frame's plate
-            link = bone.bone(a - lap * (i > 0), b + end, *size, up=(1, 0, 0), round=True, heads=False)
-            out = link if out is None else out.union(link)
+            out = out.union(bone.bone(a - lap * (i > 0), b + lap, *size, up=(1, 0, 0), round=True, heads=False))
     jy, jz = nk.JAW
     for sign in (-1, 1):
         xs = sorted(sign * x for x in nk.JAW_X)
