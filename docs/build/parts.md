@@ -34,22 +34,25 @@ beside the test stand until the Torso holds them (inferred). Buy both with Stage
 | standard servo | MG996R standard metal-gear servo, for tilt and pan | MG996R |
 | standard servo horn | the round horn that comes with each standard servo | with the standard servo |
 | pan bearing | SKF 61804-2RS1 thin-section deep-groove ball bearing, 20 × 32 × 7 mm | 61804-2RS1 |
+| neck tube | an aluminium round tube, 10 mm outside with a 1 mm wall, EN AW-6060 T66 (or any 6060, 6063 or 6061 in T6 or T66); a 1 m length from a metal shop or DIY store, cut to 100 mm | 10 × 1 mm |
 | battery pack | CyberBrick 2S battery, 7.4 V 800 mAh | PC003 |
 | switch board | CyberBrick switch module | XA007 |
 | power-path board | nomo's BQ25886 2S charge board on Tindie, its 18650 holder snapped off and ICHGSET swapped to 2.87 kΩ for 0.75 A | BQ25886 |
 | USB-C hub | Adafruit CH334F Mini 4-Port USB Hub Breakout | 5997 |
 | bulk capacitor | a 470 µF 16 V low-ESR electrolytic, across the Y lead where it enters the Shields | 470 µF 16 V |
-| M3 x 16 mm pivot screw | a steel M3 x 16 mm socket-head screw, greased: each busy pivot's shank | generic |
+| M3 x 16 mm pivot screw | a steel M3 x 16 mm socket-head screw, greased: each busy pivot's shank; two more, dry, across the neck tube | generic |
 | M2 x 8 mm servo screw | an M2 x 8 mm self-tapping screw, two through each servo's tabs | generic |
 | M3 x 10 mm head screw | an M3 x 10 mm screw, four holding the test stand, then the head mount, under the gimbal frame's plate | generic |
-| M3 nut | an M3 nut, one on each head screw | generic |
+| M3 x 12 mm countersunk screw | an M3 x 12 mm countersunk screw (ISO 10642), four up through the Torso's floor into the neck socket's flange | generic |
+| M3 nut | an M3 nut, one on each head screw and on each countersunk screw | generic |
 
 The CyberBrick Beginner Hardware Kit ZK004 holds both Cores, one Shield (its other shield is the transmitter, which the
 Mech doesn't use), a switch board, a pack, its USB charger and one usable servo; the Battery Upgrade Kit ZL003 adds a
 second pack, to keep one on charge.
 
-The screws and nuts are counted from the model: a pivot screw for each pin and pivot its linkages turn on, two servo
-screws per servo, and the four head screws with their nuts. Their lengths are inferred: one pivot screw length covers
+The screws and nuts are counted from the model: a pivot screw for each pin and pivot its linkages turn on and for
+each printed part on the neck tube, two servo screws per servo, the four head screws and the neck socket's four
+countersunk screws, each with its nut. Their lengths are inferred: one pivot screw length covers
 the deepest pin (the pan's), so cut each shallower pin's screw to its depth. A bar's end on a servo horn takes a pivot
 screw in the model, though the horn's own hole is smaller (inferred). The model doesn't fix the boards yet, so it counts
 no screws for them.
@@ -90,6 +93,8 @@ every Palette's filaments are in the table on [Themes](../face-design.md).
   print from `just stl` (model/build/stl, mm).
 - A small flat screwdriver and a small cross-head one, a ruler, superglue for the magnets and the glued-in Shells, and
   grease for the pivots, and a screw cutter for the pivot screws (the M3 hole in wire strippers; inferred).
+- For the neck tube: a fine-toothed saw (a hacksaw or a pipe cutter), a drill with a 3.5 mm bit, and a round file or
+  countersink to take the burr off each end and hole ([Stage 2](stage-2.md#the-neck-tube)).
 - A soldering iron, for the power-path board's resistor, the capacitor and the leads (inferred).
 - Print the [clearance coupon](tests.md#the-clearance-coupon) first: it finds the fit your printer gives a pivot and a
   magnet pocket.

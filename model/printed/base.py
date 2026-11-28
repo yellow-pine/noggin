@@ -21,6 +21,7 @@ CORNER = 4.0  # as Bones: the Torso's upright corners round
 # the pedestal's look as Bones (#838): the plaque sunk 1 mm in its front, (x, z), and the lid's panel inside a border
 # 1 mm down, BORDER in from its edge
 PLAQUE, BORDER = ((-16.0, 16.0), (-168.0, -158.0)), 9.0
+SINK = (3.4, 1.7)  # an M3 countersunk head's seat, 90 deg: its radius under the floor, and the hole's (ISO 10642)
 LEDGE, FIT = 3.0, 0.3  # the ledge inside the walls the lid lies on, flush with their top; its room inside them
 
 
@@ -32,9 +33,9 @@ def _box(x, y, z, r=0.0, edges="|Z"):
 
 @bone.carved
 def torso(mechanical=False):
-    """The Torso (printed upright), the realistic skull's box pedestal (#838): its floor (the foot; the neck mount stands
+    """The Torso (printed upright), the realistic skull's box pedestal (#838): its floor (the foot; the neck socket stands
     on it), its walls round it, a ledge inside their top for its lid (the pack in and out under it); the pack's cradle
-    on the floor behind the neck mount. As Bones (#708), carved
+    on the floor behind the neck socket. As Bones (#708), carved
     from it (#809): its upright corners round and a plaque sunk in its front, as the picture Cansin gave."""
     (x0, x1), (y0, y1), (z0, z1) = nb.TORSO
     floor, top = nk.MOUNT_Z[0], z1 - nb.LID_T
@@ -48,8 +49,9 @@ def torso(mechanical=False):
     w, d = nb.PACK[0] / 2 + 0.5, nb.PACK[1] / 2 + 0.5
     ring = _box((-w - WALL, w + WALL), (nb.PACK_Y - d - WALL, nb.PACK_Y + d + WALL), (floor, floor + RIM))
     out = out.union(ring.cut(box((-w, w), (nb.PACK_Y - d, nb.PACK_Y + d), (floor, floor + RIM))))
-    for x, y in nk.CARRIER_FEET:
+    for x, y in nk.SOCKET_SCREWS:  # #1062: each M3 up through the floor, its head countersunk, to a nut on the socket
         out = out.cut(cyl("z", (x, y, 0), 1.7, (z0, floor)))
+        out = out.cut(cq.Workplane().add(cq.Solid.makeCone(*SINK, SINK[0] - SINK[1], cq.Vector(x, y, z0))))
     return out
 
 
@@ -71,7 +73,7 @@ def _ledge(top):
 @bone.carved
 def lid(mechanical=False):
     """The Torso's lid (printed flat), inside the walls' top on their ledge, so it lifts out but never slides: the neck
-    mount's post up through a hole in its middle, slotted to the back so it slides on over the walls and
+    socket's tower and its tube up through a hole in its middle, slotted to the back so it slides on over the walls and
     drops in, and a hole over the switch board's lever. As Bones, carved from it: a border 1 mm down round its panel,
     as the picture."""
     (x0, x1), (y0, y1), (_, z1) = nb.TORSO
@@ -80,16 +82,6 @@ def lid(mechanical=False):
     out = box((x0 + a, x1 - a), (y0 + a, y1 - a), (z1 - nb.LID_T, z1))
     out = out.cut(cyl("z", (0, y_axis, 0), hole, (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(box((-hole, hole), (y_axis, y1 + 1), (z1 - nb.LID_T - 1, z1 + 1)))
-    # Separate lateral rails pass through the lid; rear slots let it lift off without removing the cervical frame.
-    ys, zs = zip(*nk.CERVICAL_PATH)
-    import numpy as np
-
-    rail_y = min(float(np.interp(z, zs, ys)) for z in (z1 - nb.LID_T, z1))
-    for sign, side in ((-1, "R"), (1, "L")):
-        ends = [sign * float(np.interp(z, zs, nk.CERVICAL_X)) for z in (z1 - nb.LID_T, z1)]
-        deep, wide = nk.CERVICAL_RAILS[side][1]  # the rail's section here, between the path's second and third points
-        slot = (min(ends) - wide - 2.5, max(ends) + wide + 2.5), (rail_y - deep - 1.0, y1 + 1)
-        out = out.cut(box(*slot, (z1 - nb.LID_T - 1, z1 + 1)))
     out = out.cut(cyl("z", (*nb.SWITCH_AT, 0), 6.0, (z1 - nb.LID_T - 1, z1 + 1)))  # a finger down to the switch's lever
     if not mechanical:
         inner = box((x0 + BORDER, x1 - BORDER), (y0 + BORDER, y1 - BORDER), (z1 - 1, z1 + 1))

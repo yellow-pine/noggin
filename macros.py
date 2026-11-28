@@ -319,6 +319,7 @@ HARDWARE = {
     "standard servo": "standard servo",
     "standard horn": "standard servo horn",
     "pan bearing": "pan bearing",
+    "neck tube": "neck tube",
 }
 
 
@@ -366,6 +367,21 @@ def shopping():
     return "\n".join(
         head + [f"| {p} | {' | '.join(ks)} |" for p, ks in sorted(rows.items(), key=lambda r: r[0].lower())]
     )
+
+
+def neck_tube():
+    """The neck tube as the builder makes it (docs/build/stage-2.md, #1075): its stock, its cut length and each cross
+    hole's place from its foot, from model/neck.py."""
+    from model import neck
+
+    r, bore, length = neck.TUBE
+    rows = ["| What | Size |", "|---|---|", f"| Stock | round tube, {2 * r:g} mm outside, {r - bore:g} mm wall |"]
+    rows += [f"| Cut to | {length:g} mm |"]
+    rows += [
+        f"| Hole {n}, for the {part} | {2 * neck.TUBE_HOLE_R:g} mm, {s:g} mm from the foot |"
+        for n, (part, s) in enumerate(zip(("neck socket", "cervical carrier"), neck.TUBE_SCREWS, strict=True), 1)
+    ]
+    return "\n".join(rows)
 
 
 def wiring():
@@ -475,6 +491,7 @@ def numbers():
         "stage_servos": guides[1],
         "shopping": shopping(),
         "wiring": wiring(),
+        "neck_tube": neck_tube(),
         "coupon": coupon(),
         "workflows": workflows(),
         "moments": moments(),

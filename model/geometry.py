@@ -150,7 +150,7 @@ MATERIALS = {
 }
 # Printed parts: each one's Colour group (THEMES) and material (model/mjcf.py mass() reads it)
 _SKELETON = {
-    "Bones": ("gimbal frame", "cervical carrier", "head mount", "jaw", "test stand"),
+    "Bones": ("gimbal frame", "cervical carrier", "neck socket", "head mount", "jaw", "test stand"),
     "Joints": ("eyeball core", "yaw yoke", "bail", "nod plate", "pan fixed cap", "pan moving cap"),
     "Linkages": (
         "tie-bar",

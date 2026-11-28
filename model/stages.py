@@ -22,6 +22,10 @@ OURS = os.path.join(
 SERVO_G = 16.0  # docs/research/2026-10-31-electrical.md
 STEP_G_CM3 = 1.9  # boards, battery, horn: STEP volume x a PCB-like density (approximation, flagged in mass_source)
 BOARD = (STEP_G_CM3, "step volume x 1.9 g/cm3")
+ALUMINIUM = (
+    2.70,
+    "aluminium, 2.70 g/cm3",
+)  # the neck tube, solid metal (docs/research/2026-11-28-neck-tube-aluminium.md)
 
 Part = namedtuple("Part", "file matrix material clip")  # clip: (axis, max) local-frame cut, the battery and servo leads
 Loop = namedtuple("Loop", "joint solve coupler rockers rocker_pivot")  # rocker_pivot: (point, axis)
@@ -283,12 +287,15 @@ def _neck_drives(labels, drives, stems):
 
 
 def neck_sub():
-    """Fixed cervical carrier, inverse nod drive, then a hollow bearing and standard-servo pan four-bar."""
+    """The neck tube in its socket on the Torso's floor (#1075), the fixed cervical carrier on its top, inverse nod
+    drive, then a hollow bearing and standard-servo pan four-bar."""
     parts = {
         name: part(stl(name.removesuffix(":1")), None, printed(name.removesuffix(":1")))
         for role, name in neck.HEAD_CARRIERS.items()
         if role != "jaw"
     }
+    parts["neck socket:1"] = part(stl("neck socket"), None, printed("neck socket"))
+    parts["neck tube:1"] = part(stl("neck tube"), align(neck.TUBE_FOOT, g.X, neck.TUBE_AXIS), ALUMINIUM)
     tilt, pan = neck.HEAD_AXES["tilt"][0], neck.HEAD_AXES["pan"][0]
     for stem in ("tilt lever", "tilt reaction bar", "pan lever", "pan bar", "pan fixed cap", "pan moving cap"):
         parts[stem + ":1"] = part(stl(stem), None, printed(stem))
@@ -464,6 +471,7 @@ SHANKS = {
     "jaw pivot": 2,
 }
 PIVOT, TAB, HEAD, NUT = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x 10 mm head screw", "M3 nut"
+FOOT = "M3 x 12 mm countersunk screw"
 
 
 def fasteners(doc):
@@ -471,7 +479,9 @@ def fasteners(doc):
     the coupler, per loop the coupler's pin on the rocker and the rocker's pivot (SHANKS), per rod its two pins (none on
     balls, a universal joint) and its hinge, per direct drive its reaction bar's anchor pin and its joint's shanks; two
     tab screws per servo, four per standard servo; the head screws (model/neck.py), each with its
-    nut, through the test stand or the head mount. Sizes inferred (docs/build/parts.md)."""
+    nut, through the test stand or the head mount; with the neck tube (#1075), a pivot screw across it per printed
+    part on it (neck.TUBE_SCREWS) and the socket's countersunk screws up through the Torso's floor, each with its nut
+    (neck.SOCKET_SCREWS). Sizes inferred (docs/build/parts.md)."""
     d = STAGES[doc]
     pins = 0
     for horn in d.horns.values():
@@ -482,7 +492,9 @@ def fasteners(doc):
     servos = sum(stem(p.file) == "servo" for p in d.parts.values())
     standards = sum(stem(p.file) == "standard servo" for p in d.parts.values())
     head = len(neck.HEAD_SCREWS) if {"test stand:1", "head mount:1"} & set(d.parts) else 0
-    return {PIVOT: pins, TAB: 2 * servos + 4 * standards, HEAD: head, NUT: head}  # a standard: two per tab
+    tube, foot = (len(n) if "neck tube:1" in d.parts else 0 for n in (neck.TUBE_SCREWS, neck.SOCKET_SCREWS))
+    out = {PIVOT: pins + tube, TAB: 2 * servos + 4 * standards, HEAD: head, NUT: head + foot}  # a standard: two per tab
+    return out | ({FOOT: foot} if foot else {})
 
 
 def pose(stage, horn_name, deg):

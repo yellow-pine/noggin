@@ -1,13 +1,14 @@
 """The Mech's neck and jaw (#902/#978), clean-room (#618): geometry, kinematics and report in the eye gimbal's
 head-local frame. x follows the eye line (L at +x), -y is forward and z is up; the origin is between the eye centres.
 
-A fixed cervical carrier supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
+One aluminium tube up the cervical canal carries the neck (#1075): the neck socket holds its foot on the Torso's
+floor, and the fixed cervical carrier on its top supports the nod plate's C0 trunnions. The standard tilt servo stands upright in the plate's
 low rear cradle and reacts through a reduction four-bar against the fixed carrier (#978): its 22 mm crank and the
 carrier's 46 mm arm turn the head about 2.1x slower than the servo, reversed, so the servo holds under its rating with
 no balance spring.
 The plate carries the pan bearing and, on a rear mast, the standard pan servo behind the C0 axis; both cases ride
 inside the compact head (#978). The head mount transfers head weight to the bearing. The four 22 AWG
-power conductors pass through the 8 mm C0 bearing bore with two flexing spans clamped across tilt and pan.
+power conductors run up the neck tube's bore (#1075) and pass through the 8 mm C0 bearing bore, flexing across tilt and pan.
 The jaw follows the mandible's ramus and body (MANDIBLE_CHAIN) and turns on the gimbal frame's lugs at its condyles.
 
 Busy pivots use greased M3 shanks and separate turning/tapping bores. All sizes remain inferred until built. The
@@ -18,7 +19,8 @@ Angles are degrees, right-handed about +z for pan and +x for tilt and jaw (face 
 import math
 
 import numpy as np
-from scipy.optimize import brentq
+from scipy.optimize import brentq, linprog
+from scipy.sparse import diags, hstack, vstack
 
 from model import geometry as g
 from model import linkage
@@ -51,7 +53,7 @@ TILT_CASE = (0.0, 0.0, 1.0)
 # #978: the reduction four-bar seen from the moving case: its crank (the lever on the horn) 22 mm down and back, the
 # fixed carrier's arm 46 mm down and back from the tilt axis, so the head turns at most 0.48 of the servo's turn over the
 # range, and the bar meets both the crank and the arm at 35 deg or more (inferred). The pin clears the case's corner; the bar runs inboard
-# of the jaw's sweep to an anchor behind the R rail, so it never crosses the rail.
+# of the jaw's sweep to an anchor on the carrier's strut, R of the neck tube and behind it.
 TILT_ARMS = ((22.0, -76.0), (46.0, -72.0))  # (mm, deg from +y toward +z): the crank's, the carrier's arm's
 
 
@@ -74,7 +76,7 @@ PAN_LEVER_Z = (PAN_SHAFT[2] - 4.0, PAN_SHAFT[2] - 1.5)
 PAN_TAP_Z, PAN_LINK_Z = (PAN_SHAFT[2] + 0.7, PAN_SHAFT[2] + 4.7), (PAN_SHAFT[2] + 5.0, PAN_SHAFT[2] + 11.0)
 PAN_PIN = (*np.add(PAN_SHAFT[:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
 PAN_ANCHOR = (*np.add(HEAD_AXES["tilt"][0][:2], PAN_ARM), sum(PAN_LINK_Z) / 2)
-REACTION_BAR_X = (-14.5, -9.5)  # between the canal and the R rail, under the case's shaft end (inferred)
+REACTION_BAR_X = (-14.5, -9.5)  # R of the canal, inboard of the anchor's strut, under the case's shaft end (inferred)
 REACTION_TAP_X = (REACTION_BAR_X[0] - 4.3, REACTION_BAR_X[0] - 0.3)
 PAN_HORN_Z = BEARING_Z[0] - 7.0  # keyed torque foot below the plate; quill passes freely through the 8 mm bearing
 WIRE_R = 4.0  # four power conductors through the actual cervical canal, never a full-width tilt axle
@@ -89,18 +91,44 @@ CERVICAL_PATH = (
     (78.5, -60.7),
     (76.6, -48.7),
 )
-# upper fixed rails outside the moving trunnions; at C7's foot the R rail's inner side stands WIRE_R off the midline
-CERVICAL_X = (16.0, 9.2, 9.2, 22.0, 22.0)
-# #1060: each rail's section, an ellipse lying flat, (its half-depth fore and aft, its half-width across) at the path's
-# points from the foot up and, fourth, at the anchor's height. The rails do not share the tilt servo's stall reaction:
-# the anchor is on the R rail, which also takes 0.89 of the nod plate's push on the trunnions, so the head's torque
-# goes down it as bending; the L rail takes the other 0.11 (model/printed/test_neck.py holds each at SF 2). Deep fore
-# and aft, where the bending is, inside the band the head's skin leaves at the collar (ADR 0030)
-CERVICAL_RAILS = {
-    "R": ((9.0, 5.2), (9.0, 5.2), (9.0, 5.2), (9.0, 5.2), (7.0, 3.5), (6.0, 3.2)),
-    "L": ((6.5, 3.5), (6.5, 3.5), (6.5, 3.5), (4.6, 2.4), (4.0, 2.0), (4.0, 2.0)),
-}
-CARRIER_FEET = ((-16.0, 64.0), (16.0, 64.0))
+# #1075: the neck stands on one aluminium tube up the cervical canal (Cansin, 2026-11-27), on the path's long span's
+# line, so the vertebrae's fit (model/skeleton/fit.py canal_y) and the tube read one line; the path's first two points
+# were the printed rails' feet (#1060) and nothing follows them now. TUBE: its outer radius, its bore's and its cut
+# length. Its top is the canal's top (the path's fourth point); its foot stands in the neck socket on the Torso's
+# floor. The four conductors run through its bore
+TUBE = (5.0, WIRE_R, 100.0)
+_SPAN = np.subtract(CERVICAL_PATH[3], CERVICAL_PATH[2])
+TUBE_AXIS = (0.0, *(_SPAN / np.linalg.norm(_SPAN)).tolist())  # up the tube
+TUBE_TOP = (0.0, *CERVICAL_PATH[3])
+TUBE_FOOT = tuple(np.subtract(TUBE_TOP, np.multiply(TUBE[2], TUBE_AXIS)).tolist())
+
+
+def tube_at(s):
+    """The point on the tube's axis `s` mm up from its foot."""
+    return tuple(np.add(TUBE_FOOT, np.multiply(s, TUBE_AXIS)).tolist())
+
+
+# each M3 across the tube and a printed part, mm up the tube from its foot: the neck socket's, under the Torso's lid,
+# and the cervical carrier's, in its strut's root. Along x, the axis the head's torque bends the tube about, where a
+# hole costs 2 % of its strength (on the outer fibres, 40 %: docs/research/2026-11-28-neck-tube-aluminium.md). Each
+# holds its part against the pan servo's stall, which twists the tube. SCREW_X: the head's seat on L, the tip on R
+TUBE_SCREWS = (6.0, 66.0)
+TUBE_HOLE_R = 1.75  # each screw's hole through the tube: a 3.5 mm bit
+SCREW_X = (-8.5, 7.5)
+# the lowest cited 0.2 % proof stress of a 6060, 6063 or 6061 tube in T6 or T66, MPa: EN AW-6060 T6 by EN 1999-1-1
+# Table 3.2b (retail 10 x 1 tube is 6060 T66, 160 by EN 755-2: the note above); Young's and the shear modulus, its 3.2.5
+TUBE_PROOF_MPA, TUBE_E_MPA, TUBE_G_MPA = 140.0, 70_000.0, 27_000.0
+# an M3 in the weakest common steel, stainless A2-70: its stress area (ISO 898-1:2013 Table 4), its proof and tensile
+# stress (EN 1999-1-1 Table 3.4, after ISO 3506-1), all in that note; its nut's width across flats (ISO 4032's,
+# recalled, not read)
+M3 = {"stress_mm2": 5.03, "proof_mpa": 450.0, "tensile_mpa": 700.0, "nut_flats": 5.5}
+# the neck socket (model/printed/neck.py): its tower grips the tube from its foot up to C7's foot (the path's third
+# point), through the lid's slot; its flange lies on the Torso's floor under four M3, countersunk from under the floor,
+# a nut on each over the flange (#1062): SOCKET_SCREWS, (x, y)
+SLEEVE_R = 7.5  # the carrier's sleeve on the tube
+SOCKET_TOP_Z = CERVICAL_PATH[2][1]
+SOCKET_FLANGE = ((-22.0, 22.0), (48.0, 78.0), 5.0)  # x, y, its thickness
+SOCKET_SCREWS = ((-15.0, 51.5), (15.0, 51.5), (-15.0, 61.0), (15.0, 61.0))
 FRAME_OPEN_R = 7.8  # 12.4 mm hollow neck tube plus 1.6 mm radial clearance, below its bearing flare
 
 CRANK = g.HORN_STEP["pin"]  # every horn's pin from its hub
@@ -176,9 +204,9 @@ LEAD_OD = 1.6
 BEND_X = 10  # the flexing spans' floor: 10 x the lead's diameter (docs/research/2026-11-02-literature-electrical.md 4)
 # its clamps in front of the pan axis at this radius: the post's, over where the neck cable leaves it, then the yoke's disc's
 PAN_SPAN = (18.0, (-112.0, -82.0))
-# its arc about the tilt axis: radius, and the turn from the head's clamp (straight behind, under the flange, #708) to
-TILT_SPAN = (24.0, 45.0)
-LOOP_X = (-21.0, -17.0)  # the yoke's (behind, 45 deg down), outside the R tilt lug
+# a bend that never flexes, at least 3 x the lead's diameter (the same source's minimum; 10 x is its optimum): the
+# leads' turn out of the neck tube's foot onto the Torso's floor, which has 13.6 mm under the tube (#1075)
+STATIC_BEND_X = 3
 # the parts the tilt turns with the eye gimbal: model/report.py weighs the head from them
 HEAD = ("head mount:1", "jaw:1", "jaw bar:1", "mouth servo:1", "mouth horn:1")
 
@@ -288,16 +316,49 @@ def _hold(head, servo_deg):
     return abs(_weight(head, output("tilt", servo_deg)) * _gain("tilt", servo_deg))
 
 
+def tilt_bend(deg):
+    """The gentlest bend, mm, the four leads can take from the neck tube's bore up into the nod plate's with the head
+    tilted `deg` (#1075): their bundle loose in both bores (WIRE_R), free between the tube's top and the plate's
+    underside. The path is y over z in the Mech's middle plane, kept inside each bore by the bundle's play, its second
+    derivative made as small as it goes (a linear programme); a path's curvature is no more than that, so the true
+    bend is no tighter."""
+    play = WIRE_R - LEAD_OD * (1 + math.sqrt(2)) / 2  # four leads packed square
+    (_, ay, az), (_, ty, tz), a = HEAD_AXES["tilt"][0], TUBE_TOP, math.radians(deg)
+    z = np.arange(tz - 30.0, az + 30.0, 0.5)
+    tube, bore = ty + (z - tz) * TUBE_AXIS[1] / TUBE_AXIS[2], ay - (z - az) * math.tan(a)
+    mouth = az + (NOD_Z[0] - az) * math.cos(a) - WIRE_R * abs(math.sin(a))  # the lowest of the plate's bore's rim
+    lo, hi = np.full(len(z), -np.inf), np.full(len(z), np.inf)
+    for axis, inside in ((tube, z <= tz + WIRE_R * TUBE_AXIS[1]), (bore, z >= mouth)):
+        lo[inside], hi[inside] = axis[inside] - play, axis[inside] + play
+    n = len(z)
+    second = diags([1.0, -2.0, 1.0], [0, 1, 2], shape=(n - 2, n)) / 0.25
+    ones = np.ones((n - 2, 1))
+    found = linprog(
+        [*np.zeros(n), 1.0],
+        A_ub=vstack([hstack([second, -ones]), hstack([-second, -ones])]),
+        b_ub=np.zeros(2 * (n - 2)),
+        bounds=[*zip(lo, hi), (0.0, None)],
+    )
+    assert found.status == 0, found.message
+    return min(1.0 / max(found.x[-1], 1e-9), 1e3)
+
+
 def _spans():
-    """The flexing spans' tightest bend, mm. Pan: its two clamps hold the lead along z, the yoke's swung by the pan's
-    largest turn, so the lead runs an S of two equal arcs. Tilt: the lead's turn between its clamps is the arc's,
-    shortened or lengthened by the tilt; its length spread over it (an arc about the axis whose radius breathes)."""
+    """The leads' tightest bends, mm. Pan: its two clamps hold the lead along z, the yoke's swung by the pan's
+    largest turn, so the lead runs an S of two equal arcs. Tilt: from the neck tube's bore into the nod plate's
+    (tilt_bend), the tightest over the range. Foot: where they leave the tube's foot and turn flat onto the Torso's
+    floor, a bend that never flexes, against its own floor."""
     r, (z0, z1) = PAN_SPAN
     off = 2 * r * math.sin(math.radians(max(map(abs, RANGES["pan"]))) / 2)
     pan = ((z1 - z0) ** 2 / 4 + off**2 / 4) / off
-    rho, turn = TILT_SPAN
-    tilt = rho * turn / (turn + max(map(abs, RANGES["tilt"])))
-    return {"pan": {"bend_mm": round(pan, 2)}, "tilt": {"bend_mm": round(tilt, 2)}, "floor_mm": BEND_X * LEAD_OD}
+    tilt = min(tilt_bend(d) for d in np.linspace(*RANGES["tilt"], 41))
+    foot = TUBE_FOOT[2] - MOUNT_Z[0] - LEAD_OD
+    return {
+        "pan": {"bend_mm": round(pan, 2)},
+        "tilt": {"bend_mm": round(float(tilt), 2)},
+        "foot": {"bend_mm": round(foot, 2), "floor_mm": STATIC_BEND_X * LEAD_OD},
+        "floor_mm": BEND_X * LEAD_OD,
+    }
 
 
 def report(head, bare=None):

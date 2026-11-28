@@ -249,12 +249,41 @@ def test_each_flexing_span_bends_no_tighter_than_ten_lead_diameters(report):
     assert min(spans["pan"]["bend_mm"], spans["tilt"]["bend_mm"]) >= spans["floor_mm"]
 
 
-def test_the_pan_span_bends_in_an_s_and_the_tilt_spans_arc_breathes(report):
+def test_the_pan_span_bends_in_an_s_and_the_tilt_span_runs_through_the_bores(report):
     """Pan: clamps 30 mm apart along z at 18 mm from the axis, the yoke's swung 45 deg: 36 sin 22.5 = 13.78 mm across,
-    two arcs of (15^2 + 6.89^2) / 13.78 = 19.78 mm. Tilt: a 45 deg arc of 22 mm radius opened by 20 deg to 65 deg
-    spreads the same length over more turn: 22 x 45 / 65 = 15.23 mm."""
+    two arcs of (15^2 + 6.89^2) / 13.78 = 19.78 mm. Tilt (#1075): the leads leave the neck tube's bore for the nod
+    plate's, 2 mm of play in each, so they bend most with the face up 20 deg, and gently; with no play at all (a bore
+    the bundle fills) the same path could not be made at 16 mm, so the bores stay WIRE_R wide."""
     assert report["spans"]["pan"]["bend_mm"] == pytest.approx(19.78, abs=0.01)
-    assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(16.62, abs=0.01)
+    assert report["spans"]["tilt"]["bend_mm"] == pytest.approx(neck.tilt_bend(-20.0), abs=0.01)
+    assert 100 < neck.tilt_bend(-20.0) < neck.tilt_bend(-10.0)
+    assert neck.TUBE[1] == neck.WIRE_R
+
+
+def test_the_leads_leave_the_tubes_foot_in_a_bend_that_never_flexes(report):
+    """#1075: under the neck tube's foot the leads turn flat onto the Torso's floor, 13.6 mm below: a 12 mm bend, 7.5
+    lead diameters. Not the flexing spans' 10: the Torso is 24 mm high inside, and a tube 4 mm shorter would leave
+    its socket too little of it (model/printed/test_neck.py). It never flexes, and stands over that bend's own
+    floor, 3 diameters (docs/research/2026-11-02-literature-electrical.md 4)."""
+    foot = report["spans"]["foot"]
+    assert foot["bend_mm"] == pytest.approx(11.99, abs=0.01)
+    assert foot["bend_mm"] >= 2 * foot["floor_mm"] == pytest.approx(2 * 3 * neck.LEAD_OD)
+
+
+def test_the_neck_tube_stands_on_the_cervical_canals_line_from_its_socket_to_the_canals_top():
+    """#1075, ADR 0030: the tube's axis is the path's long span, which the vertebrae's canals are fitted on
+    (model/skeleton/fit.py canal_y), its top the canal's top; its foot stands over the Torso's floor, under the lid,
+    and its two cross screws lie inside the tube's length, the socket's under the lid."""
+    from model.skeleton import fit
+
+    for s in (20.0, 60.0, neck.TUBE[2]):  # over C7's foot, where the fit's path starts
+        x, y, z = neck.tube_at(s)
+        assert x == 0 and y == pytest.approx(fit.canal_y(z))
+    assert neck.tube_at(neck.TUBE[2]) == pytest.approx(neck.TUBE_TOP) and neck.TUBE_TOP[1:] == neck.CERVICAL_PATH[3]
+    lid = base.TORSO[2][1] - base.LID_T
+    assert neck.MOUNT_Z[0] < neck.TUBE_FOOT[2] < lid
+    assert neck.tube_at(neck.TUBE_SCREWS[0])[2] + 2.75 < lid  # its head, under the lid
+    assert all(3.0 < s < neck.TUBE[2] - 3.0 for s in neck.TUBE_SCREWS)
 
 
 @pytest.mark.parametrize("doc", g.MECH)

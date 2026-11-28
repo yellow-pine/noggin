@@ -137,10 +137,12 @@ def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_it
         "| Core | 1 | 1 |  |",
         "| Shield | 1 | 1 |  |",
         "| battery pack |  | 1 |  |",
-        "| M3 x 16 mm pivot screw | 23 | 7 | 4 |",  # #964: the fasteners, stages.fasteners
+        "| M3 x 16 mm pivot screw | 23 | 9 | 4 |",  # #964: the fasteners, stages.fasteners
         "| M2 x 8 mm servo screw | 8 | 8 | 2 |",
         "| M3 x 10 mm head screw | 4 |  |  |",
-        "| M3 nut | 4 |  |  |",
+        "| M3 nut | 4 | 4 |  |",
+        "| neck tube |  | 1 |  |",  # #1075, with its socket's screws
+        "| M3 x 12 mm countersunk screw |  | 4 |  |",
     ]:
         assert row in table, row
     parts = (ROOT / "docs" / "build" / "parts.md").read_text()

@@ -12,7 +12,7 @@ from model import gimbal, printed, stages
 def test_the_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_document(doc, carrier):
     """#629, #618, #630, #641, #686: each of the Mech's documents (a head variant) holds our Envelopes of the
     hardware we own (two Cores and Shields, the switch board, the pack, seven servos each with its horn on a drive) and
-    buy (the hub, the power-path board and the bulk capacitor, #858), and its own printed parts. Its neck's three servos
+    buy (the hub, the power-path board and the bulk capacitor, #858; the neck tube, #1075), and its own printed parts. Its neck's three servos
     drive it."""
     nxt = stages.STAGES[doc]
     meshes = [stages.stem(p.file) for p in nxt.parts.values()]
@@ -21,7 +21,7 @@ def test_the_mech_is_clean_room_its_owned_hardware_and_its_own_parts_in_its_own_
     assert hardware == sorted(
         ["core"] * 2
         + ["receiver"] * 2
-        + ["switch", "battery", *bought, "pan bearing"]
+        + ["switch", "battery", *bought, "pan bearing", "neck tube"]
         + ["standard servo", "standard horn"] * 2
         + ["servo", "horn"] * 5
     )
@@ -150,12 +150,15 @@ def test_each_stage_counts_the_fasteners_its_pivots_servos_and_head_mount_take()
     Stage 1's eyes take 23 shanks (the yaw 5, the pitch 8 with the bail's and each core's pair, each lid drive 5, its
     lower lid on the upper's shank, the push-rods on balls), 2 screws per servo and the test stand's 4 screws and nuts;
     Stage 2 adds the pan's 3 and the tilt's 4 (its horn's and reaction bar's pins, its trunnions' pair), 4 screws
-    per standard servo, and moves the stand's screws to the head mount; Stage 3 the jaw's 4."""
+    per standard servo, and moves the stand's screws to the head mount, and the neck tube's (#1075): a pivot screw
+    across it in the socket and in the carrier, and the socket's 4 countersunk screws through the Torso's floor with
+    their nuts; Stage 3 the jaw's 4."""
     shank, tab, head, nut = "M3 x 16 mm pivot screw", "M2 x 8 mm servo screw", "M3 x 10 mm head screw", "M3 nut"
+    foot = "M3 x 12 mm countersunk screw"
     assert [stages.fasteners(d) for d in ("stage1", "stage2", "mech-back")] == [
         {shank: 23, tab: 8, head: 4, nut: 4},
-        {shank: 30, tab: 16, head: 4, nut: 4},
-        {shank: 34, tab: 18, head: 4, nut: 4},
+        {shank: 32, tab: 16, head: 4, nut: 8, foot: 4},
+        {shank: 36, tab: 18, head: 4, nut: 8, foot: 4},
     ]
 
 

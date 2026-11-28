@@ -24,6 +24,7 @@ GREYS = {
     "standard servo": "#7E8287",
     "standard horn": "#D4D6D9",
     "pan bearing": "#9A9EA3",
+    "neck tube": "#D4D6D9",
 }  # the hardware envelopes (by file name): neutral greys, darker for the boards
 
 

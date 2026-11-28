@@ -93,10 +93,14 @@ TOUCH = {
     **{
         frozenset(pair): "standing on, screwed under or lying in (0.0 mm, designed contacts)"
         for pair in [
-            ("torso:1", "cervical carrier:1"),
+            ("torso:1", "neck socket:1"),
             ("torso:1", "torso lid:1"),
-            # the carrier's rails up through the lid's slots: the lid's pieces fill the slots (#838, #978)
-            ("torso lid:1", "cervical carrier:1"),
+            # the socket's tower and its tube up through the lid's slot: the lid's pieces fill the slot (#838, #1075)
+            ("torso lid:1", "neck socket:1"),
+            ("torso lid:1", "neck tube:1"),
+            # the tube in the socket's bore and in the carrier's: each part's pieces fill its bore (#1036, #1075)
+            ("neck socket:1", "neck tube:1"),
+            ("cervical carrier:1", "neck tube:1"),
             ("torso:1", "pack:1"),
             ("torso:1", "switch board:1"),
             ("torso:1", "power-path board:1"),
