@@ -3,7 +3,9 @@ them: each a valid solid, each Seat flush in its carrier, and each cap clear of 
 and with each servo at either end."""
 
 import functools
+import math
 
+import cadquery as cq
 import numpy as np
 import pytest
 import trimesh
@@ -27,6 +29,48 @@ DRAWN = [s for s in sk.SHELLS if s in PARTS]  # the Shells drawn here; a Sculpt'
 def test_a_shell_is_one_valid_solid(stem):
     shape = PARTS[stem]().val()
     assert shape.isValid() and len(shape.Solids()) == 1
+
+
+def _at(side, az, el, r):
+    """The point `r` mm from the `side` eye's centre along gm.ray(az, el), as cadquery takes it."""
+    return cq.Vector(*(gm.ray(az, el) * r * ((1, 1, 1) if side == "L" else (-1, 1, 1))))
+
+
+@pytest.mark.parametrize("side", "LR")
+def test_each_cap_is_a_shell_on_a_stem_grown_round_its_sphere_as_far_as_it_is_free(side):
+    """#967 (Cansin, 2026-11-28, #893's eighth round): the cap is hollow but for its stem on the core's seat, so a
+    liner can stand inside it, and it is grown on its own sphere where nothing comes at any yaw and pitch: outward past
+    its equator and over its top, toward the other eye over and under the lids' hubs, where it stays at gm.CAP_IN on
+    the eye line's height, and down to the yaw bearing's sweep."""
+    cap, mid = PARTS[f"{side} eyeball cap"]().val(), gm.CAP_R - gm.CAP_WALL / 2
+    inside = lambda az, el, r=mid: cap.isInside(_at(side, az, el, r))  # noqa: E731
+    # the stem, down to the core's seat (off the gaze: its magnet's pocket is on it)
+    assert inside(8, 0, 30.0) and inside(gm.CAP_STEM - 2, 0, 30.0)
+    assert not inside(gm.CAP_STEM + 2, 0, 30.0) and not inside(0, gm.CAP_STEM + 2, gm.CAP_R - gm.CAP_WALL - 0.2)
+    assert inside(30, 20) and inside(110, 0) and inside(0, 89) and inside(180, 70) and inside(100, -50)
+    assert inside(-80, 55) and inside(-80, -38) and not inside(-63, 0) and not inside(-80, 40)
+    assert not inside(118, 0) and not inside(0, -70) and not inside(-80, -50)
+
+
+@pytest.mark.parametrize("side", "LR")
+def test_each_eye_liner_is_one_valid_solid_inside_its_caps_shell_open_where_the_stem_sweeps(side):
+    """#967: the liner is a shell gm.LINER_R about its eye's centre, the lids' clearance under the cap's, standing in
+    front of the eye wherever nothing comes, with a window where the cap's stem sweeps over the yaw and the pitch; its
+    foot, a collar round the yaw bearing's post, lies inside its own sphere."""
+    liner = PARTS[f"{side} eye liner"]().val()
+    assert liner.isValid() and len(liner.Solids()) == 1
+    v = np.array([p.toTuple() for p in liner.tessellate(0.05)[0]])
+    assert np.linalg.norm(v, axis=1).max() <= gm.LINER_R[1] + 1e-6 <= gm.CAP_R - gm.CAP_WALL - gm.LID_CLEAR_MM
+    inside = lambda az, el: liner.isInside(_at(side, az, el, sum(gm.LINER_R) / 2))  # noqa: E731
+    reach = gm.CAP_STEM + 0.5  # the stem's edge, and a little of the liner's room round it
+    for yaw, pitch in ((gm.YAW, 0), (-gm.YAW, 0), (0, gm.PITCH), (0, -gm.PITCH), (gm.YAW, gm.PITCH)):
+        for th in np.radians(np.arange(0, 360, 30)):
+            d = gm.core(yaw, pitch) @ gm.ray(reach * math.cos(th), reach * math.sin(th))
+            az, el = math.degrees(math.atan2(d[0], -d[1])), math.degrees(math.asin(d[2]))
+            assert not inside(az, el), (yaw, pitch, th)
+    assert inside(gm.YAW + gm.CAP_STEM + 3, 0) and inside(-gm.YAW - gm.CAP_STEM - 3, 0)
+    assert inside(0, gm.PITCH + gm.CAP_STEM + 3) and inside(0, -gm.PITCH - gm.CAP_STEM - 3)
+    assert inside(80, 0) and inside(0, 80) and inside(-72, 0) and not inside(-72, 25)  # the lid bar's sweep
 
 
 @pytest.mark.model

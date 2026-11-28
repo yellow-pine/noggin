@@ -101,17 +101,47 @@ BAIL_TIP = (
 BAIL_END = 18.0
 PITCH_HORN = (72.25, -20.0)  # its arm along +y at rest: where the bail's old axis put it (60 behind the eyes, #838)
 GAZE_DEG, CAP_GAP_MM, LID_CLEAR_MM = 2.0, 1.0, 0.5  # the gates (#51, #630): model/test_report.py reads them
-# Each eyeball cap (#967): his eye white, a sphere 2.2 mm under his Sculpt's eye (Cansin: 34.9), solid within CAP_HALF
-# of the gaze (its flat back on the core's seat, where the old cap's was) and a shell CAP_WALL thick from there out
-# to its eye opening's own outline as the front sees it (model/printed/skin.py cap): the opening is the Sculpt's, and
-# the eye has no Shell. Below the eye line it ends on the rim's own way out from the eye's centre instead, CAP_LOW of
-# the outline as the front sees it: pitched down, a cap that filled the outline there met the yaw bearing under it
-CAP_R, CAP_HALF, CAP_WALL = LIDS_SHELL[0], 37.0, 1.6
+# Each eyeball cap (#967): his eye white, a sphere 2.2 mm under his Sculpt's eye (Cansin: 34.9), a shell CAP_WALL
+# thick on a stem CAP_STEM deg wide about the gaze, which stands on the core's seat (its face CAP_HALF off the gaze on
+# the cap's sphere, where the solid cap's flat back was) and holds the pupil's seat (model/printed/skin.py cap): the
+# opening is the Sculpt's, and the eye has no Shell. The shell is grown round its own sphere as far as nothing comes
+# within the lids' clearance of it at any yaw, pitch and lid angle (Cansin, 2026-11-28, #893's eighth round: a
+# turned eye showed the dark inside the head beside it), read on the exact solids' sweep (#967): out to CAP_OUT from
+# the gaze, so past its equator outward and over its top; further than CAP_SIDE under the eye line only on its
+# opening's own way out from the eye's centre (CAP_LOW of the outline as the front sees it: a cap that filled the
+# outline there met the yaw bearing under it) and in CAP_LOW_OUT, outward, where the bearing's sweep is lower; and
+# toward the other eye but in CAP_HUBS, where the lids' hubs and their drive turn
+CAP_R, CAP_HALF, CAP_WALL, CAP_STEM = LIDS_SHELL[0], 37.0, 1.6, 20.0
 CAP_LOW = CAP_R / MORTY_BALL_R
+CAP_OUT, CAP_SIDE = 114.0, 42.5
+
+
+def ray(az, el):
+    """The unit direction from an eye's centre `az` deg round from its gaze toward its outside (the L eye's: +x) and
+    `el` deg up: how the caps' and the liners' edges are laid out on their spheres."""
+    a, e = math.radians(az), math.radians(el)
+    return np.array([math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e)])
+
+
+# rings of (az, el) on the cap's sphere, each closed, great circles between its points (ray)
+CAP_LOW_OUT = ((55.0, -41.0), (62.0, -58.0), (70.0, -55.0), (110.0, -55.0), (120.0, -41.0))
 # how far toward the other eye a cap reaches, deg off its gaze, through the shell's depth: 0.75 mm short of where
 # the front sees its opening's inner corner on it (62.3 deg), so yawed in it stays 3.1 mm from the eye line, where
 # the lids' sleeves are (to the corner it would pass 1.6 mm from the line)
 CAP_IN = 59.7
+# where the lids' hubs and their drive turn, in the cap's own frame over its yaw and pitch: past CAP_IN on the eye
+# line's height (the lower lid's crank), further round over it (the upper lid's and the bar's), and all that lies
+# behind them between the eyes; each ring star-shaped about its HUB_MIDDLES point
+CAP_HUBS = (
+    ((-CAP_IN, -30.0), (-CAP_IN, 18.0), (-72.0, 18.0), (-72.0, 48.0), (-88.0, 48.0), (-88.0, -30.0)),
+    (
+        *((-86.0, e) for e in (-60.0, 0.0, 57.0)),
+        (-118.0, 57.0),
+        *((-150.0, e) for e in (57.0, 0.0, -60.0)),
+        (-118.0, -60.0),
+    ),
+)
+HUB_MIDDLES = ((-80.0, 0.0), (-118.0, 0.0))
 PUPIL_DEG = 15.0  # the pupil's half-span on the cap (inferred)
 PUPIL_FIT = 0.15  # the pupil's key in its seat, per side: 0.3 mm of seat play (#650; the coupon's 0.1-0.4 per side)
 # The lids (#967, Cansin, 2026-11-28: "the shut line works, build it"): both in one band LID_R, two perimeters, its
@@ -145,6 +175,22 @@ LOWER_REST = LID_SHUT - LOWER_TRAVEL  # the lower lid's: the cap's bottom edge t
 # the upper lid's edge over the servo's range: shut, wide open. No lid follows the eyes' pitch any more (#51
 # Gestures, #698): a hidden lid has no edge on the eye to keep there
 LID_EDGES = (LID_SHUT, LID_REST + LID_WIDE)
+# Each eye liner (#967, GLOSSARY Eye liner; Cansin, 2026-11-28, #893's eighth round): white fixed to the frame inside
+# the cap's shell, so the front sees it where a turned cap has left its opening. A shell LINER_R about the eye's
+# centre, two perimeters, the lids' clearance under the cap's as a lid's band is over it (LID_OVER), in front of the
+# plane LINER_RIM ahead of the eye's centre (its print bed), open where the cap's stem sweeps over the yaw and the
+# pitch, the lids' clearance and LID_OVER round it, and in LINER_HUBS, where the lids' cranks, the lid bar and the
+# link turn (a ring on its sphere as the cap's, about LINER_MIDDLE). Its foot is a collar round the yaw bearing's post
+# (model/printed/skin.py liner): CLIP its wall, how far under the yoke's bar it ends and how far round the post its
+# jaws reach either side, so it snaps on. Every size inferred
+LINER_WALL, LINER_RIM = 0.8, 1.0
+LINER_R = (CAP_R - CAP_WALL - LID_CLEAR_MM - LID_OVER - LINER_WALL, CAP_R - CAP_WALL - LID_CLEAR_MM - LID_OVER)
+LINER_HUBS = (
+    *((-73.0, -27.0), (-73.0, 14.0), (-67.0, 14.0), (-67.0, 35.0)),
+    *((-80.0, 35.0), (-80.0, 44.0), (-100.0, 44.0), (-100.0, -27.0)),
+)
+LINER_MIDDLE = (-88.0, 8.0)
+CLIP = {"wall": 2.0, "under": 0.7, "wrap": 115.0}
 # (y, z) of each lid servo's horn: behind the eye and under its centre, its case upright behind the yawing yoke and under
 # the push-rods, so nothing of the eyes' drives hangs where the mandible's ramus is (#838; under the eye before)
 # #967: its case stood across the belt behind the eye, where the push-rod, the tie-bar and the yaw bearing's rail have

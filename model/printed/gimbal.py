@@ -431,14 +431,13 @@ def prism(outline, depth=60.0):
     return cq.Workplane("XZ").polyline([tuple(map(float, p)) for p in outline]).close().extrude(depth)
 
 
-def cone(outline):
-    """Every way out from the eye's centre that the front sees inside `outline` (x, z) on Morty's eyeball
-    (gm.MORTY_BALL_R): a solid out past the lids' band, its apex the centre, its sides flat between the outline's
-    points. A lid's hidden edges are cut along it, so each lies at one lid angle through the band's depth (the prism,
-    cut along the view, lies 5 deg further round on the band's inside at the top rim)."""
-    x, z = outline.T
-    p = np.stack([x, -np.sqrt(gm.MORTY_BALL_R**2 - x**2 - z**2), z], axis=1) * (60.0 / gm.MORTY_BALL_R)
-    far = p.mean(axis=0) * (60.0 / np.linalg.norm(p.mean(axis=0)))
+def fan(rays, middle=None):
+    """Every way out from the eye's centre inside the closed ring of directions `rays` (unit vectors, star-shaped
+    about `middle`, their mean unless given, and under 70 deg from it): a solid out past the lids' band, its apex the
+    centre, its sides flat between the ring's points."""
+    p = np.asarray(rays, float) * 60.0
+    far = p.mean(axis=0) if middle is None else np.asarray(middle, float)
+    far = far * (60.0 / np.linalg.norm(far))
 
     def face(*corners):
         return cq.Face.makeFromWires(cq.Wire.makePolygon([cq.Vector(*map(float, c)) for c in corners], close=True))
@@ -447,6 +446,15 @@ def cone(outline):
         f for a, b in zip(p, np.roll(p, -1, axis=0), strict=True) for f in (face((0, 0, 0), a, b), face(far, b, a))
     ]
     return cq.Workplane().add(cq.Solid.makeSolid(cq.Shell.makeShell(faces)))
+
+
+def cone(outline):
+    """Every way out from the eye's centre that the front sees inside `outline` (x, z) on Morty's eyeball
+    (gm.MORTY_BALL_R): a fan through the outline's points. A lid's hidden edges are cut along it, so each lies at one
+    lid angle through the band's depth (the prism, cut along the view, lies 5 deg further round on the band's inside
+    at the top rim)."""
+    x, z = outline.T
+    return fan(np.stack([x, -np.sqrt(gm.MORTY_BALL_R**2 - x**2 - z**2), z], axis=1) / gm.MORTY_BALL_R)
 
 
 def _up(shape, deg):

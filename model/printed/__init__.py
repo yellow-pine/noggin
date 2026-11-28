@@ -11,6 +11,8 @@ PARTS = {
     "eyeball core": gimbal.core,
     "L eyeball cap": functools.partial(skin.cap, "L"),  # each Character's largest, Morty's (#665)
     "R eyeball cap": functools.partial(skin.cap, "R"),
+    "L eye liner": functools.partial(skin.liner, "L"),  # on the frame, inside its cap (#967)
+    "R eye liner": functools.partial(skin.liner, "R"),
     "yaw yoke": gimbal.yoke,
     "tie-bar": gimbal.tie_bar,
     "bail": gimbal.bail,
