@@ -42,8 +42,10 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     only Shells a document wears; Morty's, cut from his Sculpt (g.SHELLS), are printed in PLA Pure, each in its Colour
     group, and worn by no document until the gates on a worn Shell pass (g.SKINS)."""
     groups = {group for palette in g.THEMES["Skin palette"].values() for group in palette}
-    seated = {"morty face", "morty hair crown", "morty hair back"}  # Morty's Shells on Seats so far
-    assert set(skin.SHELLS) == {*(f"{s} eyeball cap" for s in "LR"), *seated}
+    caps = {f"{s} eyeball cap" for s in "LR"}
+    # every Shell, held by Seats, by glue or by nothing yet: what a document's parts are sorted by once it wears them
+    assert set(skin.SHELLS) == caps | {f"morty {n}" for n in g.SHELLS["morty"]}
+    assert {s.shell for s in skin.SEATS} == caps | {"morty face", "morty hair crown", "morty hair back"}  # on Seats
     assert skin.DRAWN == [] and g.SKINS == {}
     assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
         "hair crown": ("hair", "PLA Pure"),
