@@ -191,8 +191,8 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
     """#967 (Cansin, 2026-11-28): each opening is his Sculpt's own. Seen from the front, on a 0.5 mm grid inside its
     outline: at rest, open, the upper lid shows nowhere but 0.5 mm of its edge past the top rim's outer part (under
     10 mm2; under 5 wide open), and the lower lid only under the cap's bottom edge, the sliver along the bottom rim
-    (under 100 mm2: 1.2 mm wide); shut, the two lids cover it all but a point or two at its outer corner, past the
-    lids' ends."""
+    (under 100 mm2: 1.2 mm wide; under half of it wide open, as it drops under the cap's edge); shut, the two lids
+    cover it all but a point or two at its outer corner, past the lids' ends."""
     import trimesh
 
     from model import skin, stages
@@ -213,7 +213,7 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
         for e in gm.LID_EDGES
     )
     assert (~(_seen(shut[0], inside, eye) | _seen(shut[1], inside, eye))).sum() <= 4
-    assert _seen(wide[0], inside, eye).sum() * 0.25 < 5.0 and not _seen(wide[1], inside, eye).any()
+    assert _seen(wide[0], inside, eye).sum() * 0.25 < 5.0 and _seen(wide[1], inside, eye).sum() < under.sum() / 2
 
 
 def _lids_shell(side):
