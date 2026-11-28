@@ -68,13 +68,6 @@ def test_each_cap_clears_the_lids_and_their_drive_at_every_combined_travel_end(r
 
 
 @pytest.mark.model
-def test_the_block_fits_the_compact_head(rest):
-    """#684, #698: the gimbal, servos and horns included, fits a head of at most 124.6 W x 120 D x 150 H: the face as
-    wide as the lids' frame and the shell's wall."""
-    assert all(b <= h for b, h in zip(gimbal.bounds(rest), gm.HEAD_MM))
-
-
-@pytest.mark.model
 @pytest.mark.parametrize("mechanical", [False, True])
 @pytest.mark.parametrize("pitch", [-gm.PITCH, 0.0, gm.PITCH])
 def test_the_bail_turns_clear_of_the_frame(mechanical, pitch):

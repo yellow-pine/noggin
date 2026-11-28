@@ -173,6 +173,7 @@ for stem, bone in sources.items():
     mod = o.modifiers.new("Finish", "NODES")
     mod.node_group = finish_group(stem, bone)
     mod.show_viewport = False  # the slow finish: render and export only (export.py turns it on)
+export.capped(JOB)  # each skull's calvaria: a second Finished object, cut off its skull's along the seam (#874)
 skull.hide_render = True  # the finished bones render, the raw ones are worked on
 bpy.context.view_layer.layer_collection.children[helpers.name].hide_viewport = True
 bpy.data.orphans_purge(do_recursive=True)

@@ -84,7 +84,7 @@ The scene's bones are BodyParts3D's: the skull's 21 bones (read whole by the sku
 to C7 (`atlas`, `axis`, `c3` to `c7`), each with the #872 prototype's Basis. The Warp resizes each region uniformly
 (skull 1.05, mandible 0.95, neck to the canal's height) and gives the skull and the mandible one cubic B-spline
 field each, solved against #975's mechanism: the orbits on the eyes, the condyles on the jaw's hinge, the occipital
-condyles 3 mm under the tilt axis, the skull's box on the compact head's (`base.DOME`, which the head gate uses).
+condyles 3 mm under the tilt axis, the skull's box on the compact head's (`base.DOME`, gone since #1089).
 Every vertex's local length factors stay within this budget's bounds (fit.py raises otherwise) and every functional
 landmark within 1 mm. The vertebrae are resized and moved only, each canal on the cervical canal's path. The
 prototype's numerical machinery (#976's adapters, constrained Gaussian field, refinement, GX10 exchange) is not
@@ -138,7 +138,8 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
   temples; the rounding took what was under the floor away and left two holes there (the R about 19 x 10 mm).
   Cansin, 2026-11-27 (#893's second round): close them with bone at the print minimum.
 - The gates read the Sculpt (`model/morty`, ADR 0027): `test_skeleton.py` holds each finished bone 2.1 mm under it
-  and to no box. `base.DOME` stays the mechanism's box until its gates read the Sculpt too.
+  and to no box. The mechanism's gates read it too since #1089 (`model/review`'s `test_hidden.py`, `test_nape.py`
+  and `test_head.py`), so `base.DOME`, `base.EYES_UP` and `gimbal.HEAD_MM` are gone.
 
 ## 2026-11-28 C5 and C6 slimmed for the neck's skin (#874)
 
@@ -176,3 +177,45 @@ under the still skin at rest.
 **Considered:** trimming the two vertebrae in the Finish (a fifth of C5 and a seventh of C6 gone, no vertebra left to
 read: #874's table of 2026-11-27); bending C5's spine up over the rim's arc (it meets C4's, and the whole column of
 spines would have to close up to its floor); a factor that changes with height (the bone shears across the step).
+
+## 2026-11-28 the calvaria comes off as a cap (#874)
+
+> Decided on ticket #874 (made while away; Cansin to confirm): the seam's height, its shape, what holds the cap and the
+> gap. Each is inferred: no build settles one yet.
+
+The skull's calvaria is its own bone (`calvaria` in `geometry.SKULL`, with its worn copy), so the head's mechanism can
+be reached: it lifts straight up off the skull, over the Shields' tops.
+
+- **The cut lives in the skull's Finish** (`export.capped`), not in Python on the exported bones: the review finishes
+  each bone in Blender from the scene, and a cut made afterwards would not show there. The cap is a second Finished
+  object on a copy of the skull's node group, so both are carved round the mechanism as one bone and differ only in
+  which side of the seam is cut away. The committed scene is not re-saved: an older scene's Finish gets the cut at
+  export, as it gets its rounding.
+- **The seam is level, at z 54 in the head's frame.** The finished skull is open in front under z 50 (the lids' shell
+  and the rounding over it); from there up it is one whole ring, 3.7 mm wide at its thinnest and 5.1 at the median.
+  z 54 is the lowest seam that leaves twice the print floor of bone over each orbit's opening (4.8 mm at the least). The Shields
+  under it top out at z 54.5, so the Cores and the hub are at the opening.
+- **Flat, located by Seats.** A flat cut is a teaching skull's, and the cap prints lying on its rim. A flat seam
+  alone lets the cap slide until its magnets catch (about half a mm either way), and the hair's crown will sit on
+  the cap (Cansin, 2026-11-28, #893), so the cap has to land where it was. It sits on three Seats in the Skin's own
+  sizes (`model/skin.py`): a magnet flush in each face, three balls on the skull's face in three V-grooves in the
+  cap's, which take the shear. The balls are on the skull so the cap's rim stays flat for the bed. Three full Seats
+  over-constrain it, as a Shell's several Seats do; one ball a boss would be the exact coupling and a new layout.
+- **The gap is the Seat's, 0.21 mm** (`skin.GAP`): the balls in their grooves hold the two faces that far apart.
+  #872's prototype had a 0.4 mm kerf with nothing to hold it open.
+- **Each Seat is on a ball boss** of the Seat's radius (7 mm) on the vault's inner side, united with the bone before
+  the mechanism is carved, so the carve clears it like any bone. The wall is 4 to 9 mm; a Seat needs 14. The bosses
+  stand in front (x 0) and to each side just behind the cap's centre of mass, a mm inside the outer faces, where
+  the mechanism leaves 37 mm and more. Straight behind, the nod plate's sweep leaves 8 mm: no Seat there.
+- **The seam, the pockets and the grooves are cut from the mesh, exactly** (a mesh boolean after the grid is
+  meshed), not from the grid: at a 0.8 mm voxel the grid chamfers every edge, which left a magnet standing 0.7 mm
+  proud on its pocket's floor and half the seam's ring bevelled. The exact cut leaves a dozen zero-volume folds a
+  piece on the seam's edges; the STL writer drops them, and the pieces are closed.
+- **Room for the Skin's Seats in bone** (#850): the crown's face up on the cap's top, 40 mm and more above the
+  bosses; the face's top one fits on the forehead's midline either under the seam (its middle at z 47 or lower,
+  over the lids' shells) or over it (z 61 or higher), 5 mm clear of the front boss's pocket. They are cut the way the
+  cap's own are, when #850 places them.
+
+**Considered:** a conical or stepped seam (it keys the cap, but its rim no longer lies on the bed, and a rabbet
+halves a 4 mm wall under the print floor); the magnets standing proud as pins (a voxel's chamfer at the pocket's
+mouth is as deep as the pin); a bare flat seam with magnets in 5 mm bosses (the smallest, built first: it slides).

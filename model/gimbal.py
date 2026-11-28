@@ -236,8 +236,6 @@ WALL_Z, WALL_POST = (-8.0, 4.0), ((48.5, 56.0), 4.0)
 # short of the head mount's rear screw, flared round it
 BACK_ROOM_MM = 1.9
 BACK_POCKETS = (((37.5, 44.0), 1.7, 0.0), ((-27.5, -23.6), 1.4, 1.4))
-# the head the gimbal fits (#684, #838): width, depth, height; Morty's life-size cranium (#893: 160 x 176 x 175)
-HEAD_MM = (160.0, 176.0, 175.0)
 
 
 def drives():

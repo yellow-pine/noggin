@@ -187,10 +187,11 @@ def test_no_two_parts_overlap_at_rest_unless_they_touch_by_design(doc):
 def test_the_whole_mech_carries_its_finished_bones_as_loads_on_their_carriers():
     """ADR 0020, #874: the mechanical document, which physics runs on and which draws no bone, still carries every
     finished bone (g.SKULL, as `just ours` left it) as a load: its printed mass (mjcf.mass()) at its own centre, the
-    skull on the head mount, the mandible on the jaw, C1 to C7 on the cervical carrier, with no geometry of its own."""
+    skull and its calvaria on the head mount, the mandible on the jaw, C1 to C7 on the cervical carrier, with no
+    geometry of its own."""
     model, data = forward(DOC)
     frame = stages.STAGES[DOC].horns["tilt horn"].frame
-    carriers = {"skull": "head mount:1", "mandible": "jaw:1"}
+    carriers = {"skull": "head mount:1", "calvaria": "head mount:1", "mandible": "jaw:1"}
     for stem in g.SKULL:
         mesh = trimesh.load(stages.stl(stem), force="mesh")
         body = model.body(f"anatomy {stem}")

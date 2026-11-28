@@ -8,7 +8,8 @@ sit on, another Shell included, in every pose (`model/printed/test_skin.py`). Th
 (`model/morty/shells.py`: `SEAM`, `cleared()`).
 
 - **At rest, 0.8 mm at every seam.** The face steps back that far from the hair and from the chin, and the shirt
-  from the collar. The hair and the chin keep the Sculpt's own boundary. A brow is no seam: it is glued in the face,
+  from the collar. The hair and the chin keep the Sculpt's own boundary. The hair's own level seam (ADR 0028) is
+  centred on its level, each piece stepping back 0.4 mm. A brow is no seam: it is glued on the face,
   0.2 mm off it all round (ADR 0028). 0.8 mm is the gate's 0.5 mm and what its sampling
   can misread (inferred).
 - **Where two Shells move against each other, the one that stands still gives way.** The head keeps Morty's shape

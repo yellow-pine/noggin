@@ -363,8 +363,8 @@ def stand_sub():
 
 def skull_sub():
     """skull: the realistic Skeleton's skull (#838; model/skeleton finishes it) as a Skin wears it (g.WORN), its bones
-    drawn where they sit at rest in the head's frame, each on what carries it (RIDES): the skull on the gimbal frame,
-    the mandible on the jaw, the seven cervical vertebrae on the cervical carrier."""
+    drawn where they sit at rest in the head's frame, each on what carries it (RIDES): the skull and its calvaria on
+    the gimbal frame, the mandible on the jaw, the seven cervical vertebrae on the cervical carrier."""
     return Sub({f"{stem}:1": part(stl(stem), None, printed(stem)) for stem in (g.WORN.get(s, s) for s in g.SKULL)}, {})
 
 
@@ -401,10 +401,12 @@ RIDES = {
         for n in names
         if (carrier := skin.MOTION[skin.region(f"{shape} {n}")])
     },
-    # the realistic skull's bones (#838), each lying on its carrier
+    # the realistic skull's bones (#838), each lying on its carrier, the calvaria on its skull's
     "skull:1": "gimbal frame:1",
+    "calvaria:1": "gimbal frame:1",
     "mandible:1": "jaw:1",
     "worn skull:1": "gimbal frame:1",
+    "worn calvaria:1": "gimbal frame:1",
     "worn mandible:1": "jaw:1",
     **{f"{v}:1": "cervical carrier:1" for v in g.NECK},
 }  # clamped to that part (a sub-assembly's every part, or one part)

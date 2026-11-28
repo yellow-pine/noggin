@@ -36,8 +36,8 @@ the head, the neck cable up inside it; its bottom is the foot the Mech stands on
 _Avoid_: base plate, body, stand
 
 **Head variant**:
-One way to place the Mech's boards in its compact head, ranked against any others. Cansin picked Back, the head's
-shell rising over the eyes so they sit in its lower half, and it is the one variant today; since #858 the Cores and
+One way to place the Mech's boards in its head, under the Skin, ranked against any others. Cansin picked Back, and
+it is the one variant today; since #858 the Cores and
 the hub ride the head in the realistic skull's cranium, the pack, the switch board and the power-path board lie low
 in the Torso.
 _Avoid_: Base candidate (the two it replaced, #642), option, layout
@@ -52,14 +52,15 @@ _Avoid_: eye mech, eye frame, linked eyes (as a part name)
 **Shell**:
 One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
 Skin's seams and Motion regions, its wall grown inward from the Sculpt's surface (docs/adr/0027). None is drawn by
-hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair, his face, each brow (its
-ridge, in the hair's filament, glued in the face), his chin (under the mouth line, on the jaw) and his shirt (under
+hand: the eyeball caps are the mechanism's own, and the eye whites; Morty's are his hair (in two pieces, its crown and
+its back), his face, each brow (its
+ridge, in the hair's filament, laid on the face and glued there), his chin (under the mouth line, on the jaw) and his shirt (under
 the collar, the whole fixed body). The face has its two lower Seats. *Upcoming (#850): the rest of the Seats of Morty's Shells.*
 _Avoid_: cover, cosmetic
 
 **Seat**:
 Where a Shell sits on what carries it, the same for every Skin: a magnet pair that holds it on and three balls in
-V-grooves that take the shear.
+V-grooves that take the shear. The skull's calvaria sits on its skull on Seats too.
 _Avoid_: mount, socket, pad
 
 **Skin**:
@@ -375,7 +376,9 @@ A part we print, by our name (model/printed); the Skeleton's:
 - jaw: turns on the gimbal frame's lugs at the realistic skull's condyles; jaw bar: the jaw Horn to the jaw.
 - skull, mandible, atlas, axis: the realistic Skeleton's own bones, adapted from others' meshes under their
   licences (docs/adr/0023): the skull on the gimbal frame, the mandible on the jaw, the atlas and axis round the
-  post on the pan yoke; the mechanical Skeleton has none. Worn skull, worn mandible: the skull and mandible carved
+  post on the pan yoke; the mechanical Skeleton has none. Calvaria: the skull's cap, cut off it along a level seam
+  over the eyes and lifted off to reach the head's mechanism, sitting on three Seats on the skull.
+  Worn skull, worn calvaria, worn mandible: those bones carved
   round a Skin's Shells too (the eyeball caps alone, while they are the only Shells a document wears), printed to wear a Skin; bare,
   the Skeleton shows the full ones.
 _Avoid_: the designer's file names, version suffixes, earlier part names (git history)

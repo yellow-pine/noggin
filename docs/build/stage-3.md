@@ -7,9 +7,10 @@
 [Open Stage 3 in the viewer](https://yellowpine.com/noggin/viewer/?stage=3)
 
 Stage 2 with a jaw under the eyes: the whole Mech. One more servo, on the neck Core. *Upcoming (#850): Morty's Shells,
-cut from his sculpt, get their Seats and go on after it ([Themes](../face-design.md)).* In the realistic Skeleton the skull and its first two vertebrae are adapted from
-others' meshes ([Credits](../credits.md)); *Upcoming (#874): a life-size BodyParts3D teaching skull (calvaria cap,
-face and skull base, mandible, held on magnets) and all seven cervical vertebrae, warped into Morty*.
+cut from his sculpt, get their Seats and go on after it ([Themes](../face-design.md)).* In the realistic Skeleton the skull, its mandible and the seven cervical vertebrae are adapted from
+others' meshes ([Credits](../credits.md)), life-size and warped into Morty. The skull's calvaria is a cap: it lifts
+straight up off three Seats on the skull's rim, a magnet pair and three balls in V-grooves at each, to reach the
+Cores and the hub in the cranium.
 
 ## Parts it adds, from the model
 

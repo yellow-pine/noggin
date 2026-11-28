@@ -87,11 +87,9 @@ GROUPS = {
         "neck socket",
         "jaw",
         "test stand",
-        "skull",
-        "mandible",
-        *g.NECK,
+        *g.SKULL,
     ]
-    + ["worn skull", "worn mandible"],
+    + list(g.WORN.values()),
     "Joints": ["yaw yoke", "nod plate", "pan fixed cap", "pan moving cap", "eyeball core", "bail"],
     "Linkages": [
         "tie-bar",

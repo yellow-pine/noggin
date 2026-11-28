@@ -133,9 +133,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   the pupil's seating, each term beside the total: a pupil keyed with 0.3 mm of seat play, #650; yaw/pitch crosstalk
   beside the Hooke form, the vergence a print error makes, the lids' clearance and range, where they meet shut, the
   lower lid's link angle, the caps' gap, and the lid drives' sweep: each lid, bar, link, horn and shank against the frame and every other part, certified along every line of the
-  lid x pitch grid at yaw 0 that turns the pair, #655; the pairs touching at rest checked for overlap at the grid's
-  points; and the gimbal's bounding box, servos and horns included, "block_mm", against the compact head's `HEAD_MM`),
-  gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
+  lid x pitch grid at yaw 0 that turns the pair, #655; and the pairs touching at rest checked for overlap at the grid's
+  points), gated in model/test_report.py. Its four servos sit behind the eyes' centres and within their width (#684): the yaw
   servo under the tie-bar, hanging under the frame's plate, the pitch servo beside the pitch bar, each lid servo upright
   behind its eye (#838: out of the realistic mandible's ramus; under the eye before), its horn between the eyes (#698).
   Since #967's re-layout each lid servo stands behind the belt its eye's drives will leave the eye's sphere through
@@ -187,8 +186,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 54 deg or more). All
   four lids turn on one shank along the eye line, in a wall of the frame on the midline, each on a sleeve between
   the eyes; a spoke runs from each sleeve back to a tail of its lid's band, behind everything the cap's shell sweeps
-  as its eye yaws in. No lid has a bearing at its outer end. `HEAD_MM`
-  is Morty's life-size cranium (160 x 176 x 175 since #901, #893). The pitch push-rod's Hooke coupling is undone by the command map
+  as its eye yaws in. No lid has a bearing at its outer end. The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,
   as Bones (GLOSSARY; model/printed/bone.py), and Back is built in each (`mech-back`,
@@ -263,16 +261,20 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   port the head's; #708 stood the boards upright over the eyes; Cansin read it as a tuft of hair), the one variant since Cansin picked it
   (#712: Crown, the boards flat on a shelf over the gimbal, and Split, the switch board low at the back of the neck,
   are gone; the ranking, its marks and the Viewer's buttons stay for the next). Its boards sit where the cranium and the Torso have
-  room, so no parameter is left to optimise (#708's row height is gone). The sim report gives each one's head box
-  (`variant.head_mm`, width x depth x height of what rides the tilt, under the head's shell: `base.shelled`, #828)
-  against `gimbal.HEAD_MM` (160 x 176 x 175 since #901, Morty's life-size cranium) and how far up
-  it the eyes sit (`eyes_up`, at most `base.EYES_UP`, 0.55: the realistic skull's orbits, a hair over half since #838), both hard gates in each look
-  (model/test_report.py, model/printed/test_base.py), and `just sim` ranks them into model/build/reports/mech-ranking.json (base.rank: the clearance,
-  head-size, eyes and four-bar gates, #51's marks, then its criteria in order, each variant's `fails` named), which orders and
-  marks the Viewer's buttons ("Back: head size"). A variant whose four-bar opens stays in the model, ranked last; the
-  report's gate then holds only the leading variant to it, and fails on anything else, or on a loop the ranking misses
-  (#705). The shell the gates measure is `base.DOME`, the compact head's box, which the realistic skull filled until its limit
-  became Morty's skin (#874); the bones ride the realistic documents alone.
+  room, so no parameter is left to optimise (#708's row height is gone). What holds the head's mechanism in the head
+  is Morty's skin, his Sculpt's surface (docs/adr/0027, #1089): every part of it at least 2.1 mm under that (a
+  Shell's 1.6 mm wall and 0.5 mm of clearance), at rest and through its motion, in both Skeletons, read on the Sculpt
+  git holds by model/review's tests: test_hidden.py the eye gimbal over each eye servo's range, test_nape.py the neck
+  under the skin that rides the head through tilt and pan, test_head.py the cranium tray, its boards and the jaw
+  against the head's skin and the jaw's as the jaw opens. The compact head's box (160 x 176 x 175 mm, `gimbal.HEAD_MM`,
+  with `base.DOME` and `base.EYES_UP`) measured it before and is gone, with the report's head box and eye height and
+  the gimbal's bounding box. Where a part does not fit under his skin the mechanism moves, never the skin; the jaw
+  carrier's chin end is 1.88 mm under it at rest and swings into the skin under his chin as the jaw opens, a strict
+  expected failure until #968 moves it. `just sim` ranks the variants into model/build/reports/mech-ranking.json
+  (base.rank: the clearance and four-bar gates, #51's marks, then its criteria in order, each variant's `fails`
+  named), which orders and marks the Viewer's buttons ("Back: clearance"). A variant whose four-bar opens stays in the
+  model, ranked last; the report's gate then holds only the leading variant to it, and fails on anything else, or on
+  a loop the ranking misses (#705). The bones ride the realistic documents alone.
   Since #838 the realistic Skeleton has bones of its own (docs/adr/0023; since #873 authored in the Skeleton scene,
   model/skeleton/skeleton.blend, docs/adr/0025, and finished there by Blender's Geometry Nodes): since #874
   BodyParts3D's skull, mandible and C1 to C7, each region resized uniformly (about life-size) and warped by one
@@ -290,8 +292,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   under 2% of the bone dropped, meshed at the grid's zero level into one piece each.
   The skull and mandible are also carved 1.6 mm round a Skin's Shells (`geometry.WORN`, Cansin's pick), the eyeball
   caps alone while they are the only Shells a document wears: the documents carry the worn copies, the pictures' bare look the full
-  ones (`pictures.bare`); both print. Back fits since #708 (136 x 117.3 x 149.8 in both Skeletons since #828, the Bones carved inside, eyes_up
-  0.497; #708's was 118.6 x 115.8 x 149.3, before it 120 x 134.5 x 129.5, eyes_up 0.78): the stack
+  ones (`pictures.bare`); both print. Since #708 the stack
   under the eyes shrank from 101 mm to 74.5, the tilt axis 0.5 mm under the gimbal frame's plate with the cheeks'
   bosses up into the head mount's flange and the whole neck 6 mm shorter, the jaw hinged beside the tilt lugs with its
   arms under the flange, its servo lying on the plate's front beside the mouth, the tilt span's head clamp straight

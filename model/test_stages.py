@@ -97,6 +97,18 @@ def test_the_jaw_rides_the_head_and_the_stand_carries_nothing():
         assert np.allclose(moved.parts[name], one.parts[name].matrix), name
 
 
+def test_the_calvaria_rides_the_gimbal_frame_beside_the_skull_it_is_cut_from():
+    """#874: the skull's calvaria is its own bone, a cap that comes off: named after the skull, worn like it (g.WORN),
+    and carried by what carries the skull, whatever the head does."""
+    assert g.SKULL[:2] == ("skull", "calvaria") and g.WORN["calvaria"] == "worn calvaria"
+    three = stages.STAGES[next(iter(g.MECH))]
+    moved = stages.pose(three, "tilt horn", 10)
+    carrier = moved.parts["gimbal frame:1"] @ np.linalg.inv(three.parts["gimbal frame:1"].matrix)
+    for name in ("worn skull:1", "worn calvaria:1"):
+        assert stages.RIDES[name] == stages.RIDES[name.removeprefix("worn ")] == "gimbal frame:1"
+        assert np.allclose(moved.parts[name] @ np.linalg.inv(three.parts[name].matrix), carrier), name
+
+
 def _pinned(stage, posed, horn, pins):
     """Assert each pair of parts in `pins` ({(a, b): the pin they share at rest, in the horn's sub-assembly's frame})
     still shares it as `posed`."""
