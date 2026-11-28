@@ -244,3 +244,32 @@ forward on the forehead under the cap's seam.
   crown parts first by the cap's own weight (0.85 N); lifted by one edge it may bring the cap with it. Both lift
   straight up and part by hand, and each lands where it was on its own Seats. Fewer pairs on the crown would let
   it rock (two hold 41 N·mm against about 40 from a 1 g sideways shake); a fourth on the cap has no room at the back.
+
+## 2026-11-28 the chin's Seat and the mandible's hold on its carrier (#850, #968)
+
+> Cansin picked both on #893 (sixth round): the chin Shell's Seat flush in the mandible's front, and the mandible
+> held on the jaw's carrier by two magnet pairs. How they are built was decided on #850 (made while away). Each
+> size is inferred: no build settles one yet.
+
+- **The mandible's Finish gets an exact cut of its own** (`export.seated`): a mesh boolean after the grid is meshed,
+  as the capped skull has for its seam. A bone's cutters are its own collections, so no Finish is cut, or grown,
+  by a helper that stands in another bone.
+- **The chin's Seat is at (0, −8.8, −78) in the head's frame, facing forward**: level with the carrier's bar across,
+  its flat 0.3 mm under the lowest of the bone's front within its grooves' reach, a notch 4.2 mm deep at its high
+  side, 5.2 mm of bone behind it. One Seat: three balls locate the chin whole, and one pair (4.6 N) holds its
+  few grams. **No ball behind its pocket**: the mandible is solid, unlike the skull's shell.
+- **The hold is two plain magnet pairs**, each a magnet flush in the front of the carrier's bar and one in the bone
+  facing it, face to face (`model/neck.py` `JAW_HOLD`). No balls and no gap: the grooves the Finish cuts for the
+  carrier locate the bone, the magnets only hold it. The bone leaves 60° off the pairs' axis, so half of each
+  pair's 6.3 N holds it: 6.3 N for the two against 2.7 N (the chin pulled off its own Seat, and the weights), SF
+  2.3. At `skin.GAP` the same two give SF 1.7, so the bone's magnets are glued in against their partners.
+- **The pairs are 6 mm either side of the middle, not 8.** At 8 mm the pocket cuts through the ends of the chains'
+  last spans where they run into the bar, and leaves edges of 0.02 to 0.25 mm, the kind Linux's OCCT has read as
+  an invalid jaw. Out to 6 mm the bar is plain. The bone lies on the bar there on the left and 0.1 to 0.5 mm off
+  it on the right, so the right magnet may stand that far proud of its pocket.
+- **The bar is thickened behind each pocket**, a 3 mm disc a magnet's depth out of its back: the pocket alone left
+  the bar SF 1.5 at the mouth servo's stall, where it twists; with the disc it is 2.5 or more (the plain bar 2.4).
+
+**Considered:** a third pair at the middle (the bar is 0.6 mm off the bone there, right behind the chin's Seat); a
+flat on the bar's front for each magnet (its plane lies along the bar's own front line, which left slivers); the
+hold as Seats with balls (the bone would then sit on two locations at once).

@@ -78,8 +78,11 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   over the magnet (model/morty/shells.py `seated()`). The realistic skull's calvaria sits on three Seats of the
   same sizes on its skull's rim, each on a boss inside the wall, the balls on the skull and the grooves in the cap
   (model/skeleton, #874). The crown's three pairs and the cap's three pull equally, so a lift on the crown may
-  bring the cap with it; both lift straight up and part by hand. *Upcoming (#850): the rest of Morty's Seats: the
-  chin on the jaw (#968) and the shirt on the Torso (#879).*
+  bring the cap with it; both lift straight up and part by hand. The chin has one Seat, flush in the front of the
+  mandible on the midline, and comes off forward; its three balls locate it whole. The mandible itself is held on
+  the jaw's carrier by two plain magnet pairs, face to face, 6 mm either side of that Seat (model/neck.py
+  `JAW_HOLD`): no balls, since the bone's grooves locate it on the carrier. *Upcoming (#850): the shirt's Seats
+  on the Torso (#879).*
 - A brow has no Seat (`skin.GLUED`): it is 8 mm across and a Seat 14. It is 0.6 mm thick and is laid on the face,
   in a bed 1 mm deep in the outside of the face's wall, its own outline its key with 0.2 mm of play a side, and
   glued there. The face runs on under it, 0.6 mm thick, its inside where the wall's always is. It comes off with

@@ -101,36 +101,54 @@ def _cap(cap, frame, lo, hi):
         o.display_type, o.hide_render = "WIRE", True
 
 
+def _cutters(job, kind, bone):
+    """The collection of the cutters of `kind` (FLATS, POCKETS, ...) of the Finish of `bone` (its bare name) and of
+    its worn copy's: a capped skull's and its cap's are one set, since the two are one Finish cut in two; another
+    bone's are its own, so no Finish is cut by a helper that stands in another bone."""
+    cap = job["cap"]["of"]
+    return collection(
+        kind if bone in cap or bone in cap.values() else f"{kind} {bone}", collection(CAP, collection("helpers"))
+    )
+
+
 def _seats(job, frame):
     """The helpers of the Skin's Seats in bone (job["seats"], model/skin.py SEATS; `frame` the head's in the
     document's, #850), each the carrier's half as model/printed/skin.py draws it, in the Seat's own frame, z out of
-    the bone: its pad a ball among the cap's bosses, united with the bone before the carve; a flat, a disc from the
-    Seat's face out past whatever bone stands proud of it; the magnet's pocket among the cap's; and three V-grooves
-    down into the face, opening outward. A collection's own pieces never meet: the cut takes each as one mesh."""
-    if not job["seats"]["at"]:
-        return
-    c = collection(CAP, collection("helpers"))
+    the bone: its pad, where it has one, a ball among the cap's bosses, united with the bone before the carve; a
+    flat, a disc from the Seat's face out past whatever bone stands proud of it; the magnet's pocket among its
+    bone's; and three V-grooves down into the face, opening outward. And each bone's plain pockets (job["pockets"],
+    #968), a magnet's pocket alone, its mouth at its frame's origin. A collection's own pieces never meet: the cut
+    takes each as one mesh."""
     (bore, depth), (ring, _), (reach, deep) = (job["cap"][k] for k in ("bore", "ball", "groove"))
     w, out = deep + 1.0, 10.0  # a groove's cutter 45 deg each side up past the face; a flat's, past a pad's top
     wedge = [(r, t, h) for r in (ring - reach, ring + reach) for t, h in ((-w, 1.0), (w, 1.0), (0.0, -deep))]
-    for i, (_, at, (under, radius)) in enumerate(job["seats"]["at"]):
+
+    def pocket(names, at):
+        o = _disc(bore, depth + 1.0)
+        o.matrix_world = at @ Matrix.Translation((0, 0, (1.0 - depth) / 2))
+        _into(o, _cutters(job, POCKETS, names[0]))
+
+    for i, (names, at, pad) in enumerate(job["seats"]["at"]):
         seat = Matrix.Translation(frame) @ Matrix(at)
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=radius, segments=48, ring_count=24)
-        pad = bpy.context.active_object
-        for o, into, z in (
-            (pad, BOSSES, -under),
-            (_disc(job["seats"]["flat"], out), FLATS, out / 2),
-            (_disc(bore, depth + 1.0), POCKETS, (1.0 - depth) / 2),
-        ):
-            o.matrix_world = seat @ Matrix.Translation((0, 0, z))
-            _into(o, collection(into, c))
+        pocket(names, seat)
+        flat = _disc(job["seats"]["flat"], out)
+        flat.matrix_world = seat @ Matrix.Translation((0, 0, out / 2))
+        _into(flat, _cutters(job, FLATS, names[0]))
+        # shortcut: only a capped skull's Finish unites its bosses with the bone (capped()); unite another bone's
+        # too when one of its Seats has a pad
+        if pad:
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=pad[1], segments=48, ring_count=24)
+            bpy.context.active_object.matrix_world = seat @ Matrix.Translation((0, 0, -pad[0]))
+            _into(bpy.context.active_object, _cutters(job, BOSSES, names[0]))
         for deg in (0, 120, 240):
             me = bpy.data.meshes.new(f"seat groove {i} {deg}")
             me.from_pydata(wedge, [], [(0, 1, 2), (3, 5, 4), (0, 3, 4, 1), (1, 4, 5, 2), (0, 2, 5, 3)])
             groove = bpy.data.objects.new(me.name, me)
             groove.matrix_world = seat @ Matrix.Rotation(math.radians(deg), 4, "Z")
-            collection(CARRIED, c).objects.link(groove)
-    for o in c.all_objects:
+            _cutters(job, CARRIED, names[0]).objects.link(groove)
+    for names, at in job["pockets"]:
+        pocket(names, Matrix.Translation(frame) @ Matrix(at))
+    for o in collection(CAP, collection("helpers")).all_objects:
         o.display_type, o.hide_render = "WIRE", True
 
 
@@ -384,17 +402,10 @@ def capped(job):
             for grid in (shelled.links[0].from_socket, _grid(group, _all(group, bpy.data.collections[BOSSES]))):
                 L.new(grid, union.inputs["Grid 2"])  # a union's grids all go into its one many-input socket
             L.new(union.outputs[0], shelled)
-            mesh = next(n for n in N if n.bl_idname == "GeometryNodeGridToMesh").outputs[0]
-            readers = [link.to_socket for link in mesh.links]
             seam = N.new("GeometryNodeObjectInfo")
             seam.name, seam.transform_space = "Seam", "RELATIVE"
-            cut = N.new("GeometryNodeMeshBoolean")
-            cut.name, cut.operation, cut.solver = "Cut", "DIFFERENCE", "MANIFOLD"
-            L.new(mesh, cut.inputs["Mesh 1"])
             for cutter in (seam.outputs["Geometry"], _all(group, bpy.data.collections[POCKETS])):
-                L.new(cutter, cut.inputs["Mesh 2"])
-            for socket in readers:
-                L.new(cut.outputs["Mesh"], socket)
+                L.new(cutter, _cut(group).inputs["Mesh 2"])
         lid = bpy.data.objects.get(f"finished {cap}")
         if not lid:
             lid = o.copy()
@@ -410,17 +421,35 @@ def capped(job):
             piece.modifiers["Finish"].node_group.nodes["Seam"].inputs["Object"].default_value = bpy.data.objects[cutter]
 
 
+def _cut(group):
+    """The group's exact cut, made once: a mesh boolean between its Grid to Mesh and whatever read that, before its
+    crumbs are dropped, which takes away every mesh linked into its Mesh 2 (capped(), seated())."""
+    N, L = group.nodes, group.links
+    if "Cut" not in N:
+        mesh = next(n for n in N if n.bl_idname == "GeometryNodeGridToMesh").outputs[0]
+        readers = [link.to_socket for link in mesh.links]
+        cut = N.new("GeometryNodeMeshBoolean")
+        cut.name, cut.operation, cut.solver = "Cut", "DIFFERENCE", "MANIFOLD"
+        L.new(mesh, cut.inputs["Mesh 1"])
+        for socket in readers:
+            L.new(cut.outputs["Mesh"], socket)
+    return N["Cut"]
+
+
 def seated(job):
-    """Each bone that carries a Skin's Seat (job["seats"], #850) has its flats and its grooves cut from its Finish's
-    mesh, exactly, where capped() cuts its seam and every pocket (the cap's and the Seats', one collection). Its
-    pads are among the cap's bosses, united with the bone before the carve."""
-    # shortcut: only a capped skull's Finish and its cap's have that cut; give another bone one when it carries a Seat
-    for name in {n for names, _, _ in job["seats"]["at"] for n in names}:
-        group = bpy.data.objects[f"finished {name}"].modifiers["Finish"].node_group
-        cut = {n.inputs["Collection"].default_value for n in group.nodes if n.bl_idname == "GeometryNodeCollectionInfo"}
-        for c in (bpy.data.collections[FLATS], bpy.data.collections[CARRIED]):
-            if c not in cut:
-                group.links.new(_all(group, c), group.nodes["Cut"].inputs["Mesh 2"])
+    """Each bone that carries a Skin's Seat (job["seats"], #850) or a plain pocket (job["pockets"], #968) has its
+    flats, its pockets and its grooves cut from its Finish's mesh, exactly (_cut()), in its bare copy and its worn
+    one: a capped skull where capped() cuts its seam and its cap's pockets, another bone (the mandible) by a cut of
+    its own. A skull's pads are among the cap's bosses, united with the bone before the carve."""
+    for names, *_ in (*job["seats"]["at"], *job["pockets"]):
+        for name in names:
+            group = bpy.data.objects[f"finished {name}"].modifiers["Finish"].node_group
+            had = {
+                n.inputs["Collection"].default_value for n in group.nodes if n.bl_idname == "GeometryNodeCollectionInfo"
+            }
+            for c in (_cutters(job, kind, names[0]) for kind in (POCKETS, FLATS, CARRIED)):
+                if c.objects and c not in had:  # an empty set would cut nothing
+                    group.links.new(_all(group, c), _cut(group).inputs["Mesh 2"])
 
 
 def numbers(job):

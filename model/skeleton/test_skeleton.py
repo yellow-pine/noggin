@@ -186,6 +186,7 @@ def test_the_vault_is_closed_from_the_sides_the_back_and_above():
 
 
 CAPS = [(skeleton.CAPPED, skeleton.CAP), (g.WORN[skeleton.CAPPED], g.WORN[skeleton.CAP])]  # bare, and worn
+MANDIBLES = ("mandible", g.WORN["mandible"])
 
 
 @pytest.mark.model
@@ -217,8 +218,10 @@ def _share(bone, solid):
 
 @pytest.fixture(scope="module")
 def solids():
-    """{piece: its solid (manifold3d)}, each skull and its calvaria: built once, 5 s of the four."""
-    return {stem: shells._solid(_bones()[stem].vertices, _bones()[stem].faces) for pair in CAPS for stem in pair}
+    """{piece: its solid (manifold3d)}, each bone that has an exact cut (a skull, its calvaria, a mandible): built
+    once, 5 s of the six."""
+    stems = [stem for pair in (*CAPS, MANDIBLES) for stem in pair]
+    return {stem: shells._solid(_bones()[stem].vertices, _bones()[stem].faces) for stem in stems}
 
 
 @pytest.mark.model
@@ -294,6 +297,45 @@ def test_a_skins_seat_in_bone_is_a_flat_a_flush_pocket_and_three_grooves(seat, w
         at = sk.RING * np.cos(np.radians(deg)), sk.RING * np.sin(np.radians(deg)), sk.GAP
         assert (bone ^ m3.Manifold.sphere(sk.BALL_R, 48).translate(at).transform(to)).volume() < 0.01, deg
         assert (bone ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at).transform(to)).volume() > 0, deg
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("stem", MANDIBLES)
+@pytest.mark.parametrize("pocket", skeleton.POCKETS["mandible"], ids=lambda p: f"{p[0][0]:+.0f}")
+def test_the_mandible_has_a_magnets_flush_pocket_at_each_pair_that_holds_it_on(stem, pocket, solids):
+    """#968 (Cansin, 2026-11-28, #893's sixth round): the mandible is held on its carrier by two magnet pairs, the
+    bone's half a plain pocket at each (skeleton.POCKETS), in the bare bone and the worn one. Read in the pocket's
+    frame, z out of the bone, toward the jaw's bar: the magnet's room is open from the pair's face, where the jaw's
+    magnet lies flush (model/printed/test_neck.py), a magnet deep into the bone, so the two stand face to face; and
+    the print floor of bone (skeleton.FLOOR) is behind it and round it at its floor."""
+    at, out = pocket
+    to = np.array(g.align_rows(at, (1, 0, 0), out))[:3]
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+
+    def disc(r, z0, z1):
+        return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((0, 0, z0)).transform(to)
+
+    assert _share(solids[stem], disc(sk.MAGNET[0] / 2, -depth, 1.0)) < 1e-3
+    assert _share(solids[stem], disc(bore, -depth - skeleton.FLOOR, -depth - 0.01)) > 0.99
+    round_it = disc(bore + skeleton.FLOOR, -depth, -depth + skeleton.PITCH) - disc(bore, -depth - 1.0, 1.0)
+    assert _share(solids[stem], round_it) > 0.99
+
+
+@pytest.mark.model
+@pytest.mark.bones
+def test_the_two_pairs_hold_the_mandible_on_while_the_chin_is_pulled_off_its_seat():
+    """#968: the bone leaves its carrier along skeleton.OFF, 60 deg off its pairs' axis, so half of each pair's pull
+    holds it on. Face to face (no gap: the bone's grooves locate it, not balls), the two hold at least skin.SF times
+    what pulls it off: the worn bone's weight and its chin Shell's, whichever way up the head is, and the share
+    along that way of the chin's own Seat's pull as the chin is pulled off forward (inferred, like every hold: 6.3 N
+    against 2.7)."""
+    way = np.array(skeleton.OFF["mandible"][0])
+    holds = sum(sk.hold_n(0.0) * -(way @ out) for _, out in skeleton.POCKETS["mandible"])
+    stems = (g.WORN["mandible"], "morty chin")
+    weight = sum(mjcf.mass(trimesh.load(stages.stl(s), force="mesh"), stages.printed(s)) for s in stems) / 1000 * 9.81
+    pull = sum(sk.hold_n() * (way @ s.normal) for s in sk.SEATS if s.shell == "morty chin")
+    assert pull > 2.0 and holds >= sk.SF * (weight + pull)
 
 
 @pytest.mark.model
@@ -477,7 +519,9 @@ def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
     of the carrier, the finished mandible's bone lies against it (within a voxel: the carrier is let into the
     bone) and stands the print floor thick beyond it, to a voxel. Outboard is level and square to the span, away from
     the head's middle: sideways down the ramus and the body, forward where the bar runs across at the chin. Inboard
-    the carrier may show: its post, the chain where the ramus is thinner than it, the bar behind the chin.
+    the carrier may show: its post, the chain where the ramus is thinner than it, the bar behind the chin. Not read
+    in line with a magnet pair that holds the bone on (nk.JAW_HOLD): there the two faces are their magnets', and the
+    bone behind its pocket is held by that pocket's own test.
     nk.MANDIBLE_CHAIN is a copy of the scene's mandible: this holds it to the bone (ADR 0011)."""
     from model.printed import neck
 
@@ -488,11 +532,15 @@ def test_the_mandible_covers_the_jaw_carrier_from_outside(side):
     )
     sign = 1.0 if side == "L" else -1.0
     bare = []
-    for a, b in itertools.pairwise(np.array(neck.jaw_chains()[side])):
+    spans = list(itertools.pairwise(np.array(neck.jaw_chains()[side])))
+    last = len(spans) - 1  # the bar across
+    for i, (a, b) in enumerate(spans):
         out = sign * np.array([a[1] - b[1], b[0] - a[0], 0.0])
         out /= np.linalg.norm(out)
         for t in (0.1, 0.3, 0.5, 0.7, 0.9):
             p = a + (b - a) * t
+            if any(np.hypot(p[0] - x, p[2] - z) < sk.MAGNET[0] / 2 + sk.FIT for x, _, z in nk.JAW_HOLD) and i == last:
+                continue
             # each surface's points outboard of the chain here (within 1 mm of the line out from it), mm from it
             of_bone, of_jaw = (((s - p) @ out)[np.linalg.norm(np.cross(s - p, out), axis=1) < 1.0] for s in (bone, jaw))
             face = of_jaw[
