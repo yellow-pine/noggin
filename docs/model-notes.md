@@ -273,7 +273,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   condyles on the jaw's hinge, the occipital condyles on the tilt axis, the vertebrae down the cervical canal's path,
   the atlas round the pan axis, and every bone at least 2.1 mm under Morty's skin, the Sculpt's surface
   (model/skeleton/envelope.py, docs/adr/0025: the skull's limit where the compact head's box was), the cranium drawn
-  out toward it so the vault closes over the mechanism. `just ours` has Blender
+  out toward it so the vault closes over the mechanism. The vertebrae keep that under his neck's skin as it rides the
+  head through tilt and pan (docs/adr/0030), for which C5 and C6 alone are slimmed toward their canals, past the
+  budget, in zones declared on the original anatomy (model/skeleton/budget.py). `just ours` has Blender
   finish them on a 0.8 mm SDF grid: the vault's bones thickened inward to at least 2.4 mm (the parietals are
   thinner at the temples), the skull's 21 bones sealed into one across every gap under 3 mm, the cranium
   shelled to 4 mm, the orbits opened round the lids, every part of the

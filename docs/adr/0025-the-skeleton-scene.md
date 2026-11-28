@@ -139,3 +139,40 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
   Cansin, 2026-11-27 (#893's second round): close them with bone at the print minimum.
 - The gates read the Sculpt (`model/morty`, ADR 0027): `test_skeleton.py` holds each finished bone 2.1 mm under it
   and to no box. `base.DOME` stays the mechanism's box until its gates read the Sculpt too.
+
+## 2026-11-28 C5 and C6 slimmed for the neck's skin (#874)
+
+> Decided by Cansin on 2026-11-27 (#893's third round): C5 and C6 are slimmed where the rim of the neck's skin swings
+> through them, beyond the usual length budget, in a declared zone for those two vertebrae only. The rule and its
+> numbers below were decided on ticket #874 (made while away; Cansin to confirm).
+
+The neck's skin rides the head and ends at the collar (ADR 0030), so its rim swings through the still neck as the head
+nods. The vertebrae are fitted under that skin as the still neck sees it: `envelope.turning` reads, at each point,
+the least depth under his skin above the collar over the head's tilt (every 1°) and pan (every 2.5°) together, and
+under the still skin at rest.
+
+- **The zones are on the original anatomy** (`budget.SLIMMED`), about each vertebra's own canal in plan: C6 all round
+  it; C5 from its canal back and beside it, less and less of it round to the front, none straight ahead. Cansin named
+  C5's rear arch and C6's body. Measured, C6 stands in both swings (its spine's tip 12 mm out of the nape's skin at
+  tilt −20°, its body's lower front 4 to 5 mm into the throat's rim at tilt +20°), so its zone is its whole ring; the
+  coordinator confirmed it on #874 as still those two vertebrae only.
+- **The rule is explicit, not the field's** (`budget.slim`): the bone is drawn in radially toward its canal's middle
+  from 8 mm out, each length beyond that taken to one factor a vertebra, eased in over 2 mm. The fit takes the greatest
+  factor of a fixed list (`fit.SLIMS`) that brings the vertebra 2.5 mm under the skin; it finds nothing else. Left to
+  the smooth field alone (a 5 mm lattice, floor 0.2), the same room was reached only by dragging C7's spine 19 mm up
+  beside them and took ten minutes; coarser lattices did not reach it.
+- **The factors: C6 0.4, C5 0.05.** Behind C5's canal the nape's rim leaves 12 mm from the canal's middle at z −118,
+  so C5's arch is a plate about 4 mm thick behind its canal: its spinous process is gone in effect. C6 keeps its
+  shape at 0.4 of its depth beyond the canal's wall. The floor declared for a slimmed zone is 0.03 (`budget.SLIM`);
+  the least length factor used is 0.04 (C5, where the zone's easing by direction shears it) and 0.37 (C6). 1,495 of
+  C5's vertices and 1,461 of C6's lie in a zone; 1,394 and 1,431 are squashed past 0.75. The stretch cap stays 1.25
+  everywhere (1.18 reached), and every other vertebra keeps 0.75 (0.87 reached).
+- **The canals stay open**: nothing within 8 mm of a canal's middle moves, and the canal pins hold (0.0 mm).
+- C4's spine and C7's body, 0.6 and 1.0 mm short of the margin, come under it in the neck's field, inside the usual
+  budget.
+- `model/review/test_nape.py` holds each finished vertebra 2.1 mm under the head's skin at every tilt and pan
+  together; before, C5's arch stood 6 mm and more out of the nape's skin tilted back.
+
+**Considered:** trimming the two vertebrae in the Finish (a fifth of C5 and a seventh of C6 gone, no vertebra left to
+read: #874's table of 2026-11-27); bending C5's spine up over the rim's arc (it meets C4's, and the whole column of
+spines would have to close up to its floor); a factor that changes with height (the bone shears across the step).

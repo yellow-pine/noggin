@@ -26,6 +26,9 @@ SEVERED = {
     "c3": "#1060: the cervical carrier's R rail, as thick as the tilt servo's stall takes, runs through C3's R lateral "
     "mass and cuts its transverse process off (206 mm3); #874 fits C3 round the rail, or #1060's metal tube takes the "
     "rail out of it, and drops this mark",
+    "c6": "#1075: slimmed toward its canal for the neck's skin (#874), C6's ring is about 6 mm wide beside the canal, "
+    "and the cervical carrier's rails (#1064) run through it on both sides: its body (1.2 cm3) and its arch (0.6 cm3) "
+    "part. The aluminium tube up the canal takes the rails out of it, and drops this mark",
 }
 
 
