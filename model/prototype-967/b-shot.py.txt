@@ -1,0 +1,34 @@
+import bpy, sys, math
+from mathutils import Vector
+scene = next(s for s in bpy.data.scenes if any(c.name == "Mech" for c in s.collection.children))
+bpy.context.window.scene = scene
+def layer(lc, name):
+    if lc.collection.name == name: return lc
+    for ch in lc.children:
+        f = layer(ch, name)
+        if f: return f
+frame = bpy.data.objects["gimbal frame:1"]
+eyeL = next(o for o in bpy.data.objects if o.name.startswith("preview shut L eyeball"))
+pts = [eyeL.matrix_world @ v.co for v in eyeL.data.vertices]
+ctr = sum(pts, Vector()) / len(pts)
+print("L eye centre (world)", tuple(round(x, 1) for x in ctr))
+cam_d = bpy.data.cameras.new("shot"); cam = bpy.data.objects.new("shot", cam_d); scene.collection.objects.link(cam)
+cam_d.type = "ORTHO"; cam_d.ortho_scale = 200; cam_d.clip_end = 5000
+scene.camera = cam
+scene.render.engine = "BLENDER_WORKBENCH"; scene.render.resolution_x = 900; scene.render.resolution_y = 700
+scene.display.shading.light = "STUDIO"; scene.display.shading.color_type = "OBJECT"
+scene.frame_set(1)
+mid = Vector((0, ctr.y, ctr.z)) if abs(ctr.x) > 1 else ctr
+for view, off, rot in (("front", Vector((0, -600, 0)), (math.radians(90), 0, 0)), ("threeq", Vector((350, -500, 60)), None)):
+    cam.location = Vector((0, ctr.y, ctr.z)) + off
+    if rot: cam.rotation_euler = rot
+    else:
+        d = Vector((0, ctr.y, ctr.z)) - cam.location
+        cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
+    for state in ("open", "half shut", "shut"):
+        for vl in scene.view_layers:
+            for s in ("open", "half shut", "shut"):
+                layer(vl.layer_collection, f"lids {s}").exclude = s != state
+        scene.render.filepath = f"/tmp/967-s5b/shot-{view}-{state.replace(' ', '-')}.png"
+        bpy.ops.render.render(write_still=True)
+print("review: done")

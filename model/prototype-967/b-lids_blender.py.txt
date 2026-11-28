@@ -1,0 +1,71 @@
+"""PROTOTYPE (#967 slice 5, option b), throwaway: in Blender, on Cansin's review file: a collection of plain lid
+surfaces (open, half shut, shut) and his eyeballs, on the head, and today's caps and lids hidden under them.
+blender -b review.blend -P lids_blender.py -- job.json out.blend"""
+import json, sys
+import bpy
+from mathutils import Matrix
+
+job = json.load(open(sys.argv[sys.argv.index("--") + 1]))
+out = sys.argv[sys.argv.index("--") + 2]
+bpy.context.preferences.filepaths.save_version = 0
+scene = next(s for s in bpy.data.scenes if any(c.name == "Mech" for c in s.collection.children))
+print("scenes", [s.name for s in bpy.data.scenes], "main", scene.name)
+NAME = "Lids preview #967 (tick one: open, half shut, shut)"
+old = bpy.data.collections.get(NAME)
+if old:  # run again: replace it
+    for c in list(old.children):
+        for o in list(c.objects):
+            bpy.data.objects.remove(o)
+        bpy.data.collections.remove(c)
+    bpy.data.collections.remove(old)
+top = bpy.data.collections.new(NAME)
+scene.collection.children.link(top)
+
+def material(name, rgba):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.diffuse_color = rgba
+    return m
+
+face = next((o for o in bpy.data.objects if o.get("part") == "morty face:1" or o.name.startswith("morty face")), None)
+skin = tuple(face.color[:3]) + (1.0,) if face else (0.9, 0.7, 0.55, 1.0)
+print("skin colour from", face and face.name, skin)
+mats = {"lid": material("Lids preview skin", skin), "eye": material("Lids preview eye white", (0.9, 0.9, 0.9, 1.0))}
+mats["edge"] = material("Lids preview edge", (0.08, 0.04, 0.04, 1.0))
+frame = next((o for o in scene.objects if o.get("part") == "gimbal frame:1" or o.name == "gimbal frame:1"), None)
+print("riding", frame and frame.name)
+for state, items in job["states"].items():
+    c = bpy.data.collections.new(f"lids {state}")
+    top.children.link(c)
+    for name, (v, f, kind) in items.items():
+        me = bpy.data.meshes.new(f"preview {state} {name}")
+        me.from_pydata(v, [], f)
+        me.update()
+        o = bpy.data.objects.new(f"preview {state} {name}", me)
+        o.data.materials.append(mats[kind])
+        o.color = mats[kind].diffuse_color
+        c.objects.link(o)
+        if frame:
+            o.parent = frame
+            o.matrix_parent_inverse = frame.matrix_world.inverted()
+hidden = []
+for o in scene.objects:
+    part = o.get("part") or o.name
+    if any(k in part for k in ("eyeball cap", "upper lid", "lower lid")) and not o.name.startswith("preview"):
+        o.hide_viewport = o.hide_render = True
+        hidden.append(o.name)
+print("hidden", hidden)
+
+def layer(lc, name):
+    if lc.collection.name == name:
+        return lc
+    for ch in lc.children:
+        found = layer(ch, name)
+        if found:
+            return found
+
+for vl in scene.view_layers:
+    for state in job["states"]:
+        lc = layer(vl.layer_collection, f"lids {state}")
+        lc.exclude = state != job["show"]
+bpy.ops.wm.save_as_mainfile(filepath=out)
+print("review: done")

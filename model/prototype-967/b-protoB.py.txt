@@ -1,0 +1,150 @@
+"""Scratch (#967 slice 5, option b), throwaway: the lids as Cansin chose them, on main's parts (slice 3).
+Lower lid: its edge the opening's bottom rim's own curve; open, parked on it. Upper lid: the same curve, so the two
+meet on it when shut; open, wholly behind the top rim. Band 36.3..37.5 about each fitted eye centre; nothing else may
+stand in 35.8..38.0 where a lid ever is. Run from a worktree with `just ours` built: python protoB.py"""
+import os, sys, numpy as np, trimesh
+from scipy.spatial import cKDTree
+from model import gimbal as gm, morty, review, stages, skin, geometry as g
+from model.review import test_hidden as th
+
+Z = np.load("/tmp/967-s5b/rims.npz"); A = Z["A"]
+BAND, SHELL = (36.3, 37.5), (35.8, 38.0)
+SKIN_TOL = 0.05     # a part drawn on the 35.8 mm sphere itself (the yaw bearing's pad) is not in the shell: its mesh's chords
+OV = 4.0            # each lid covers this far past the rim it hides behind, deg
+SHUT0 = 4.0         # the shut line at the eye's middle, deg over it
+DOC = "mech-back-mechanical"
+np.set_printoptions(linewidth=200, precision=1, suppress=True)
+
+def curves(side):
+    top, bot = Z[f"{side}_top"], Z[f"{side}_bot"]
+    ok = ~np.isnan(top)
+    return A[ok], top[ok], bot[ok]
+
+LIDS = {}
+for side in "LR":
+    a, top, bot = curves(side)
+    h = top - bot
+    low_travel = SHUT0 - np.interp(0, a, bot)            # the lower lid: its edge from the bottom rim up to the shut line
+    up_open = h.max()                                     # the upper lid's edge over the lower's open one, parked behind the top rim
+    up_travel = up_open - low_travel
+    LIDS[side] = dict(a=a, top=top, bot=bot, low_travel=low_travel, up_open=up_open, up_travel=up_travel)
+    print(f"\n{side} eye: opening a {a.min():.0f}..{a.max():.0f}; height {h.min():.0f} (a {a[h.argmin()]:.0f}) .. {h.max():.0f} (a {a[h.argmax()]:.0f})")
+    print(f"  lower lid travels {low_travel:.1f} deg, upper {up_travel:.1f} (ratio {low_travel / up_travel:.3f}); the upper's edge parks {up_open:.1f} over the lower's")
+    idx = [int(np.argmin(abs(a - x))) for x in (-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80) if a.min() <= x <= a.max()]
+    print("  a                  ", " ".join(f"{a[i]:5.0f}" for i in idx))
+    print("  top rim            ", " ".join(f"{top[i]:5.0f}" for i in idx))
+    print("  bottom rim         ", " ".join(f"{bot[i]:5.0f}" for i in idx))
+    print("  shut line          ", " ".join(f"{bot[i] + low_travel:5.0f}" for i in idx))
+    print("  shut: over top rim ", " ".join(f"{bot[i] + low_travel - top[i]:5.0f}" for i in idx), " (+: the lower lid alone shuts the opening there, its edge under the brow's wall)")
+    print("  upper edge, open   ", " ".join(f"{bot[i] + up_open:5.0f}" for i in idx))
+    print("  ... behind top rim ", " ".join(f"{bot[i] + up_open - top[i]:5.0f}" for i in idx))
+    print("  upper back, open   ", " ".join(f"{max(top[i] + OV + up_travel, bot[i] + up_open):5.0f}" for i in idx))
+    print("  lower back, open   ", " ".join(f"{bot[i] - OV - low_travel:5.0f}" for i in idx))
+
+def swept(side, a_deg):
+    """(lowest, highest) lid angle either lid of `side` ever covers at a (nan outside the lids' reach along the eye line)."""
+    L = LIDS[side]
+    lo = np.interp(a_deg, L["a"], L["bot"] - OV - L["low_travel"], left=np.nan, right=np.nan)
+    hi = np.interp(a_deg, L["a"], np.maximum(L["top"] + OV + L["up_travel"], L["bot"] + L["up_open"]), left=np.nan, right=np.nan)
+    return lo, hi
+
+def polar(p, side):
+    s = 1 if side == "L" else -1
+    q = np.asarray(p, float) - gm.EYE[side]; r = np.linalg.norm(q, axis=1)
+    return r, np.degrees(np.arcsin(np.clip(s * q[:, 0] / np.maximum(r, 1e-9), -1, 1))), np.degrees(np.arctan2(q[:, 2], -q[:, 1]))
+
+def crossing(p, side, grow=0.0):
+    r, a, phi = polar(p, side)
+    lo, hi = swept(side, a)
+    return (r > SHELL[0] + SKIN_TOL - grow) & (r < SHELL[1] + grow) & (phi > lo - grow) & (phi < hi + grow), (r, a, phi)
+
+# ---- main's parts, in the gimbal's frame, over the eyes' yaw and pitch ----
+stage = stages.STAGES[DOC]
+eyes = stages.align(*stages.DOCS[DOC]["eyes"]); inv = np.linalg.inv(eyes)
+SKIP = ("upper lid", "lower lid", "lid bar", "lid link", "eyeball cap")     # slice 5 redraws these
+clouds = {}
+for n, p in stage.parts.items():
+    if any(k in n for k in SKIP): continue
+    m = trimesh.load(p.file, force="mesh")
+    if p.clip is not None: pass
+    pts = np.vstack([m.vertices, trimesh.sample.sample_surface_even(m, int(min(m.area * 2, 400000)), seed=0)[0]])
+    c = trimesh.transform_points(pts, inv @ p.matrix)
+    if np.abs(c).max(axis=0)[1] > 150 and (np.linalg.norm(c - gm.EYE["L"], axis=1).min() > 45 and np.linalg.norm(c - gm.EYE["R"], axis=1).min() > 45):
+        continue
+    clouds[n] = c
+print(f"\n{len(clouds)} parts near the eyes:", sorted(clouds))
+poses = [(0.0, 0.0)] + [(y, p) for y in (-25, -12.5, 12.5, 25, 0) for p in (-15, 0, 15) if (y, p) != (0, 0)]
+worst = {}
+for yaw, pitch in poses:
+    mv = gm.moved(0.0, float(pitch), float(yaw))
+    for n, c in clouds.items():
+        if n not in mv and (yaw, pitch) != (0.0, 0.0): continue          # it stands still: read once
+        q = trimesh.transform_points(c, mv[n]) if n in mv else c
+        for side in "LR":
+            hit, (r, a, phi) = crossing(q, side)
+            if hit.any():
+                k = (n, side)
+                if hit.sum() > worst.get(k, (0,))[0]:
+                    worst[k] = (int(hit.sum()), yaw, pitch, a[hit].min(), a[hit].max(), phi[hit].min(), phi[hit].max(), r[hit].min(), r[hit].max())
+print("\nwhat stands where a lid sweeps (35.8..38.0 mm, between the lids' back edges), worst pose each:")
+for (n, side), v in sorted(worst.items()):
+    print(f"  {n:22s} {side} lids: {v[0]:6d} pts at yaw {v[1]:.0f} pitch {v[2]:.0f}: a {v[3]:.0f}..{v[4]:.0f}, lid angle {v[5]:.0f}..{v[6]:.0f}, r {v[7]:.1f}..{v[8]:.1f}")
+if not worst: print("  nothing")
+np.savez("/tmp/967-s5b/worst.npz", keys=np.array([f"{n}|{s}" for n, s in worst]), vals=np.array(list(worst.values()), float))
+
+# where exactly: per part that crosses, by a, the lid angles it takes inside the shell over every pose
+print("\nwhere each crossing part stands inside 35.8..38.0 mm, over every pose, by a (deg): lid angle lowest..highest, against the lids' back edges there")
+for (n, side) in sorted(worst):
+    c = clouds[n]; rows = {}
+    for yaw, pitch in poses:
+        mv = gm.moved(0.0, float(pitch), float(yaw))
+        if n not in mv and (yaw, pitch) != (0.0, 0.0): continue
+        q = trimesh.transform_points(c, mv[n]) if n in mv else c
+        r, a, phi = polar(q, side)
+        m = (r > SHELL[0] + SKIN_TOL) & (r < SHELL[1]) & (a > LIDS[side]["a"].min()) & (a < LIDS[side]["a"].max())
+        for a0 in np.unique(np.round(a[m] / 4) * 4):
+            k = m & (np.abs(a - a0) <= 2)
+            for sign in (1, -1):
+                kk = k & (np.sign(phi) == sign)
+                if kk.any():
+                    lo, hi = rows.get((a0, sign), (999, -999)); rows[(a0, sign)] = (min(lo, phi[kk].min()), max(hi, phi[kk].max()))
+    for (a0, sign), (lo, hi) in sorted(rows.items()):
+        blo, bhi = swept(side, np.array([float(a0)]))
+        inside = (hi > blo[0] and sign < 0) or (lo < bhi[0] and sign > 0)
+        if inside: print(f"  {n:16s} {side} a {a0:4.0f}: {lo:6.1f}..{hi:6.1f}   lids' back edges {blo[0]:6.1f} / {bhi[0]:5.1f}")
+
+# how much room the nearest parts leave past the back edges (deg) at the band's radii, at rest
+print("\nthe room behind each lid's back edge at rest (deg of lid angle to the nearest part inside 35.8..38.0), by a:")
+for side in "LR":
+    allp = np.vstack([c for n, c in clouds.items()])
+    r, a, phi = polar(allp, side)
+    inr = (r > SHELL[0]) & (r < SHELL[1])
+    row_u, row_l = [], []
+    for a0 in (-50, -30, -10, 0, 10, 30, 50, 70):
+        m = inr & (np.abs(a - a0) < 3)
+        lo, hi = swept(side, np.array([float(a0)]))
+        up = phi[m & (phi > hi[0])]; dn = phi[m & (phi < lo[0])]
+        row_u.append(f"{(up.min() - hi[0]) if len(up) else np.inf:5.0f}"); row_l.append(f"{(lo[0] - dn.max()) if len(dn) else np.inf:5.0f}")
+    print(f"  {side} a (-50 -30 -10 0 10 30 50 70): upper {' '.join(row_u)} | lower {' '.join(row_l)}")
+
+# ---- his skin over the stowed lids, along each ray from the eye's centre (/tmp/967-s5/measure.py's L.npz, R.npz):
+# surf: his surface's radius; under: the largest radius WALL + clearance (2.1 mm) under it ----
+print("\nhis skin over the lids' band (out to 37.5, 0.5 clear: 38.0), past the rim, by a: mm along the sphere past the rim to where")
+print("  [wall] a 1.6 mm wall fits over the band (under >= 38.0), [thin] a 0.4 mm wall does (surf >= 38.4), [none] his surface is over the band at all (surf >= 37.5)")
+for side in "LR":
+    N = np.load(f"/tmp/967-s5/{side}.npz"); An, Pn, surf, under = N["A"], N["PHI"], N["surf"], N["under"]
+    L = LIDS[side]
+    for name, sgn in (("upper", 1), ("lower", -1)):
+        rows = []
+        for a0 in (-50, -30, -10, 0, 10, 30, 50, 70, 80):
+            i = int(np.argmin(abs(An - a0)))
+            edge = np.interp(a0, L["a"], L["top"] if sgn > 0 else L["bot"])
+            far = (OV + L["up_travel"] + L["up_open"] - np.interp(a0, L["a"], L["top"] - L["bot"])) if sgn > 0 else OV + L["low_travel"]
+            ks = np.arange(0, int(far) + 1)
+            j = [int(np.argmin(abs(((Pn - (edge + sgn * k)) + 180) % 360 - 180))) for k in ks]
+            mm = np.radians(ks) * 37.5 * np.cos(np.radians(a0))
+            def reach(ok):
+                bad = ~ok
+                return mm[np.where(bad)[0].max()] if bad.any() else 0.0
+            rows.append(f"a {a0}: wall {reach(np.nan_to_num(under[i, j], nan=99) >= 38.0):.1f} thin {reach(np.nan_to_num(surf[i, j], nan=99) >= 38.4):.1f} none {reach(np.nan_to_num(surf[i, j], nan=99) >= 37.5):.1f}")
+        print(f"  {side} {name}: " + " | ".join(rows))

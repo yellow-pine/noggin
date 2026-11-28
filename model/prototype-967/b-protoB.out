@@ -1,0 +1,65 @@
+heavy.py: another heavy recipe runs on this machine (/tmp/noggin-heavy.lock); waiting for pid 63887, which has held it for 0 min
+
+L eye: opening a -56..82; height 26 (a -56) .. 152 (a 46)
+  lower lid travels 67.4 deg, upper 85.1 (ratio 0.791); the upper's edge parks 152.5 over the lower's
+  a                     -50   -40   -30   -20   -10     0    10    20    30    40    50    60    70    80
+  top rim                38    53    60    66    70    73    76    79    81    82    83    81    76    58
+  bottom rim            -29   -43   -51   -56   -60   -63   -66   -68   -69   -69   -69   -66   -61   -42
+  shut line              38    25    17    11     7     4     2    -0    -1    -2    -1     1     7    25
+  shut: over top rim     -0   -28   -44   -55   -63   -69   -74   -79   -82   -84   -85   -80   -69   -33  (+: the lower lid alone shuts the opening there, its edge under the brow's wall)
+  upper edge, open      124   110   102    96    92    89    87    85    84    83    84    87    92   111
+  ... behind top rim     85    57    41    30    22    16    11     6     3     1     0     5    16    53
+  upper back, open      128   142   150   155   159   162   165   168   170   171   173   170   165   147
+  lower back, open     -100  -114  -122  -128  -132  -135  -137  -139  -140  -141  -140  -137  -132  -113
+
+R eye: opening a -56..82; height 25 (a 82) .. 151 (a 44)
+  lower lid travels 67.4 deg, upper 83.3 (ratio 0.809); the upper's edge parks 150.7 over the lower's
+  a                     -50   -40   -30   -20   -10     0    10    20    30    40    50    60    70    80
+  top rim                40    53    61    66    70    73    76    78    80    82    82    76    69    42
+  bottom rim            -30   -43   -51   -56   -60   -63   -66   -67   -68   -68   -68   -64   -55   -28
+  shut line              37    24    17    11     7     4     2     0    -1    -1    -0     3    12    39
+  shut: over top rim     -2   -29   -44   -55   -63   -69   -75   -78   -81   -83   -82   -73   -57    -3  (+: the lower lid alone shuts the opening there, its edge under the brow's wall)
+  upper edge, open      121   107   100    94    90    87    85    83    83    82    83    87    95   122
+  ... behind top rim     81    54    39    29    21    14     9     5     3     1     1    10    27    80
+  upper back, open      127   140   148   153   157   161   164   166   167   169   169   164   156   130
+  lower back, open     -101  -115  -122  -128  -132  -135  -137  -139  -139  -140  -139  -135  -127  -100
+
+48 parts near the eyes: ['Core 1:1', 'Core 2:1', 'L eyeball core:1', 'L lid horn:1', 'L lid servo:1', 'L push-rod:1', 'L yaw yoke:1', 'R eyeball core:1', 'R lid horn:1', 'R lid servo:1', 'R push-rod:1', 'R yaw yoke:1', 'Shield 1:1', 'Shield 2:1', 'bail:1', 'bulk capacitor:1', 'cervical carrier:1', 'cranium tray:1', 'gimbal frame:1', 'head mount:1', 'hub:1', 'jaw bar:1', 'jaw:1', 'mouth horn:1', 'mouth servo:1', 'nod plate:1', 'pack:1', 'pan bar:1', 'pan bearing:1', 'pan fixed cap:1', 'pan horn:1', 'pan lever:1', 'pan moving cap:1', 'pan servo:1', 'pitch bar:1', 'pitch horn:1', 'pitch servo:1', 'power-path board:1', 'switch board:1', 'tie-bar:1', 'tilt horn:1', 'tilt lever:1', 'tilt reaction bar:1', 'tilt servo:1', 'torso lid:1', 'torso:1', 'yaw horn:1', 'yaw servo:1']
+
+what stands where a lid sweeps (35.8..38.0 mm, between the lids' back edges), worst pose each:
+  bail:1                 L lids:    292 pts at yaw 0 pitch -15: a -3..3, lid angle 157..163, r 36.2..38.0
+  bail:1                 R lids:    233 pts at yaw 0 pitch -15: a -3..3, lid angle 157..161, r 36.2..38.0
+  gimbal frame:1         L lids:    373 pts at yaw 0 pitch 0: a 61..82, lid angle -131..-67, r 35.9..38.0
+  gimbal frame:1         R lids:    379 pts at yaw 0 pitch 0: a 61..81, lid angle -128..-64, r 35.9..38.0
+
+where each crossing part stands inside 35.8..38.0 mm, over every pose, by a (deg): lid angle lowest..highest, against the lids' back edges there
+  bail:1           L a   -4:  156.9.. 179.9   lids' back edges -133.7 / 161.1
+  bail:1           L a    0:  156.7.. 180.0   lids' back edges -134.7 / 162.1
+  bail:1           L a    4:  156.9.. 179.9   lids' back edges -135.9 / 163.4
+  bail:1           R a   -4:  156.9.. 179.9   lids' back edges -133.7 / 159.4
+  bail:1           R a   -0:  156.7.. 180.0   lids' back edges -134.7 / 160.8
+  bail:1           R a    4:  156.9.. 179.9   lids' back edges -135.8 / 161.9
+  gimbal frame:1   L a   60: -116.3.. -90.0   lids' back edges -137.3 / 170.3
+  gimbal frame:1   L a   64: -121.2.. -85.0   lids' back edges -135.4 / 168.5
+  gimbal frame:1   L a   68: -129.0.. -73.7   lids' back edges -133.2 / 166.7
+  gimbal frame:1   L a   72: -141.1.. -71.6   lids' back edges -130.3 / 163.9
+  gimbal frame:1   L a   76: -143.1.. -70.3   lids' back edges -124.7 / 157.7
+  gimbal frame:1   L a   80: -140.5.. -66.7   lids' back edges -113.3 / 147.1
+  gimbal frame:1   R a   60: -115.3.. -91.4   lids' back edges -135.5 / 163.8
+  gimbal frame:1   R a   64: -120.9.. -85.0   lids' back edges -132.8 / 161.1
+  gimbal frame:1   R a   68: -129.5.. -73.7   lids' back edges -129.4 / 157.5
+  gimbal frame:1   R a   72: -140.1.. -71.5   lids' back edges -124.6 / 153.1
+  gimbal frame:1   R a   76: -143.1.. -70.1   lids' back edges -115.9 / 145.7
+  gimbal frame:1   R a   80: -136.2.. -64.2   lids' back edges  -99.7 / 129.6
+
+the room behind each lid's back edge at rest (deg of lid angle to the nearest part inside 35.8..38.0), by a:
+  L a (-50 -30 -10 0 10 30 50 70): upper   inf   inf   inf     9   inf   inf   inf   inf | lower   inf    13   inf    19    16   inf   inf     0
+  R a (-50 -30 -10 0 10 30 50 70): upper   inf   inf   inf    10   inf   inf   inf   inf | lower   inf    13   inf    19    16   inf   inf     1
+
+his skin over the lids' band (out to 37.5, 0.5 clear: 38.0), past the rim, by a: mm along the sphere past the rim to where
+  [wall] a 1.6 mm wall fits over the band (under >= 38.0), [thin] a 0.4 mm wall does (surf >= 38.4), [none] his surface is over the band at all (surf >= 37.5)
+  L upper: a -50: wall 2.1 thin 0.0 none 0.0 | a -30: wall 1.7 thin 0.0 none 0.0 | a -10: wall 1.3 thin 0.6 none 0.0 | a 0: wall 1.3 thin 0.0 none 0.0 | a 10: wall 0.6 thin 0.0 none 0.0 | a 30: wall 0.0 thin 0.0 none 0.0 | a 50: wall 0.0 thin 0.0 none 0.0 | a 70: wall 1.6 thin 0.0 none 0.0 | a 80: wall 2.2 thin 0.3 none 0.0
+  L lower: a -50: wall 2.5 thin 0.0 none 0.0 | a -30: wall 1.7 thin 0.0 none 0.0 | a -10: wall 2.6 thin 0.6 none 0.0 | a 0: wall 2.6 thin 1.3 none 0.7 | a 10: wall 1.9 thin 0.6 none 0.6 | a 30: wall 2.8 thin 1.7 none 1.1 | a 50: wall 2.5 thin 1.7 none 0.4 | a 70: wall 2.9 thin 1.1 none 1.1 | a 80: wall 2.8 thin 0.9 none 0.0
+  R upper: a -50: wall 1.3 thin 0.0 none 0.0 | a -30: wall 1.1 thin 0.0 none 0.0 | a -10: wall 1.3 thin 0.6 none 0.0 | a 0: wall 1.3 thin 0.0 none 0.0 | a 10: wall 0.6 thin 0.0 none 0.0 | a 30: wall 0.6 thin 0.0 none 0.0 | a 50: wall 0.4 thin 0.0 none 0.0 | a 70: wall 3.1 thin 1.3 none 0.2 | a 80: wall 4.0 thin 3.2 none 2.0
+  R lower: a -50: wall 2.1 thin 0.0 none 0.0 | a -30: wall 1.7 thin 0.0 none 0.0 | a -10: wall 2.6 thin 0.6 none 0.0 | a 0: wall 2.6 thin 1.3 none 0.7 | a 10: wall 1.9 thin 0.6 none 0.6 | a 30: wall 3.4 thin 2.3 none 1.7 | a 50: wall 2.9 thin 2.1 none 0.8 | a 70: wall 4.3 thin 2.5 none 2.5 | a 80: wall 4.4 thin 3.8 none 2.4
+exit 0

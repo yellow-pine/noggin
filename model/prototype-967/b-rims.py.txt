@@ -1,0 +1,32 @@
+"""Scratch (#967 slice 5, option b): each eye opening's rim on his 37.1 mm ball, deg about the eye line by a, every
+2 deg, from the eye white's cut (as /tmp/967-s5/measure2.py). Writes rims.npz."""
+import numpy as np, manifold3d as m3
+from model import gimbal as gm, skin
+from model.morty import shells as sh
+
+def polar(p, eye, s):
+    q = p - eye; r = np.linalg.norm(q, axis=1)
+    return np.degrees(np.arcsin(np.clip(s * q[:, 0] / r, -1, 1))), np.degrees(np.arctan2(q[:, 2], -q[:, 1]))
+def verts(solid):
+    return np.asarray(solid.to_mesh().vert_properties)[:, :3]
+def shell(r, eye, t=0.03):
+    return (m3.Manifold.sphere(r + t, 720) - m3.Manifold.sphere(r - t, 720)).translate(eye)
+A = np.arange(-70, 90, 2.0)
+out = {"A": A}
+for side, s in (("L", 1), ("R", -1)):
+    eye = np.array(gm.EYE[side])
+    cut = sh._swept(*skin.cuts()[f"{side} eye white"])
+    front = m3.Manifold.cube((200, 100, 200)).translate((-100, -100, -100))
+    a, phi = polar(verts(shell(gm.MORTY_BALL_R, eye) ^ cut ^ front), eye, s)
+    lo, hi = np.full(len(A), np.nan), np.full(len(A), np.nan)
+    for i, a0 in enumerate(A):
+        m = np.abs(a - a0) < 1.0
+        if m.sum() > 5: lo[i], hi[i] = phi[m].min(), phi[m].max()
+    out[f"{side}_bot"], out[f"{side}_top"] = lo, hi
+    ok = ~np.isnan(lo)
+    print(side, "opening a", A[ok].min(), "..", A[ok].max())
+    print("  a   ", " ".join(f"{x:5.0f}" for x in A[ok][::5]))
+    print("  top ", " ".join(f"{x:5.0f}" for x in hi[ok][::5]))
+    print("  bot ", " ".join(f"{x:5.0f}" for x in lo[ok][::5]))
+    print("  hgt ", " ".join(f"{x:5.0f}" for x in (hi - lo)[ok][::5]))
+np.savez("/tmp/967-s5b/rims.npz", **out)

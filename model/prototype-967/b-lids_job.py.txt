@@ -1,0 +1,70 @@
+"""PROTOTYPE (#967 slice 5, option b), throwaway: the lids' plain surfaces from the rims (rims.py's rims.npz) into
+Cansin's review file, published as model/review publishes it. Run under the heavy lock: python lids_job.py"""
+import json, os, sys, tempfile
+import numpy as np
+from model import gimbal as gm, review, stages
+from scripts.gx10 import atomic_json, checksum
+
+Z = np.load("/tmp/967-s5b/rims.npz")
+R, R_EYE, SHUT0 = 37.5, 37.0, 6.5      # the band's outer face; his eyeball; the shut line over the eye's middle (Cansin, cure 1)
+eyes = stages.align(*stages.DOCS[review.DOC]["eyes"])
+
+def grid(side, lo, hi, a, r=R):
+    """(vertices, quads) of a patch on the sphere r about the side's eye: by a (deg along the eye line), from lid angle lo(a) to hi(a)."""
+    s = 1 if side == "L" else -1
+    n = 24
+    v, f = [], []
+    for i, (a0, l0, h0) in enumerate(zip(a, lo, hi)):
+        for j in range(n + 1):
+            p = np.radians(l0 + (h0 - l0) * j / n); q = np.radians(a0)
+            x = np.array(gm.EYE[side]) + r * np.array([s * np.sin(q), -np.cos(q) * np.cos(p), np.cos(q) * np.sin(p)])
+            v.append((eyes @ [*x, 1])[:3].tolist())
+    for i in range(len(a) - 1):
+        for j in range(n):
+            k = i * (n + 1) + j
+            f.append([k, k + 1, k + n + 2, k + n + 1])
+    return v, f
+
+def ball(side, r=R_EYE, n=48):
+    v, f = [], []
+    c = np.array(gm.EYE[side])
+    for i in range(n + 1):
+        for j in range(2 * n):
+            t, p = np.pi * i / n, np.pi * j / n
+            v.append((eyes @ [*(c + r * np.array([np.sin(t) * np.cos(p), np.sin(t) * np.sin(p), np.cos(t)])), 1])[:3].tolist())
+    for i in range(n):
+        for j in range(2 * n):
+            f.append([i * 2 * n + j, i * 2 * n + (j + 1) % (2 * n), (i + 1) * 2 * n + (j + 1) % (2 * n), (i + 1) * 2 * n + j])
+    return v, f
+
+states = {"open": {}, "half shut": {}, "shut": {}}
+for side in "LR":
+    top, bot = Z[f"{side}_top"], Z[f"{side}_bot"]
+    ok = ~np.isnan(top)
+    a = np.arange(Z["A"][ok].min(), Z["A"][ok].max() + 0.01, 1.0)
+    top, bot = np.interp(a, Z["A"][ok], top[ok]), np.interp(a, Z["A"][ok], bot[ok])
+    low_travel = SHUT0 - np.interp(0, a, bot)
+    up_open = (top - bot).max()
+    up_travel = up_open - low_travel
+    ov = np.clip((np.abs(a) - 8) / 4, 0, 1) * 4.0          # the upper lid's back edge on the top rim itself for a -8..8
+    print(side, "lower travels", round(low_travel, 1), "upper", round(up_travel, 1), "upper back edge at a 0, open:", round(float(np.interp(0, a, top + ov + up_travel)), 1))
+    for state, t in (("open", 0.0), ("half shut", 0.5), ("shut", 1.0)):
+        lower = (bot - 4.0 - low_travel + t * low_travel, bot + t * low_travel)
+        upper = (bot + up_open - t * up_travel, np.maximum(top + ov + up_travel, bot + up_open + 1.0) - t * up_travel)
+        states[state][f"{side} lower lid"] = (*grid(side, *lower, a), "lid")
+        states[state][f"{side} upper lid"] = (*grid(side, *upper, a), "lid")
+        states[state][f"{side} eyeball"] = (*ball(side), "eye")
+        # each lid's edge as a dark line 0.6 mm wide, a hair proud: two lids of one colour show no shut line without it
+        for name, (edge, way) in (("lower", (lower[1], -1)), ("upper", (upper[0], 1))):
+            states[state][f"{side} {name} lid's edge"] = (*grid(side, edge, edge + way * 0.9, a, r=R + 0.1), "edge")
+out = review.OUT
+held = [review.lock(out + ".lock"), review.lock(review.SLOT, wait=True)]
+part = out.removesuffix(".blend") + ".tmp.blend"
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "lids.json")
+    json.dump({"states": states, "show": sys.argv[1] if len(sys.argv) > 1 else "shut"}, open(path, "w"))
+    log = review._blender([out, "-P", "/tmp/967-s5b/lids_blender.py", "--", path, part])
+    print("\n".join(l for l in log.splitlines() if l.startswith(("scenes", "skin", "riding", "hidden"))))
+os.replace(part, out)
+atomic_json(out.removesuffix(".blend") + ".blend.ready.json", {"sha256": checksum(out)})
+print("published", out)

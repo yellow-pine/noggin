@@ -1,0 +1,23 @@
+"""Scratch (#967): each cup of the L push-rod against what its ball stands on, without the ball in its socket."""
+import sys, numpy as np
+from model import gimbal as gm, stages
+from model.printed import gimbal, PARTS
+sub = stages.eyes_sub().parts
+rod0 = PARTS["push-rod mechanical"]().val().moved(gimbal._at(sub["L push-rod:1"].matrix))
+core0 = PARTS["eyeball core"]().val().moved(gimbal._at(sub["L eyeball core:1"].matrix))
+bail0 = PARTS["bail mechanical"]().val().moved(gimbal._at(sub["bail:1"].matrix))
+x = gm.EYE["L"][0]
+print("ROD_BED", gimbal.ROD_BED)
+worst = [9, 9]
+for yaw in (-25.0, 0.0, 25.0):
+    for pitch in (-15.0, -7.5, 0.0, 7.5, 15.0):
+        mv = gm.moved(0.0, pitch, yaw)
+        rod, core, bail = rod0.moved(gimbal._at(mv["L push-rod:1"])), core0.moved(gimbal._at(mv["L eyeball core:1"])), bail0.moved(gimbal._at(mv["bail:1"]))
+        lever = tuple((mv["L eyeball core:1"] @ (x, 0, gm.LEVER, 1))[:3])
+        arm = tuple((mv["bail:1"] @ (x, *gm.BAIL_BALL, 1))[:3])
+        a = rod.distance(core.cut(gimbal.ball(gm.BALL_R + 0.11, lever).val()))
+        b = rod.distance(bail.cut(gimbal.ball(gm.BALL_R + 0.11, arm).val()))
+        bar = rod.cut(gimbal.ball(8.0, lever).val()).distance(core)
+        worst = [min(worst[0], a), min(worst[1], b)]
+        print(f"yaw {yaw:5.1f} pitch {pitch:5.1f}: lever's cup to the core {a:.2f} | bail's cup to the bail {b:.2f} | bar to the core {bar:.2f} | shared {rod.intersect(core).Volume():.4f} {rod.intersect(bail).Volume():.4f}", flush=True)
+print("least", [round(w, 2) for w in worst])
