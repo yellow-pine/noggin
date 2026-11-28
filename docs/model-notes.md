@@ -201,8 +201,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   front face so it cannot turn; its jaws reach 25 deg past the post's middle either side, so it snaps on along the
   bearing's own way, from the front and the outside, after the yoke and the core and before the cap (`gimbal.CLIP`,
   inferred: no print has tried the snap). Seen from the front, the dark left in an opening of 3,650 mm2 is 3 mm2 or
-  less at rest, 97 with the eye yawed 25 deg out (560 before: the slit between the cap's edge at the lids' hubs and
-  the liner's window, and a little along the rim where the lid bar sweeps), 2 yawed in, 5 pitched up 15 deg and 3
+  less at rest, 90 with the eye yawed 25 deg out (550 before: the slit between the cap's edge at the lids' hubs and
+  the liner's window, and a little along the rim where the lid bar sweeps), 1 yawed in, 2 pitched up 15 deg and 1
   pitched down (`model/printed/test_gimbal.py`). The pitch push-rod's Hooke coupling is undone by the command map
   `gimbal.servos(yaw, pitch)`, which the noggin service applies once it drives the Mech; every size is inferred.
   Its Skeleton is drawn in two styles (#704, docs/adr/0020), the Skeleton's values (#805): mechanical and realistic,

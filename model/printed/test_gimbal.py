@@ -263,11 +263,20 @@ def test_from_the_front_each_openings_lids_are_hidden_open_and_close_it_shut(sid
 
 
 # The dark inside the head seen in an opening from the front, mm2 at most, with its eye at (yaw toward its outside,
-# pitch): the figures Cansin picked the grown cap and the liner on were 1, 60, 1, 3 and 1 (#967's preview, comment
-# 7236532060, read on points with the lid bar at rest); these are the built parts'. Yawed out, 70 of it is the slit
-# between the cap's edge at the lids' hubs (gm.CAP_IN) and the liner's window, which ends where the stem comes yawed
-# in, and the rest lies along the rim where the lid bar's sweep keeps the liner back
-DARK_MM2 = {(0.0, 0.0): 3.0, (gm.YAW, 0.0): 97.0, (-gm.YAW, 0.0): 2.0, (0.0, gm.PITCH): 5.0, (0.0, -gm.PITCH): 3.0}
+# pitch). Cansin picked the grown cap and the liner on a preview that read 1, 60, 1, 3 and 1 (#967, comment
+# 7236532060: on points, the lid bar at rest, each figure +-50) and 69 and 50 at the two combined ends; the built
+# parts give 2.5, 90, 1, 1.75, 0.5, 116 and 76 (comment 7237692071, merged so by the coordinator). Yawed out, 70 of
+# it is the slit between the cap's edge at the lids' hubs (gm.CAP_IN) and the liner's window, which ends where the
+# stem comes yawed in, and the rest lies along the rim, where the lid bar's sweep keeps the liner back
+DARK_MM2 = {
+    (0.0, 0.0): 3.0,
+    (gm.YAW, 0.0): 92.0,
+    (-gm.YAW, 0.0): 1.5,
+    (0.0, gm.PITCH): 3.0,
+    (0.0, -gm.PITCH): 1.0,
+    (gm.YAW, gm.PITCH): 118.0,
+    (gm.YAW, -gm.PITCH): 78.0,
+}
 
 
 @pytest.mark.model
