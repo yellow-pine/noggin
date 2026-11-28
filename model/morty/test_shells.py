@@ -317,9 +317,8 @@ def test_each_piece_of_the_hair_comes_off_straight(places, piece):
     straight way (skin.DIRECTIONS), the crown up and the back back, the other piece still on. Exact solids, a
     millimetre at a time until the piece is past everything: it never comes nearer a part than a worn Shell's room
     (gm.LID_CLEAR_MM, so it touches nothing between two steps). Every part of the Skeleton, the worn skull and its
-    calvaria among
-    them, at rest and wherever each servo's ends put it as the head sees it; every other Shell at rest. Nor does a
-    piece come nearer the worn skull or its calvaria on its way than where it rests."""
+    calvaria among them, at rest and wherever each servo's ends put it as the head sees it; every other Shell at
+    rest. Nor does a piece come nearer the worn skull or its calvaria on its way than where it rests."""
     way = np.array(skin.DIRECTIONS[piece])
     (seated,) = places[piece]
     box = np.reshape(seated.bounding_box(), (2, 3))
