@@ -34,6 +34,21 @@ def fast(monkeypatch):
     monkeypatch.setattr("noggin.wifi.ACK_SECONDS", FAST)
 
 
+@pytest.fixture
+def out(capsys):
+    """The service's log so far, for `wait_for`: a line the service prints after the event a test waited on is not
+    there yet on one read (#1082). `capsys.readouterr()` drains the buffer, so each read is kept, and put back at the
+    end for pytest to show with a failure."""
+    seen = []
+
+    def out():
+        seen.append(capsys.readouterr().out)
+        return "".join(seen)
+
+    yield out
+    print("".join(seen), end="")
+
+
 class FakeCore(threading.Thread):
     """Beacons to the service's listen port and acks commands; `drop` says how many datagrams to lose first, `busy`
     how long its loop is blocked before it reads the first one. Like the Core, it re-acks its last seq unrun, and
@@ -244,13 +259,13 @@ def test_pitch_calibration_and_held_pose_are_saved_and_restored_on_reconnect(tmp
         core.running = False
 
 
-def test_ack_from_another_address_does_not_count(tmp_path, capsys, fast):
+def test_ack_from_another_address_does_not_count(tmp_path, out, fast):
     core = FakeCore(ack=False, stranger=True)
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: len(core.datagrams) == 8)  # 2 lines x 4 tries: the stranger's `ok` is not the Core's
     time.sleep(0.5)
     assert len(core.datagrams) == 8
-    assert "no ack over wifi" in capsys.readouterr().out
+    assert wait_for(lambda: "no ack over wifi" in out())
     s.stop()
     core.running = False
 
@@ -275,12 +290,12 @@ def test_untagged_or_forged_beacon_is_ignored(tmp_path, beacon_token):
 
 
 @pytest.mark.parametrize("ack_token", [None, "forged"])
-def test_untagged_or_forged_ack_does_not_count(tmp_path, capsys, fast, ack_token):
+def test_untagged_or_forged_ack_does_not_count(tmp_path, out, fast, ack_token):
     core = FakeCore(ack_token=ack_token)  # from the Core's own address and port, as a spoofer would send it
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: len(core.datagrams) == 8)  # 2 lines x 4 tries: no ack counted
     time.sleep(0.5)
-    assert len(core.datagrams) == 8 and "no ack over wifi" in capsys.readouterr().out
+    assert len(core.datagrams) == 8 and wait_for(lambda: "no ack over wifi" in out())
     s.stop()
     core.running = False
 
@@ -305,11 +320,11 @@ def test_lost_datagrams_are_resent_up_to_four_tries_with_the_same_seq(tmp_path):
     core.running = False
 
 
-def test_a_busy_core_that_acks_late_still_counts(tmp_path, capsys):
+def test_a_busy_core_that_acks_late_still_counts(tmp_path, out):
     core = FakeCore(busy=0.7)  # thinking mode: a blink and a saccade block the Core's loop, past two 0.2 s windows
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: core.lines == ["set lid_rest 0.28", "rest"])
-    assert "no ack over wifi" not in capsys.readouterr().out
+    assert wait_for(lambda: "sent eyes" in out()) and "no ack over wifi" not in out()  # logged after the batch
     s.stop()
     core.running = False
 
@@ -324,11 +339,11 @@ def test_tries_wait_a_growing_ack_window(tmp_path, fast):
     core.running = False
 
 
-def test_a_line_lost_on_every_try_does_not_stop_its_batch(tmp_path, capsys, fast):
+def test_a_line_lost_on_every_try_does_not_stop_its_batch(tmp_path, out, fast):
     core = FakeCore(drop=4)  # all four tries of the calibration line
     s, sock = start(tmp_path, core)
     assert wait_for(lambda: core.lines == ["rest"])
-    assert "no ack over wifi eyes ['set lid_rest 0.28']" in capsys.readouterr().out
+    assert wait_for(lambda: "no ack over wifi eyes ['set lid_rest 0.28']" in out())  # logged after the batch
     s.stop()
     core.running = False
 
@@ -413,13 +428,13 @@ def test_both_cores_restarting_together_is_a_pack_cut_in_status(tmp_path, capsys
     eyes.running = neck.running = False
 
 
-def test_one_core_restarting_alone_is_no_pack_cut(tmp_path, capsys):
+def test_one_core_restarting_alone_is_no_pack_cut(tmp_path, out):
     eyes = FakeCore()
     s, sock = start(tmp_path, eyes)
     neck = beaconing(s, FakeCore(name="neck"))
     assert wait_for(lambda: "neck wifi" in ask(sock, "status\n") and "eyes wifi" in ask(sock, "status\n"))
     eyes.uptime = 1  # its USB cable pulled and put back, say
-    assert wait_for(lambda: "eyes beacon back: wifi 127.0.0.1 uptime 1s" in capsys.readouterr().out)
+    assert wait_for(lambda: "eyes beacon back: wifi 127.0.0.1 uptime 1s" in out())
     time.sleep(0.3)  # a few more beacons from both
     assert not PACK_CUT.search(ask(sock, "status\n"))
     s.stop()
