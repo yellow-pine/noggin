@@ -4,7 +4,8 @@ one rigid skin on the head, and each part of the neck Sub-assembly moves under i
 head: the cervical carrier with its reaction anchor stands still, the nod plate and the servos on it only tilt, the
 tilt lever and its bar swing besides. Through tilt and pan together each keeps a Shell's wall and its clearance from
 that skin, read on the Sculpt git holds (model/morty) as test_hidden.py reads the eye gimbal, so every run of the
-Model's tests holds it. The jaw's parts are #968's, and C1 to C7 #874's, which finishes them."""
+Model's tests holds it. So does each finished vertebra, C1 to C7 (#874), which stands still with the carrier. The jaw's
+parts are #968's."""
 
 import functools
 
@@ -13,8 +14,9 @@ import pytest
 import trimesh
 
 from model import geometry as g
-from model import morty, skin, stages
+from model import morty, skeleton, skin, stages
 from model.review.test_hidden import FRAME, MARGIN, _cloud, depth
+from model.skeleton import envelope
 from model.test_skin import _inside
 
 PARTS = sorted(stages.neck_sub().parts)
@@ -70,3 +72,24 @@ def test_each_part_of_the_neck_stays_under_the_skin_that_rides_the_head(doc, par
             if mm > worst[0]:
                 worst = (round(mm, 2), f"tilt {tilt:.0f} pan {pan:.0f}")
     assert worst == (-MARGIN, None)
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("bone", g.NECK)
+def test_each_vertebra_stays_under_the_skin_that_rides_the_head(bone, head):
+    """#874 (Cansin, 2026-11-27, #893's third round): at every tilt and pan together, every point of each finished
+    vertebra, which stands still, lies a Shell's wall and its clearance (envelope.ROOM) under the head's skin, whose
+    rim at the collar swings through the neck as the head nods: forward at the nape as it tilts back, back at the
+    throat as it tilts forward. On the fit before, C5's rear arch stood 6 mm and more out of the nape tilted back, C6
+    met both swings and C7's body came within 1.65 mm of the throat's."""
+    doc = skeleton.DOC
+    stage, worst = stages.STAGES[doc], (-envelope.ROOM, None)
+    cloud = trimesh.transform_points(_cloud(bone), stage.parts[f"{bone}:1"].matrix)
+    for tilt, tilted in _moves(doc, TILT):
+        for pan, panned in _moves(doc, PAN):
+            past = np.linalg.inv(tilted[FRAME] @ panned[FRAME])  # the still neck, in the head's place
+            mm = float(head(trimesh.transform_points(cloud, past)).max())
+            if mm > worst[0]:
+                worst = (round(mm, 2), f"tilt {tilt:.0f} pan {pan:.0f}")
+    assert worst == (-envelope.ROOM, None)

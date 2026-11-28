@@ -94,6 +94,15 @@ def outline(name, step=2.0):
     return p
 
 
+def inside(points, poly):
+    """Even-odd: which (n, 2) points lie inside the closed polygon (a cut's region, in its view's plane)."""
+    a, b = poly, np.roll(poly, -1, axis=0)
+    x, y = points[:, :1], points[:, 1:]
+    span = (a[:, 1] > y) != (b[:, 1] > y)
+    t = (y - a[:, 1]) / np.where(span, b[:, 1] - a[:, 1], 1.0)
+    return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
+
+
 def cuts():
     """Morty's cuts on his Sculpt, {cut: (its view, the closed region it bounds, mm in the head's frame)}: the one source
     that colours the review's Morty (model/review) and splits the printed Shells (#850), each cut where the Sculpt

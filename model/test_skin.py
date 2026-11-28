@@ -99,13 +99,7 @@ def test_every_shell_belongs_to_one_motion_region():
         skin.region("morty tail")
 
 
-def _inside(points, poly):
-    """Even-odd: which (n, 2) points lie inside the closed polygon."""
-    a, b = poly, np.roll(poly, -1, axis=0)
-    x, y = points[:, :1], points[:, 1:]
-    span = (a[:, 1] > y) != (b[:, 1] > y)
-    t = (y - a[:, 1]) / np.where(span, b[:, 1] - a[:, 1], 1.0)
-    return (span & (x < a[:, 0] + t * (b[:, 0] - a[:, 0]))).sum(axis=1) % 2 == 1
+_inside = skin.inside  # model/review's and model/morty's tests read it here
 
 
 def test_mortys_cuts_sit_on_his_sculpt_where_it_shows_each_form():
