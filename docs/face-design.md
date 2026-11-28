@@ -47,8 +47,9 @@ His Skin is cut from his sculpt (`model/morty`, [Credits](credits.md)): its surf
 base, the wall grown inward, open underneath (docs/adr/0027, 0028). Six Shells, split along his cuts: the hair, above
 and behind his hairline; the face, with his nose and ears; each brow, its ridge over the eye, in the hair's filament;
 the chin, under the mouth line, which opens with the jaw; and the shirt, under the collar, the whole fixed body. The face is open inside each eye's own outline, where the
-eyeball is the eye white; an open lid's edge shows at the rim. *Upcoming (#850): their Seats, the gaps at the collar and the mouth
-line that let the head and the jaw move, and room for them round the mechanism and the bones.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
+eyeball is the eye white; an open lid's edge shows at the rim. Every seam is a 0.8 mm gap, and the shirt and the
+face give way where the head and the jaw move against them (docs/adr/0029). *Upcoming (#850): the rest of their
+[Seats](#seats-and-magnets), and room for them round the mechanism and the bones.* *Upcoming (#864): each Core's USB-C opening, and the Torso's, is cut through the Shells over it,
 the hair and the shirt, for a plug.*
 
 What the model has of them today (model/skin.py, model/printed/skin.py):
@@ -64,8 +65,12 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
   carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852).
-  The eyeball caps' Seats, in the cores' faces, are the only ones in the model. *Upcoming (#850): the Seats of
-  Morty's Shells, on what carries each: the head, the jaw, the eyes and the Torso.*
+  The model has the eyeball caps' Seats, in the cores' faces, and the face's two lower ones, in the front of the
+  gimbal frame's beam under the eyes, 84 mm apart: the face comes off forward. A Shell cut from a sculpt stands on a
+  boss in from its wall at each Seat, cut at the sculpt's surface, with at least 0.6 mm of its own surface left
+  over the magnet (model/morty/shells.py `seated()`). *Upcoming (#850): the rest of Morty's Seats: the face's top
+  and the hair on the skull, the chin on the jaw, the shirt on the Torso (#879), and how each brow holds on the
+  face.*
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (the caps), so
   a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap

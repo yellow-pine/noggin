@@ -14,10 +14,8 @@ from model.printed.gimbal import ball, cyl
 
 
 def _at(seat):
-    """The Seat's frame in its carrier's: z out of the carrier's face along the normal, origin on that face."""
-    n = seat.normal
-    ref = (1, 0, 0) if abs(n[0]) < 0.9 else (0, 1, 0)
-    return cq.Matrix([list(map(float, row)) for row in g.align_rows(seat.at, ref, n)[:3]])
+    """The Seat's frame in its carrier's (skin.frame)."""
+    return cq.Matrix([list(map(float, row)) for row in sk.frame(seat)[:3]])
 
 
 def _placed(shape, seat):

@@ -3,6 +3,7 @@ model/build/ours, in the head's frame at rest, held to the Sculpt git holds."""
 
 import os
 
+import manifold3d as m3
 import numpy as np
 import pytest
 import trimesh
@@ -99,6 +100,16 @@ def _in_an_eye_opening(points, room=0.0):
     return out
 
 
+def _on_a_seat(name, points):
+    """Which points are a Seat's of the Shell `name`: within its boss's radius (skin.PAD_R, and 0.5 mm) of its axis,
+    out of its carrier's face. A boss is no wall: it stands in from it to the Seat (shells.seated())."""
+    out = np.zeros(len(points), bool)
+    for seat in (s for s in skin.SEATS if s.shell == name):
+        local = trimesh.transform_points(points, np.linalg.inv(skin.frame(seat)))
+        out |= (np.hypot(local[:, 0], local[:, 1]) < skin.PAD_R + 0.5) & (local[:, 2] > -skin.BALL_R)
+    return out
+
+
 def test_each_shell_is_one_closed_solid(built):
     """A printable piece: every edge shared by two faces, wound one way, facing out, in one piece."""
     for name, mesh in built.items():
@@ -123,13 +134,15 @@ def test_the_skins_outside_is_the_sculpts_own_surface(sculpt, kept, gone):
 def test_no_shell_holds_surface_buried_under_the_outer_skin(built, sculpt, outer, kept, buried):
     """#850: the Shells are cut from the Sculpt's outer skin alone. None of the walls of the pockets behind its brows
     is a Shell's, so each brow is its ridge on the face and nothing behind it; and no Shell reaches deeper under the
-    outer skin than its wall and 0.5 mm, a pocket's walls followed in (2.4 mm at each brow's inner end before)."""
+    outer skin than its wall and 0.5 mm, a pocket's walls followed in (2.4 mm at each brow's inner end before), but
+    at its Seats, each on a boss in from the wall."""
     assert (buried & (sculpt.vertices[:, 2] > shells.base())).sum() > 20_000  # the pockets are there to be left out
     assert not (kept & buried).any(), sculpt.vertices[kept & buried][:5]
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     for name, mesh in built.items():
-        deep = surface.query(mesh.triangles_center, workers=-1)[0]
-        assert deep.max() < skin.WALL + 0.5, (name, deep.max(), mesh.triangles_center[deep.argmax()])
+        centres = mesh.triangles_center[~_on_a_seat(name, mesh.triangles_center)]
+        deep = surface.query(centres, workers=-1)[0]
+        assert deep.max() < skin.WALL + 0.5, (name, deep.max(), centres[deep.argmax()])
 
 
 def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
@@ -137,8 +150,8 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
     along its cut's sweep: x, or y as a front view turns it), the base's, or the inside, which lies within 0.15 mm of
     WALL under the outer skin for 98% of it and never nearer than 1.4 mm or further than 1.9 mm, short of where bone
     may begin (WALL and 0.5 mm of room). Away from within 3 mm of where a Shell gave way, whose cut runs through the
-    wall. A brow is 8 mm across, all of it within 3 mm of its own seam, and a slab with a step each side: its whole
-    inside is held to the bounds, and 90% of it to WALL."""
+    wall, and from its Seats' bosses. A brow is 8 mm across, all of it within 3 mm of its own seam, and a slab with a
+    step each side: its whole inside is held to the bounds, and 90% of it to WALL."""
     surface = cKDTree(shells._points(outer.triangles, 0.3))
     gave = cKDTree(shells._points(sculpt.triangles[gone[sculpt.faces].any(axis=1)], 0.5))
     sweeps = [
@@ -149,6 +162,7 @@ def test_every_wall_is_1_6_mm_and_never_open(built, sculpt, outer, gone):
         seam = (np.abs(mesh.face_normals @ np.transpose(sweeps)) < 1e-3).any(axis=1)
         seam |= mesh.face_normals[:, 2] < -0.9999
         points = mesh.triangles_center[~seam & (mesh.area_faces > 0.02)]  # a sliver's normal is noise
+        points = points[~_on_a_seat(name, points)]
         brow = "brow" in name
         if not brow:
             points = points[gave.query(points)[0] > 3.0]
@@ -192,6 +206,48 @@ def _solids(built):
         n: shells._solid(*(lambda m: (m.vertices, m.faces))(trimesh.Trimesh(m.vertices, m.faces)))
         for n, m in built.items()
     }
+
+
+SEATS = [s for s in skin.SEATS if s.shell in NAMES]
+
+
+@pytest.mark.parametrize("seat", SEATS, ids=lambda s: f"{s.shell} on {s.carrier} {s.at[0]:+.0f}")
+def test_a_shells_half_of_a_seat_is_a_boss_three_balls_and_its_magnets_pocket(built, seat):
+    """#850, model/skin.py: in the Seat's own frame, z out of its carrier's face. The Shell's boss comes in from its
+    wall to a flat face skin.GAP off the carrier's, whole round the magnet out past the balls. Three balls stand out
+    of that face, to rest in the carrier's grooves. The magnet's pocket is open from the face, the magnet's depth and
+    its fit round, with at least skin.SKIN of the Shell left over it. Nothing else of the Shell comes nearer the
+    carrier's face than the boss's, as far round as the boss reaches. And the Shell meets its carrier nowhere: the
+    balls rest in the grooves (under 0.1 mm3 shared, as drawn)."""
+    shell = _solids({seat.shell: built[seat.shell]})[seat.shell]
+    to = np.array(skin.frame(seat))[:3]
+
+    def share(solid):
+        """How much of `solid`, drawn in the Seat's frame, is the Shell's."""
+        return (shell ^ solid.transform(to)).volume() / solid.volume()
+
+    def disc(r, z0, z1):
+        return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((0, 0, z0))
+
+    bore = skin.MAGNET[0] / 2 + skin.FIT
+    balls = [
+        m3.Manifold.sphere(skin.BALL_R, 48).translate(
+            (skin.RING * np.cos(np.radians(deg)), skin.RING * np.sin(np.radians(deg)), skin.GAP)
+        )
+        for deg in (0, 120, 240)
+    ]
+    for ball in balls:
+        assert share(ball) > 0.99
+    face = disc(skin.RING + skin.BALL_R, skin.GAP, skin.GAP + 1.0) - disc(bore + 0.05, skin.GAP - 1, skin.GAP + 2)
+    assert share(face) > 0.999
+    assert share(disc(skin.MAGNET[0] / 2, -1.0, skin.GAP + skin.MAGNET[1])) < 1e-6  # the magnet's way in, and its room
+    assert share(disc(bore, skin.GAP + skin.MAGNET[1] + 0.01, skin.GAP + skin.MAGNET[1] + skin.SKIN)) > 0.999
+    under = disc(skin.PAD_R, -3.0, skin.GAP - 0.01)
+    for ball in balls:
+        under -= ball
+    assert share(under) < 1e-6
+    carrier = trimesh.load(stages.stl(seat.carrier), force="mesh")  # merged: an STL's vertices are each facet's own
+    assert (shell ^ shells._solid(carrier.vertices, carrier.faces)).volume() < 0.1
 
 
 def test_shells_that_ride_together_keep_the_seams_gap(built):

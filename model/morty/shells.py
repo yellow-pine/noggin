@@ -13,7 +13,9 @@ are cut with manifold3d.
 
 Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair, the chin and each brow, and
 the shirt from the collar; and where Shells move against each other the one that stands still gives way (cleared()):
-the shirt to the head through tilt, pan and the jaw's range together, the face to the opening chin."""
+the shirt to the head through tilt, pan and the jaw's range together, the face to the opening chin.
+
+Last, each Shell gets its half of its Seats (seated(), model/skin.py SEATS)."""
 
 import os
 
@@ -326,6 +328,31 @@ def _whole(name, solid):
     return pieces[0]
 
 
+def _disc(r, z0, z1):
+    return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((0, 0, z0))
+
+
+def seated(name, solid, whole):
+    """The Shell `name` (`solid`) with its half of each of its Seats (skin.SEATS, model/skin.py), as
+    model/printed/skin.py shell() draws a CadQuery Shell's: a boss in from its wall to a face skin.GAP off its
+    carrier's, three balls standing out of that face, and its magnet's pocket open from it. The boss is cut at the
+    Sculpt's surface (`whole`, its outer skin's solid), so the outside stays the Sculpt's; ValueError when the pocket
+    would leave under skin.SKIN of it over the magnet."""
+    bore, gap, depth = skin.MAGNET[0] / 2 + skin.FIT, skin.GAP, skin.MAGNET[1]
+    for seat in (s for s in skin.SEATS if s.shell == name):
+        to = np.array(skin.frame(seat))[:3]
+        over = _disc(bore, gap + depth, gap + depth + skin.SKIN).transform(to)
+        if (over ^ whole).volume() < 0.999 * over.volume():
+            raise ValueError(f"{name} at {seat.at}: under {skin.SKIN} mm of it would be left over its magnet")
+        add = _disc(skin.PAD_R, gap, gap + seat.boss).transform(to) ^ whole
+        for deg in (0, 120, 240):
+            a = np.radians(deg)
+            ball = m3.Manifold.sphere(skin.BALL_R, 48).translate((skin.RING * np.cos(a), skin.RING * np.sin(a), gap))
+            add += ball.transform(to)
+        solid = solid + add - _disc(bore, gap - 1.0, gap + depth).transform(to)
+    return solid
+
+
 def sculpt():
     """The Sculpt (a manifold3d solid) in the head's frame at rest, from UNDER below the base plane up."""
     mesh = trimesh.load(os.path.join(stages.REPO, morty.SCULPT), process=False).apply_transform(head())
@@ -356,7 +383,7 @@ def shells():
         out[brow], out["face"] = skinned ^ cuts[brow], out["face"] - grown(brow, SEAM)
     out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), out["hair"], out["chin"])
     assert set(out) == set(g.SHELLS["morty"]), sorted(out)
-    return {f"morty {name}": _mesh(_whole(name, solid)) for name, solid in out.items()}
+    return {f"morty {name}": _mesh(_whole(name, seated(f"morty {name}", solid, whole))) for name, solid in out.items()}
 
 
 def write():

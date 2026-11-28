@@ -1,7 +1,7 @@
 """The Mech's Skin (GLOSSARY Skin, Seat, Sculpt): how a Shell sits on what carries it and how hard its magnets hold it
 there, Morty's contours and the cuts they make on his Sculpt, and the Motion regions. No Shell is drawn by hand
 (docs/adr/0027, #850): the eyeball caps are the mechanism's own, and Morty's are cut from his Sculpt along these cuts
-(model/morty/shells.py), with no Seat yet and worn by no document yet (g.SKINS).
+(model/morty/shells.py), which builds each Seat's half on them too; worn by no document yet (g.SKINS).
 One source: model/printed/skin.py draws the caps and cuts the Seats from these numbers, model/stages.py places the caps
 on their cores, model/mujoco_report.py reads each Shell's peak acceleration and model/test_report.py holds it to
 hold_n().
@@ -37,6 +37,9 @@ PAD_R = RING + GROOVE + 1.0  # a Seat's thickening's or boss's radius
 SF = 2.0  # the magnets hold at least this many times a Shell's weight at its peak acceleration (model/test_report.py)
 
 Seat = namedtuple("Seat", "shell carrier at normal pad boss polarity")  # at: the carrier's face, normal: out of it
+SKIN = 0.6  # the least of a Shell's own surface left over its magnet's pocket, mm: two 0.3 mm layers (inferred)
+FACE_BOSS = 12.0  # from the beam's front out past the face's wall, whose inside is 6 mm ahead of it there (measured)
+_BEAM_SEAT = gm.BEAM_X - gm.BEAM_CUT - PAD_R  # a beam Seat's |x|: its whole circle on the beam's flat front
 
 WALL = 1.6  # every Shell's wall: four 0.4 mm perimeters
 # Morty's contours (#991, #992): our control points (contours.json, its research note), in his eyes' spacing from their
@@ -103,6 +106,13 @@ def cuts():
     return {cut: (CONTOURS[n]["view"], outline(n)) for cut, n in names.items()}
 
 
+def frame(seat):
+    """4x4 rows taking the Seat's frame to its carrier's: z out of the carrier's face along the normal, the origin on
+    that face. Both halves are drawn in it, so the balls meet their grooves."""
+    n = seat.normal
+    return g.align_rows(seat.at, (1, 0, 0) if abs(n[0]) < 0.9 else (0, 1, 0), n)
+
+
 # The eyeball caps on the cores' seat faces, along the gaze: every Character's (#665)
 SEATS = [
     *[
@@ -116,6 +126,13 @@ SEATS = [
             p,
         )
         for s, p in (("L", 1), ("R", -1))
+    ],
+    # Morty's face (#850), forward off the front of the gimbal frame's beam under his eyes, mid height, on its flat
+    # inside the cut corners; each on a boss in from the face's wall, FACE_BOSS at most and cut at the Sculpt's surface
+    # (model/morty/shells.py). Its top is not held yet: the skull's Seats (#874)
+    *[
+        Seat("morty face", "gimbal frame", (x, gm.CHEEK_Y[0], sum(gm.BEAM_Z) / 2), (0.0, -1.0, 0.0), 0.0, FACE_BOSS, 1)
+        for x in (-_BEAM_SEAT, _BEAM_SEAT)
     ],
 ]
 
