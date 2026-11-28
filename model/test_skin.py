@@ -71,6 +71,14 @@ def test_the_face_sits_on_the_gimbal_frames_beam_and_comes_off_forward():
         assert s.boss > 0
 
 
+def test_each_brow_is_glued_in_the_face_and_rides_the_head_with_it():
+    """#850: a brow has no Seat. It is glued in the face, which carries it on and off the head."""
+    assert skin.GLUED == {"morty L brow": "morty face", "morty R brow": "morty face"}
+    assert not {s.shell for s in skin.SEATS} & skin.GLUED.keys()
+    for brow, face in skin.GLUED.items():
+        assert skin.MOTION[skin.region(brow)] == skin.MOTION[skin.region(face)]
+
+
 def test_a_shell_comes_off_along_its_seats_normal():
     for s in skin.SEATS:
         assert skin.DIRECTIONS[s.shell] == s.normal
