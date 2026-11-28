@@ -1,6 +1,6 @@
 """The Mech's head variants (#686, #51; GLOSSARY), clean-room (#618): their numbers (one source: model/printed/base.py
-draws the parts from them, model/stages.py places them and the boards), what the sim report reads (sway(), leads(),
-head()) and the ranking of their reports (rank()); model/candidates.py reports their figures from MuJoCo.
+draws the parts from them, model/stages.py places them and the boards), what the sim report reads (sway(), leads())
+and the ranking of their reports (rank()); model/candidates.py reports their figures.
 
 Frame: the head's (model/neck.py), z up, -y forward. In each the base is the Torso (#685, GLOSSARY): a compact open box
 whose floor carries the neck mount (its post up through the lid, the pan servo on it over the lid, #858) and, behind
@@ -10,11 +10,11 @@ its bottom is the foot the Mech stands on, and nothing else is in it (#858). The
 plugged in under its Shield, lying flat on the cranium tray in the realistic skull's cranium, and the USB-C hub low at
 the back of the skull base, its upstream port the head's (cranium(), #858). The neck cable runs up the post to the
 head, every servo's lead to the Shields (leads(); #51's wiring rules). Nothing but the mechanism and the boards ride the
-head under its skull or Skin, within gimbal.HEAD_MM (#51), in one variant since Cansin picked it (#712; the ranking
-stays for the next):
+head under its skull and Skin, every part of them at least a Shell's wall and its clearance under Morty's skin, his
+Sculpt's surface (docs/adr/0027; model/review/test_hidden.py, test_nape.py and test_head.py hold it, #1089), in one
+variant since Cansin picked it (#712; the ranking stays for the next):
 - Back, mech-back: the eye gimbal on the head mount, the jaw at the realistic skull's condyles, nothing over the
-  eyes but the skull dome, which gives the head its height over them (shelled()), so the eyes sit in the head's lower
-  half (#708).
+  eyes but the cranium tray and the skull's vault (#708).
 Every size is ours and inferred (no build settles one yet)."""
 
 import os
@@ -34,13 +34,6 @@ PACK_Y = neck.AXIS[0] + 34.0  # the pack's middle, lying across x behind the nec
 PACK = (51.2, 28.36)  # the pack's footprint lying across x: model/envelopes.py battery's (model/test_base.py)
 TRAY_T = 3.0  # the carriers' plates
 MODE_HZ = 8.0  # #51's lowest mode, at least (docs/research/2026-11-02-literature-motion-control.md)
-# the eye centres at most this far up the head (shelled()), 0 its bottom: the realistic skull's are 0.53 up it (#838;
-# cartoon proportions' 0.5 before, #708)
-EYES_UP = 0.55
-# the compact head's shell in the head's frame (the eyes' middle at the origin): the box the realistic skull filled
-# until its limit became Morty's skin (#874, docs/adr/0025: the bones are held under it, model/skeleton/envelope.py,
-# and to no box). It stays what the mechanism's head and eyes gates measure until those too read his skin (#874)
-DOME = ((-78.2, 77.6), (-25.8, 134.9), (-93.4, 80.0))
 GAP = 2.0  # between two boards in a row
 RACK_Y = gimbal.PLATE_Y[1]  # the gimbal frame plate's back edge, the test stand's back face
 # the switch board's frame on the Torso's floor: beside the pack's lead end (-x), 5 mm off its cradle; the board lies
@@ -171,24 +164,14 @@ def leads(stage):
     return {j: sum(j in a ^ b for a, b in ends) for j in ("pan pivot", "tilt pivot")}
 
 
-def shelled(lo, hi):
-    """The head's box, (lo, hi) in the head's frame: what rides the tilt (lo to hi) with the head's shell over it, which
-    the head and eyes gates measure (#828): the skull dome supplies the height over the eyes (DOME, a stand-in)."""
-    dome = np.array(DOME).T
-    return np.minimum(lo, dome[0]), np.maximum(hi, dome[1])
-
-
-AXES = ("width", "depth", "height")  # gimbal.HEAD_MM's order
-
-
 def rank(reports):
     """The head variants ranked from their sim reports ({doc: model/build/reports/<doc>-sim.json}): the gates first (a
-    variant whose boards or their carriers meet another part anywhere in the sweep or along a motion, whose head is
-    past gimbal.HEAD_MM, or whose eyes sit higher up it than EYES_UP, is out), then #51's marks in its order (each
+    variant whose boards or their carriers meet another part anywhere in the sweep or along a motion is out; its fit
+    under Morty's skin is no gate here but model/review's tests', #1089), then #51's marks in its order (each
     servo holds at most its rated torque and peaks at most half its stall, the lowest mode at least MODE_HZ, the moving
     centre of mass inside the footprint), then its figures in that order, the first that differs deciding: simplicity (the printed parts beside the neck and gimbal),
     servo torque (worst hold, then peak), gravity torque at rest (the tilt servo's), the lowest mode (the servos'
-    loops), the head's fit (its least room left, mm), the leads crossing pan and tilt, the tip-over
+    loops), the leads crossing pan and tilt, the tip-over
     margin. Pack access is no criterion here: the pack lies in the same Torso in each. Each variant's `fails` names the
     gates and marks it misses, as the viewer marks its button; a four-bar its sweep opens past the report's gate is one
     ("tilt loop", #705), which model/test_report.py then excuses for any variant but the first."""
@@ -205,7 +188,6 @@ def rank(reports):
             "peak_kgf_cm": max(s["peak_kgf_cm"] for s in servos),
             "rest_kgf_cm": m["motions"]["servos"]["tilt horn"]["rest_kgf_cm"],
             "mode_hz": min(modes),
-            "head_room_mm": round(min(h - s for s, h in zip(v["head_mm"], gimbal.HEAD_MM)), 1),
             "leads": sum(v["leads"].values()),
             "tip_mm": min(m["tip_over"]["margin_mm"], m["tip_over"]["moving"]["margin_mm"]),
         }
@@ -219,16 +201,12 @@ def rank(reports):
         clear = sorted(sorted(p["pair"]) for p in m["pairs"] if p["min_mm"] < band and set(p["pair"]) & set(v["parts"]))
         gates = {
             "clearance": clear,
-            "head": [a for a, s, h in zip(AXES, v["head_mm"], gimbal.HEAD_MM) if s > h],
-            "eyes": v["eyes_up"] > EYES_UP,
             "loops": [n for n, x in m["residuals"].items() if x["max_mm"] > m["loop_mm"]],
         }
-        costs = (c["printed"], c["hold_kgf_cm"], c["peak_kgf_cm"], c["rest_kgf_cm"], -c["mode_hz"], -c["head_room_mm"])
+        costs = (c["printed"], c["hold_kgf_cm"], c["peak_kgf_cm"], c["rest_kgf_cm"], -c["mode_hz"])
         out[doc] = {
             "gates": gates,
-            "fails": [
-                n for n, k in (("clearance", "clearance"), ("head size", "head"), ("eyes up", "eyes")) if gates[k]
-            ]
+            "fails": (["clearance"] if gates["clearance"] else [])
             + [f"{n.removesuffix(' pivot')} loop" for n in gates["loops"]]
             + [n for n, missed in marks.items() if missed],
             "criteria": c,

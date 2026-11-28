@@ -84,7 +84,7 @@ The scene's bones are BodyParts3D's: the skull's 21 bones (read whole by the sku
 to C7 (`atlas`, `axis`, `c3` to `c7`), each with the #872 prototype's Basis. The Warp resizes each region uniformly
 (skull 1.05, mandible 0.95, neck to the canal's height) and gives the skull and the mandible one cubic B-spline
 field each, solved against #975's mechanism: the orbits on the eyes, the condyles on the jaw's hinge, the occipital
-condyles 3 mm under the tilt axis, the skull's box on the compact head's (`base.DOME`, which the head gate uses).
+condyles 3 mm under the tilt axis, the skull's box on the compact head's (`base.DOME`, gone since #1089).
 Every vertex's local length factors stay within this budget's bounds (fit.py raises otherwise) and every functional
 landmark within 1 mm. The vertebrae are resized and moved only, each canal on the cervical canal's path. The
 prototype's numerical machinery (#976's adapters, constrained Gaussian field, refinement, GX10 exchange) is not
@@ -138,7 +138,8 @@ with 32 mm unused under his crown, which stands 36 mm over the box's top.
   temples; the rounding took what was under the floor away and left two holes there (the R about 19 x 10 mm).
   Cansin, 2026-11-27 (#893's second round): close them with bone at the print minimum.
 - The gates read the Sculpt (`model/morty`, ADR 0027): `test_skeleton.py` holds each finished bone 2.1 mm under it
-  and to no box. `base.DOME` stays the mechanism's box until its gates read the Sculpt too.
+  and to no box. The mechanism's gates read it too since #1089 (`model/review`'s `test_hidden.py`, `test_nape.py`
+  and `test_head.py`), so `base.DOME`, `base.EYES_UP` and `gimbal.HEAD_MM` are gone.
 
 ## 2026-11-28 C5 and C6 slimmed for the neck's skin (#874)
 

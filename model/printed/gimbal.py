@@ -816,13 +816,6 @@ def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
     return {"clearance_mm": round(closest[0], 2), "pair": closest[1], "at": closest[2], "overlaps": overlaps}
 
 
-def bounds(rest):
-    """The gimbal's bounding box at `rest` (at_rest()), mm: its width (x), depth (y) and height (z), servos and horns
-    included (#684)."""
-    b = cq.Compound.makeCompound(list(rest.values())).BoundingBox()
-    return [round(b.xlen, 1), round(b.ylen, 1), round(b.zlen, 1)]
-
-
 def _gap(a, b):
     """mm between the two solids' bounding boxes along the axis they are furthest apart on (negative: they overlap)."""
     ba, bb = a.BoundingBox(), b.BoundingBox()

@@ -460,10 +460,10 @@ def test_the_viewer_switches_the_stage_and_the_skeleton_and_marks_a_stage_that_f
     assert unranked["skeletons"] == {"realistic": "", "mechanical": "-mechanical"}
     # #876: where Stage 3 has its GLB; no Skin shape has Shells of its own to draw (#850)
     assert unranked["skins"] == {"none": "-bare"}
-    fails = {"mech-back-mechanical": ["head size", "tilt loop"]}
+    fails = {"mech-back-mechanical": ["clearance", "tilt loop"]}
     ranking = {"order": list(fails), "variants": {d: {"fails": f} for d, f in fails.items()}}
     macros.RANKING.write_text(json.dumps(ranking))
-    assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: head size, tilt loop"]
+    assert [b["label"] for b in macros.stage_switch()["buttons"]] == ["1", "2", "3: clearance, tilt loop"]
     macros.RANKING.write_text(json.dumps({"order": ["mech-a"], "variants": {"mech-a": {"fails": []}}}))
     assert macros.stage_switch() == unranked
 
