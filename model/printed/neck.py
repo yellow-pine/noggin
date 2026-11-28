@@ -1,6 +1,6 @@
 """The Mech's neck and jaw (#641) as CadQuery parts, every size from model/neck.py (its frame and its design), each
 drawn where it sits at rest. Turning bores take the busy pivots' M3 shanks (model/gimbal.py PIN_R); the part a shank
-is fixed in has a tapping hole instead. A tie slot through a tab clamps each end of a flexing span."""
+is fixed in has a tapping hole instead."""
 
 import functools
 import itertools
@@ -9,7 +9,7 @@ import math
 import cadquery as cq
 import numpy as np
 
-from model import envelopes
+from model import envelopes, fits
 from model import gimbal as gm
 from model import neck as nk
 from model.envelopes import box, hull
@@ -30,17 +30,18 @@ JAW_CHIN_LAP_R = 1.0
 # #1039: the tilt lever's arm, from the shaft: its slab along x, 0.9 mm off the case's face, and where it steps in from
 # the disc's slab, 0.6 mm outside the horn's rim (inferred)
 TILT_ARM_X, TILT_STEP = (1.0, 5.0), 15.6
-# #1039: the strut from the R rail back to the reaction anchor, (head, waist), each its half-height then its half-width
-# across: the straight rail stands 15 mm in front of the anchor (model/printed/test_neck.py holds it at the tilt
-# servo's stall)
+# #1039: the strut back to the reaction anchor, (head, waist), each its half-height then its half-width across; since
+# #1075 it leaves the carrier's sleeve across the Mech first, outboard of the bar, then runs back
+# (model/printed/test_neck.py holds it at the tilt servo's stall)
 ANCHOR_STRUT = ((6.0, 5.0), (5.5, 4.5))
-
-
-def tie(x, y, z):
-    """A clamp tab centred at (x, y, z) with a slot along x for a zip tie."""
-    return box((x - 3, x + 3), (y - 3, y + 3), (z - 2, z + 2)).cut(
-        box((x - 3, x + 3), (y - 2, y + 2), (z - 0.75, z + 0.75))
-    )
+FIT = fits.CLEARANCE[0]  # the neck tube in a printed bore, radial: a pin's tightest
+SLEEVE_R = 7.5  # the carrier's sleeve on the tube
+# #1075: the carrier's wings, each a slab from the sleeve out under the nod plate's sweep to a riser up to its C0
+# trunnion: the slab's (y) depth, the heights of its root's two ends on the sleeve and of its tip, and the riser's x.
+# The slab stands forward of the trunnion: behind it the nod plate's L arm swings down as the face goes up
+WING_Y, WING_Z, RISER_X = (69.5, 79.5), (-73.0, -65.0, -61.0), (18.0, 24.0)
+TOWER = (10.0, 8.5)  # the neck socket's tower round the tube: its half-width across, where its wall holds the tube's
+# push fore and aft as hoop tension, and fore and aft, in front of the pack
 
 
 def strut(a, b, head, waist):
@@ -49,43 +50,77 @@ def strut(a, b, head, waist):
     return bone.bone(a, b, head, waist, up=up, round=True, heads=False)
 
 
+def _along(a, b, r):
+    """A round bar of radius r from a to b."""
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    return cq.Workplane().add(
+        cq.Solid.makeCylinder(r, float(np.linalg.norm(b - a)), cq.Vector(*a), cq.Vector(*(b - a)))
+    )
+
+
+def _screwed(out, s):
+    """`out` with the tube's bore through it and its M3 across the tube `s` mm up it (nk.TUBE_SCREWS): a seat for the
+    screw's head on L, a clearance hole to the tube's middle and a tapping hole beyond it (nk.SCREW_X)."""
+    _, y, z = nk.tube_at(s)
+    tip, seat = nk.SCREW_X
+    out = out.union(cyl("x", (0, y, z), 3.5, (0, seat))).cut(cyl("x", (0, y, z), 3.0, (seat, seat + 6.0)))
+    out = out.cut(_along(nk.tube_at(-30.0), nk.tube_at(nk.TUBE[2] + 30.0), nk.TUBE[0] + FIT))
+    return out.cut(cyl("x", (0, y, z), 1.7, (0, seat))).cut(cyl("x", (0, y, z), TAP_R, (tip - 1.5, 0)))
+
+
 def cervical_carrier():
-    """Fixed split lateral load path into the Torso; the centre remains open for the anatomical wire canal."""
+    """#1075: fixed on the neck tube's top, in one piece: a sleeve down to the reaction anchor's height, a wing each
+    side out under the nod plate to its C0 trunnion, and the strut to the anchor. The tilt's loop (the bar on the
+    anchor, the nod plate on the trunnions) closes inside it, so the tube under it carries the head's torque alone,
+    and one M3 across the tube holds it against the pan servo's stall. The tube's bore stays open for the leads."""
     _, y, z = nk.HEAD_AXES["tilt"][0]
     _, ay, az = nk.TILT_ANCHOR
-    (y0, z0), (y1, z1) = nk.CERVICAL_PATH[3], nk.CERVICAL_PATH[2]
-    t = (az - z0) / (z1 - z0)  # the anchor's height along the path's long span
-    out = box((-22, 22), (54, 74), nk.MOUNT_Z)
-    for sign, side in ((-1, "R"), (1, "L")):
-        xs = sorted(sign * x for x in (18.0, 22.4))
-        points = [(sign * x, *point) for x, point in zip(nk.CERVICAL_X, nk.CERVICAL_PATH)]
-        points.insert(3, tuple(np.add(points[3], t * np.subtract(points[2], points[3]))))
-        # #1060: one loft of flat ellipses (nk.CERVICAL_RAILS), straight between them, its root through the foot plate
-        stations = [
-            ((*points[0][:2], nk.MOUNT_Z[0]), nk.CERVICAL_RAILS[side][0]),
-            *zip(points, nk.CERVICAL_RAILS[side]),
-        ]
-        wires = [
-            cq.Wire.assembleEdges(
-                [cq.Edge.makeEllipse(deep, wide, cq.Vector(*p), cq.Vector(0, 0, 1), cq.Vector(0, 1, 0))]
-            )
-            for p, (deep, wide) in stations
-        ]
-        rail = cq.Workplane().add(cq.Solid.makeLoft(wires, True))
-        rail = rail.union(cyl("x", (0, y, z), 3.5, xs)).cut(cyl("x", (0, y, z), TAP_R, xs))
-        out = out.union(rail)
-    # A passive bar reacts the low rear moving-case motor (#978) at a pin beside the R rail, the reduction four-bar's
-    # fixed arm (nk.TILT_ARMS), inboard of the jaw's sweep: the pin's boss on a strut from the rail at the pin's height.
+    s = nk.TUBE_SCREWS[1]
+    _, ty, tz = nk.tube_at(s)  # the strut's root, on its screw
+    out = _along(nk.tube_at(s - ANCHOR_STRUT[0][0] - 0.5), nk.TUBE_TOP, SLEEVE_R)
+    for sign in (-1, 1):
+        root = [(sign * 6.0, WING_Z[0], 3.5), (sign * 6.0, WING_Z[1], 3.5)]
+        tip = (sign * (sum(RISER_X) / 2 - 0.3), WING_Z[2], 3.0)
+        out = out.union(hull("XZ", [*root, tip], WING_Y[0] - WING_Y[1], (0, WING_Y[0], 0)))
+        riser = [(y, z, 4.5), (sum(WING_Y) / 2, WING_Z[2], (WING_Y[1] - WING_Y[0]) / 2)]
+        out = out.union(hull("YZ", riser, sign * (RISER_X[1] - RISER_X[0]), (sign * RISER_X[0], 0, 0)))
+        out = out.cut(cyl("x", (0, y, z), TAP_R, sorted(sign * x for x in RISER_X)))
+    # A passive bar reacts the low rear moving-case motor (#978) at a pin R of the tube, the reduction four-bar's
+    # fixed arm (nk.TILT_ARMS), inboard of the jaw's sweep: the pin's boss on a strut from the sleeve.
     boss = (nk.REACTION_TAP_X[1] - 8.0, nk.REACTION_TAP_X[1])
-    # straight back from the rail, which it swallows, its inner side 0.2 mm short of the boss's face, where the bar's
+    # across from the tube, then straight back, its inner side 0.2 mm short of the boss's face, where the bar's
     # slab starts (touching that face's plane, it left a solid of no volume there)
-    mid, low = boss[1] - ANCHOR_STRUT[0][1] - 0.2, az + 3.5 - ANCHOR_STRUT[0][0]  # its top level with the boss's
-    out = out.union(strut((mid, y0 + t * (y1 - y0), low), (mid, ay, low), *ANCHOR_STRUT))
+    mid = boss[1] - ANCHOR_STRUT[0][1] - 0.2
+    across = (mid - ANCHOR_STRUT[0][1], ty, tz)
+    out = out.union(bone.bone((0, ty, tz), across, *ANCHOR_STRUT, up=(0, 1, 0), round=True, heads=False))
+    out = out.union(strut((mid, ty, tz), (mid, ay, tz), *ANCHOR_STRUT))
     out = out.union(cyl("x", (0, ay, az), 3.5, boss)).cut(cyl("x", (0, ay, az), TAP_R, boss))
-    out = out.union(tie(20.0, 78.5, -65.7))
-    for x, fy in nk.CARRIER_FEET:
-        out = out.cut(cyl("z", (x, fy, 0), 1.7, nk.MOUNT_Z))
-    return out
+    return _screwed(out, s)
+
+
+def neck_socket():
+    """#1075: the neck tube's foot on the Torso's floor: a tower that grips the tube from its foot up through the
+    lid's slot to C7's foot, on a flange under four M3 (nk.SOCKET_SCREWS, #1062), and one M3 across tower and tube
+    against the pan servo's stall. Under the tube's foot the tower is open to L, and the flange slotted, so the leads
+    turn out of the bore and lie on the floor."""
+    from model.printed import base  # here: its pack cradle's rim, which the tower's back stands over
+
+    (x0, x1), (y0, y1), t = nk.SOCKET_FLANGE
+    floor, (_, fy, fz) = nk.MOUNT_Z[0], nk.TUBE_FOOT
+    edge = cq.Edge.makeEllipse(*TOWER, cq.Vector(*nk.tube_at(-30.0)), cq.Vector(*nk.TUBE_AXIS), cq.Vector(1, 0, 0))
+    face = cq.Face.makeFromWires(cq.Wire.assembleEdges([edge]))
+    tower = cq.Workplane().add(cq.Solid.extrudeLinear(face, cq.Vector(*np.multiply(80.0, nk.TUBE_AXIS))))
+    out = tower.intersect(box((x0, x1), (y0, y1 + 20.0), (floor, nk.SOCKET_TOP_Z)))
+    out = out.union(box((x0, x1), (y0, y1), (floor, floor + t)))
+    out = out.cut(box((x0, x1), (y1, y1 + 20.0), (floor, floor + base.RIM + 0.5)))  # the pack cradle's rim behind
+    # the leads' way out: down from the bore, then out to L along the floor
+    out = out.cut(_along(nk.tube_at(-30.0), nk.TUBE_FOOT, nk.TUBE[1]))
+    lead = (fy + (floor - fz) * nk.TUBE_AXIS[1] / nk.TUBE_AXIS[2] - nk.TUBE[1], fy + nk.TUBE[1])  # its slot, y
+    out = out.cut(box((0, x1 + 1), lead, (floor, fz)))
+    out = out.cut(box((TOWER[0], x1 + 1), (lead[0], y1 + 1), (floor, floor + t)))  # no strip left behind the slot
+    for x, y in nk.SOCKET_SCREWS:
+        out = out.cut(cyl("z", (x, y, 0), 1.7, (floor, floor + t)))
+    return _screwed(out, nk.TUBE_SCREWS[0])
 
 
 def nod_plate():

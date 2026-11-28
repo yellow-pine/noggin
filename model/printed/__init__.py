@@ -25,6 +25,7 @@ PARTS = {
     "gimbal frame": gimbal.frame,
     # the Mech's neck and jaw (#641)
     "cervical carrier": neck.cervical_carrier,
+    "neck socket": neck.neck_socket,
     "nod plate": neck.nod_plate,
     "head mount": neck.head_mount,
     "pan fixed cap": neck.pan_fixed_cap,
@@ -45,7 +46,7 @@ PARTS = {
 # The Skeleton drawn as Bones (#704, #708): each builder's switch `mechanical` draws its mechanical style (#805), the
 # same interfaces; PARTS holds it under the stem's mechanical name (geometry.MECHANICAL)
 STYLED = {
-    **{stem: PARTS[stem] for stem in ("yaw yoke", "bail", "push-rod", "pitch bar")},
+    **{stem: PARTS[stem] for stem in ("yaw yoke", "tie-bar", "bail", "push-rod", "pitch bar")},
     **{stem: PARTS[stem] for stem in ("lid bar", "lid link", "gimbal frame")},
     **{f"{s} {lid}": PARTS[f"{s} {lid}"] for s in "LR" for lid in ("upper lid", "lower lid")},
     **{stem: PARTS[stem] for stem in ("jaw", "jaw bar")},
@@ -54,11 +55,11 @@ STYLED = {
 # the Skeleton's parts drawn mechanical alone, with why
 UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
-    "tie-bar": "flat arms through the belt behind each eye since #967, printed on its cross-bar's edge: #1052",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
     **dict.fromkeys(
         (
             "cervical carrier",
+            "neck socket",
             "nod plate",
             "head mount",
             "tilt lever",

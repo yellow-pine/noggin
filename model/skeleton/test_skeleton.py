@@ -21,15 +21,6 @@ CAP_MB = 12.0  # the scene's size cap: #872's warped scene saved 11 MB without M
 SKIN_TOL = 0.2  # a depth under Morty's skin is good to this (envelope.DENSITY), mm
 # strict, so #968's follow-up, which re-measures nk.MANDIBLE_CHAIN on the refitted mandible, drops the mark
 CHAIN = "#968: the jaw carrier's chain still follows the box-fitted mandible, not #874's refit inside Morty's skin"
-# the bones the mechanism cuts in two, strict so the fixing PR drops its mark
-SEVERED = {
-    "c3": "#1060: the cervical carrier's R rail, as thick as the tilt servo's stall takes, runs through C3's R lateral "
-    "mass and cuts its transverse process off (206 mm3); #874 fits C3 round the rail, or #1060's metal tube takes the "
-    "rail out of it, and drops this mark",
-    "c6": "#1075: slimmed toward its canal for the neck's skin (#874), C6's ring is about 6 mm wide beside the canal, "
-    "and the cervical carrier's rails (#1064) run through it on both sides: its body (1.2 cm3) and its arch (0.6 cm3) "
-    "part. The aluminium tube up the canal takes the rails out of it, and drops this mark",
-}
 
 
 def test_the_scene_is_committed_compressed_under_its_cap_without_lfs():
@@ -127,6 +118,9 @@ def test_the_vault_is_closed_from_the_sides_the_back_and_above():
     seen = np.zeros((120, 45), bool)  # az -120 to 120, el 0 to 90
     at = (np.abs(az) < 120) & (el >= 0)
     seen[((az[at] + 120) // 2).astype(int), (el[at] // 2).astype(int)] = True
+    # straight up, the last 2 deg are one cap: a bin there is 0.26 mm2 of skull and gets 5 samples, so one in two
+    # skulls left a bin of it empty by chance (#1075: 3 of 120 on a whole crown, none at 12 million samples)
+    seen[:, -1] = seen[:, -1].any()
     assert [(int(a) * 2 - 119, int(e) * 2 + 1) for a, e in np.argwhere(~seen)] == []
 
 
@@ -143,17 +137,10 @@ def test_the_skull_keeps_its_palate_through_the_gimbal_frames_windows():
 
 @pytest.mark.model
 @pytest.mark.bones
-@pytest.mark.parametrize(
-    "stem",
-    [
-        pytest.param(s, marks=pytest.mark.xfail(strict=True, raises=AssertionError, reason=SEVERED[s]))
-        if s in SEVERED
-        else s
-        for s in g.BONES
-    ],
-)
+@pytest.mark.parametrize("stem", g.BONES)
 def test_each_bone_is_finished_into_one_piece_within_the_head(stem):
-    """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid. The skull's
+    """One piece (but crumbs of a voxel or two); a vertebra between the tilt axis and the Torso's lid. C3 too, since
+    the neck stands on one tube up its canal (#1075): the printed rails cut its R transverse process off (#1060). The skull's
     palate holds on behind the R maxilla, between the gimbal frame's plate and the tie-bar's sweep, where the Finish
     seals the maxilla to the sphenoid (skeleton.SEAL). On the fit before #1035 it came off unsealed, a second piece of
     5.3 cm3; on this one it holds unsealed too (a thinner neck), so this check alone does not hold the seal (#874)."""

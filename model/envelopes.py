@@ -1,5 +1,5 @@
 """Our hardware envelopes (#58): simple CadQuery stand-ins for the bought hardware (servo, Horn, Shield, Core, switch
-board, battery, USB-C hub, power-path board, bulk capacitor) so the model and the renders need no vendor file. Each is
+board, battery, USB-C hub, power-path board, bulk capacitor, neck tube) so the model and the renders need no vendor file. Each is
 drawn in its STEP file's own frame, registered in ENVELOPES by its mesh's name. Interfaces (mount holes, shaft,
 connectors) are the STEP's numbers, read once (history: docs/research); bodies are boxes, plates and circle hulls of
 the STEP's outer faces; inner detail is dropped."""
@@ -78,6 +78,19 @@ def standard_servo():
 def pan_bearing():
     """SKF 61804-2RS1: 20 mm bore, 32 mm outer diameter, 7 mm height; the central neck tube remains hollow."""
     return cq.Workplane("XY").circle(16).circle(10).extrude(7)
+
+
+def neck_tube():
+    """The neck tube (#1075): a 10 x 1 mm aluminium round tube cut to length, its foot at the origin, +Z up it, and
+    its two M3 cross holes along X, as model/neck.py designs it (TUBE, TUBE_SCREWS): bought as stock, cut and drilled
+    by the builder (docs/build/stage-2.md)."""
+    from model import neck  # here: the neck's design reads no envelope
+
+    r, bore, length = neck.TUBE
+    out = cq.Workplane("XY").circle(r).circle(bore).extrude(length)
+    for s in neck.TUBE_SCREWS:
+        out = out.cut(cq.Workplane("YZ", origin=(-r - 1, 0, s)).circle(neck.TUBE_HOLE_R).extrude(2 * r + 2))
+    return out
 
 
 STANDARD_HORN = {"radius": 10.0, "face": -1.5, "back": 3.0, "mounts": ((8, 0), (-8, 0), (0, 8), (0, -8))}
@@ -284,4 +297,5 @@ ENVELOPES |= {
     "standard servo": standard_servo,
     "standard horn": standard_horn,
     "pan bearing": pan_bearing,
+    "neck tube": neck_tube,
 }

@@ -137,10 +137,12 @@ def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_it
         "| Core | 1 | 1 |  |",
         "| Shield | 1 | 1 |  |",
         "| battery pack |  | 1 |  |",
-        "| M3 x 16 mm pivot screw | 23 | 7 | 4 |",  # #964: the fasteners, stages.fasteners
+        "| M3 x 16 mm pivot screw | 23 | 9 | 4 |",  # #964: the fasteners, stages.fasteners
         "| M2 x 8 mm servo screw | 8 | 8 | 2 |",
         "| M3 x 10 mm head screw | 4 |  |  |",
-        "| M3 nut | 4 |  |  |",
+        "| M3 nut | 4 | 4 |  |",
+        "| neck tube |  | 1 |  |",  # #1075, with its socket's screws
+        "| M3 x 12 mm countersunk screw |  | 4 |  |",
     ]:
         assert row in table, row
     parts = (ROOT / "docs" / "build" / "parts.md").read_text()
@@ -149,6 +151,17 @@ def test_the_buy_list_gives_each_stages_bought_parts_from_the_model_each_with_it
     codes = dict(re.findall(r"^\| ([\w -]+?) \| [^|]+ \| ([^|]+?) \|$", buy, re.M))
     named = re.findall(r"^\| ([\w -]+?) \|", table, re.M)[1:]
     assert [n for n in named if n not in codes] == []
+
+
+def test_the_neck_tubes_cut_list_is_built_from_the_model():
+    """#1075: Stage 2's guide gives the neck tube's length and each cross hole's place from model/neck.py."""
+    import macros
+    from model import neck
+
+    table = macros.neck_tube()
+    assert f"| Cut to | {neck.TUBE[2]:g} mm |" in table
+    assert [f"{s:g} mm from the foot" in table for s in neck.TUBE_SCREWS] == [True, True]
+    assert "<!--{{ neck_tube }}-->" in (ROOT / "docs" / "build" / "stage-2.md").read_text()
 
 
 def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():

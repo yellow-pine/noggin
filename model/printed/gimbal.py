@@ -23,6 +23,10 @@ LEVER_R, NECK_R, CUP_R, ARM = 2.5, 1.2, gm.BALL_R + 1.5, 6.0  # ARM: every print
 # their 3 mm slabs
 ROD_BONE, LID_BONE = ((3.6, 5.5), (2.4, 4.0)), ((4.0, 2.9), (3.0, 2.6))
 TIE_BOSS = ARM / 2  # the tie-bar's bosses' radius, round each pin's bore
+# The tie-bar's Bones (#1052): each finger's and the tail's lie in their slabs as the lid drives' do, and are as wide in
+# the slab's plane as the flat arm at its thickest, so the arm's own sides cut them and no Bone's flank hangs past the
+# arm's 44 deg on the tie-bar's bed; the cross-bar's lies on that bed, as wide as the bar, domed up to the fingers
+TIE_BONE, CROSS_BONE = ((2.4, 5.0), (2.2, 3.6)), ((2.4, 7.6), (2.2, 5.6))
 # (#704) the yoke's crank in its 3 mm slab, stiff in the bed for its bending, its waist 0.5 mm over the slab so the
 # slab's top cuts it flat (a crown grazing it, 2.9, fused invalid on aarch64's OCCT, #890); the bail's rod flat-bottomed
 # with the shanks' bores at its middle height, each arm a strut round in section, the input arm's tip round the pitch
@@ -177,31 +181,38 @@ def tie_bed():
     return m
 
 
-def tie_bar():
+@bone.carved
+def tie_bar(mechanical=False):
     """The tie-bar (#967): a finger under each yoke's crank from its pin, back and up inside the lids' shell and out
     through the belt behind the eye to the cross-bar behind the eyes, and a tail from that bar's back edge down the
-    midline to the yaw horn's pin: one parallelogram with both yokes' cranks and the horn. Flat arms, one style
-    (model/printed UNSTYLED); printed on the cross-bar's back edge (tie_bed), so each finger and the tail rise within
-    45 deg of upright, a wedge under each pin's boss."""
+    midline to the yaw horn's pin: one parallelogram with both yokes' cranks and the horn. Mechanical: flat arms. As
+    Bones (#1052): the cross-bar a Bone on the bed, each finger a chain of three in its slab and the tail one in its,
+    the pins' bosses as they are. Printed on the cross-bar's back edge (tie_bed), so each finger and the tail rise
+    within 45 deg of upright, a wedge under each pin's boss."""
     c, t, thick = gm.EYE["L"][0], gm.FINGER_Z[1] - gm.FINGER_Z[0], gm.CROSS_Z[1] - gm.CROSS_Z[0]
     pin, horn = (gm.CRANK, sum(gm.FINGER_Z) / 2), (gm.YAW_Y + gm.CRANK, sum(gm.TIE_Z) / 2)
-    out = box((-c - gm.FINGER_X[1], c + gm.FINGER_X[1]), gm.CROSS_Y, gm.CROSS_Z)
+    reach, slab = c + gm.FINGER_X[1], (c + gm.FINGER_X[0], c + gm.FINGER_X[1])  # the L finger's, drawn then mirrored
+    back = (gm.CROSS_Y[1] - t / 2, sum(gm.CROSS_Z) / 2)
+    if mechanical:
+        out = box((-reach, reach), gm.CROSS_Y, gm.CROSS_Z)
+        # out through the belt as thick as the cross-bar
+        finger = lid_mechanical([pin, *gm.FINGER[:2]], slab, t).union(lid_mechanical(gm.FINGER[1:], slab, thick))
+        tail = lid_mechanical([horn, back], (-TIE_BOSS, TIE_BOSS), t)
+    else:  # the cross-bar's ends flat on the slabs' outer faces
+        z = sum(gm.CROSS_Z) / 2
+        out = _placed(bone.bone((-reach, z, 0), (reach, z, 0), *CROSS_BONE, heads=False), tie_bed())
+        finger = lid_bone([pin, *gm.FINGER], slab, TIE_BONE)
+        tail = lid_bone([horn, back], (-TIE_BOSS, TIE_BOSS), TIE_BONE)
+    out = out.union(finger).union(finger.mirror("YZ")).union(tail)
     # the tangent under the boss 45 deg off the bed's normal, down to the finger's inboard face
     k = TIE_BOSS * math.sqrt(0.5)
     wedge = [(-k, pin[0] + k), (0.0, pin[0] + 2 * k), (0.0, pin[0])]
     for s in (-1, 1):
-        x = sorted((s * (c + gm.FINGER_X[0]), s * (c + gm.FINGER_X[1])))
-        out = out.union(lid_mechanical([pin, *gm.FINGER[:2]], x, t)).union(
-            cyl("z", (s * c, pin[0], 0), TIE_BOSS, gm.FINGER_Z)
-        )
-        out = out.union(lid_mechanical(gm.FINGER[1:], x, thick))  # out through the belt, as thick as the cross-bar
+        out = out.union(cyl("z", (s * c, pin[0], 0), TIE_BOSS, gm.FINGER_Z))
         gusset = [(s * (c + u), y) for u, y in wedge]
         out = out.union(cq.Workplane("XY", origin=(0, 0, gm.FINGER_Z[0])).polyline(gusset).close().extrude(t))
         out = out.cut(cyl("z", (s * c, pin[0], 0), gm.PIN_R, (gm.FINGER_Z[0] - 1, gm.FINGER_Z[1] + 1)))
-    back = (gm.CROSS_Y[1] - t / 2, sum(gm.CROSS_Z) / 2)
-    out = out.union(lid_mechanical([horn, back], (-TIE_BOSS, TIE_BOSS), t)).union(
-        cyl("z", (0, horn[0], 0), TIE_BOSS, gm.TIE_Z)
-    )
+    out = out.union(cyl("z", (0, horn[0], 0), TIE_BOSS, gm.TIE_Z))
     drop = [(-k, horn[0] + k), (0.0, horn[0] + 2 * k), (k, horn[0] + k)]  # the horn's boss a teardrop on that bed
     out = out.union(cq.Workplane("XY", origin=(0, 0, gm.TIE_Z[0])).polyline(drop).close().extrude(t))
     return out.cut(cyl("z", (0, horn[0], 0), gm.PIN_R, (gm.TIE_Z[0] - 1, gm.TIE_Z[1] + 1)))

@@ -84,6 +84,7 @@ GROUPS = {
         "gimbal frame",
         "head mount",
         "cervical carrier",
+        "neck socket",
         "jaw",
         "test stand",
         "skull",

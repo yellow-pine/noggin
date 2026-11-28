@@ -9,6 +9,7 @@ rocker pin (#148, research note docs/research/2026-11-01-mujoco-loops.md). pose(
 
 import collections
 import concurrent.futures
+import functools
 import glob
 import hashlib
 import json
@@ -29,7 +30,6 @@ from model import geometry as g
 from model.render import scene
 
 BUILD = os.path.join(stages.REPO, "model", "build")
-ANATOMY_LOADS = os.path.join(BUILD, "skeleton", "loads.json")
 CONVEX, MJCF = os.path.join(BUILD, "convex"), os.path.join(BUILD, "mjcf")
 # CoACD's default concavity; a fixed seed so the pieces repeat; and every mesh cut as it is meshed (_mesh closes it).
 # CoACD's default preprocess ("auto") rebuilds from voxels a mesh it takes for no manifold, one with an open edge or
@@ -50,7 +50,7 @@ FINE_MM = {
     f"gimbal frame{g.MECHANICAL}": 1.0,
     # the tie-bar's fingers pass 2 mm over the frame's yaw bearings and its cross-bar 2.8 mm behind the shut lower
     # lids (#967): pieces within 0.5 mm of it, where the default lets a fork's pieces fill 4 mm of its inside corners
-    "tie-bar": 0.5,
+    **dict.fromkeys(("tie-bar", f"tie-bar{g.MECHANICAL}"), 0.5),
 } | {
     # each lower lid's shell nests 1 mm outside the upper's (#698), and each upper lid's 1 mm outside the cap (#872):
     # pieces within 0.5 mm of it, not chords across the gap, which read the shut upper lid 0.59 mm into the cap (#1003)
@@ -217,19 +217,46 @@ def _quat(m):
     return q
 
 
-def anatomy(spec, stage, bodies):
-    """Finished-export mass/COM/inertia on rigid carriers; realistic meshes remain excluded from collisions (ADR0020)."""
-    with open(ANATOMY_LOADS) as file:
-        loads = json.load(file)
-    required = set(g.SKULL)  # #874 derives this from its one canonical Bone-output registry
-    if (
-        not isinstance(loads.get("source"), str)
-        or not loads["source"].strip()
-        or not required <= loads.get("parts", {}).keys()
-    ):
-        raise ValueError("finished anatomy loads need their export stamp and every head/cervical part")
+LOAD = "anatomy "  # a finished bone's load: a body named this and its bone, on its carrier, with no geometry
+
+
+def parts(model):
+    """The ids of the model's bodies that are the document's parts: every body but the world and the bones' loads."""
+    return [b for b in range(1, model.nbody) if not model.body(b).name.startswith(LOAD)]
+
+
+def finished():
+    """Whether `just ours` left the realistic Skeleton's bones finished here (Blender's: a host without it has none,
+    and simulates the mechanism alone)."""
+    return all(os.path.exists(stages.stl(stem)) for stem in g.SKULL)
+
+
+@functools.cache
+def loads():
+    """{bone: its load}: each finished bone (g.SKULL) as it prints (mass()), its centre and its inertia about it in
+    the head's frame (mm, g mm2), and the carrier it rides (neck.BONE_CARRIERS): the skull the head, the mandible the
+    jaw, C1 to C7 the fixed cervical carrier (stages.RIDES)."""
+    role = {"gimbal frame:1": "head", "jaw:1": "jaw", "cervical carrier:1": "fixed"}
+    out = {}
+    for stem in g.SKULL:
+        mesh = trimesh.load(stages.stl(stem), force="mesh")
+        grams = mass(mesh, stages.printed(stem))
+        out[stem] = {
+            "carrier": role[stages.RIDES[stem + ":1"]],
+            "mass_g": grams,
+            "com_mm": mesh.center_mass.tolist(),
+            "inertia_g_mm2": (mesh.moment_inertia * grams / mesh.volume).tolist(),
+        }
+    return out
+
+
+def anatomy(spec, stage, bodies, loads):
+    """Each finished bone's mass, centre and inertia (`loads`: loads()) on its rigid carrier; the realistic meshes
+    stay out of collisions (ADR0020)."""
+    if not set(g.SKULL) <= loads.keys():
+        raise ValueError("finished anatomy loads need every head and cervical bone")
     head = stage.horns["tilt horn"].frame
-    for stem, load in loads["parts"].items():
+    for stem, load in loads.items():
         role = load["carrier"]
         if role not in neck.BONE_CARRIERS:
             raise ValueError(f"invalid anatomical carrier for {stem}")
@@ -253,7 +280,7 @@ def anatomy(spec, stage, bodies):
             axes[:, -1] *= -1
         orientation = np.eye(4)
         orientation[:3, :3] = axes
-        body = bodies[carrier].add_body(name=f"anatomy {stem}", pos=(matrix @ [*com, 1])[:3] * MM)
+        body = bodies[carrier].add_body(name=LOAD + stem, pos=(matrix @ [*com, 1])[:3] * MM)
         body.explicitinertial, body.mass = True, grams / 1000
         body.ipos = [0, 0, 0]  # the explicit inertia is about this child's own origin, already placed at the COM
         body.inertia, body.iquat = inertia * 1e-9, _quat(orientation)  # g.mm² -> kg.m²
@@ -429,10 +456,8 @@ def spec(doc, collide=True):
             drive(s, horn.direct.joint, name=h, gear=horn.direct.sign)
         else:
             drive(s, h)
-    # shortcut: nothing writes ANATOMY_LOADS until #874's finished export does; until then physics runs on the
-    # mechanical parts alone, as before #978, and a present but invalid file still fails loudly in anatomy()
-    if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= bodies.keys() and os.path.exists(ANATOMY_LOADS):
-        anatomy(s, stage, bodies)
+    if {neck.HEAD_CARRIERS["fixed"], neck.HEAD_CARRIERS["jaw"]} <= bodies.keys() and finished():
+        anatomy(s, stage, bodies, loads())
     return s
 
 
@@ -448,9 +473,7 @@ def head(doc, model, bare=False):
     rockers = horn.direct.driven if horn.direct else horn.loops[0].rockers
     rockers = [n for n in rockers if stages.stem(stages.STAGES[doc].parts[n].file) not in g.BONES]  # no body: spec()
     ids = [model.body(n).id for n in rockers if not (bare and n.removesuffix(":1") in skin.DRAWN)]
-    ids += [
-        i for i in range(1, model.nbody) if model.body(i).name.startswith("anatomy ") and model.body_parentid[i] in ids
-    ]
+    ids += [i for i in range(1, model.nbody) if model.body(i).name.startswith(LOAD) and model.body_parentid[i] in ids]
     kg = model.body_mass[ids]
     com = (kg @ data.xipos[ids]) / kg.sum() * 1000  # the MJCF's root is the document's frame (up is z)
     return float(kg.sum() * 1000), tuple(float(c) for c in com - np.array(stages.DOCS[doc]["neck"][0]))
