@@ -27,16 +27,21 @@ from model import geometry as g
 # model/review MORTY_EYES); his eyeballs' centres this far apart
 MORTY_BALL_R = 37.1
 SPACING = 73.3  # eye centres apart: his Sculpt's eyeballs', each fitted to its dome (#967, model/review MORTY_EYES)
-# the eye's growth, x1.4, from the 27 mm cap the gimbal was first drawn round (#630): the core, its lever and the yoke
-# are sized to his eyeball's own radius (x1.5, to the 40.4 mm cap's, before #967), so they turn inside the lids' shell
-K = round(MORTY_BALL_R / 27.0, 1)
+# the eye's growth, x1.3, from the 27 mm cap the gimbal was first drawn round (#630): the core, its seat and the yoke
+# are sized to his eyeball cap's radius (CAP_R, 34.9; x1.4 to his eyeball's own 37.1 before the eyes sank, x1.5 to the
+# 40.4 mm cap's before #967), so the yoke's crank and the tie-bar's fingers under it stand 1.4 mm higher and leave the
+# yaw bearing's pad its depth inside the lids' shell (3.3 mm under the fingers' pins, 1.9 at x1.4: SF 1.0 at stall)
+K = 1.3
 EYE = {"L": (SPACING / 2, 0.0, 0.0), "R": (-SPACING / 2, 0.0, 0.0)}
 SERVO_DEG = 90.0  # a servo's travel either side of its centre
 YAW, PITCH = 25.0, 15.0  # each eye's range, +-: the neck joins larger gaze shifts (#51)
 CRANK = g.HORN_STEP["pin"]  # the horn's pin hole from its hub: every crank the horns drive or match
 PIN_R = 1.6  # the busy pivots' M3 steel shank (model/printed/coupon.py) in a bore 0.1 over it
 CORE_R, SEAT_R = 13.0 * K, 8.0 * K  # the core ball; the boss its cap sits on
-LEVER, BALL_R = 17.0 * K, 3.0  # the lever up the yaw axis to its ball's centre
+# the lever up the yaw axis to its ball's centre: 17 x 1.4, as his 37.1 mm eyeball had it, since the pitch drive (the
+# push-rod, the bail's arm, the core's relief, the pitch's calibration) is laid out from that ball and none of it
+# stands in the yaw bearing's way
+LEVER, BALL_R = 23.8, 3.0
 # a push-rod's reach about the line between its balls: its cups' 1.5 mm walls, and the skirt its bail cup stands on
 # its bed with (#967, model/printed/gimbal.py push_rod)
 ROD_R = BALL_R + 1.7

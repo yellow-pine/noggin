@@ -145,16 +145,18 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   eyes, over the lid servos and under the cranium tray; the pitch servo and its horn stay, their bar leans. The
   core's top is cut to a cone round the lever where the rod passes, and the lever's neck leans forward, square to the
   rod's bed. The rod meets its lever at 52 deg or more and the bar its horn at 53, so the gaze's play counts each
-  pitch pin through the angle its link meets its arm at (1.73 deg with the pupil's seating).
+  pitch pin through the angle its link meets its arm at (1.76 deg with the pupil's seating).
   Since #901 the eyes are Morty's at life size (#872's round 2), since #967 on his Sculpt's own eyeballs, each a
   sphere fitted to its dome: 73.3 mm apart, a 37.1 mm ball (his pupils sit 9 deg outward on it; the domes' feet, seen
-  from the front, are 80 mm apart, as each dome faces outward). The core, its lever and the yoke are x1.4 of the
-  gimbal's first 27 mm since #967, sized to his eyeball's own 37.1 mm, so they turn inside the shell the hidden lids
-  and their cap sweep (35.8 to 37.6 mm from each eye's centre, `gimbal.LIDS_SHELL`: the cap a 35.8 mm sphere, 1.3 mm
-  under his eye's; the lids' band 0.55 mm over it and 0.75 mm thick, its outer face on his eye's own surface, so no
-  lid stands proud of his skin and a brow laid on the face has 1.4 mm under it, #850). The cap is solid in front, on
+  from the front, are 80 mm apart, as each dome faces outward). The eyes are sunk (Cansin, 2026-11-28, ADR 0028):
+  the hidden lids and their cap sweep a shell 34.9 to 36.7 mm from each eye's centre (`gimbal.LIDS_SHELL`: the cap a
+  34.9 mm sphere, 2.2 mm under his eye's; the lids' band 0.55 mm over it and 0.75 mm thick, its outer face 0.9 mm
+  under his eye's own surface, so 0.4 mm of the face's wall reaches each opening's outline over it, #850). The core,
+  its seat and the yoke are x1.3 of the gimbal's first 27 mm, sized to that cap, so the yoke's crank and the tie-bar's
+  fingers leave the yaw bearing's pad its depth inside the shell; the lever keeps its 23.8 mm, which the pitch drive
+  is laid out from. The cap is solid in front, on
   the core's seat, and from there a 1.6 mm shell out to its opening's own outline as the front sees it; below the
-  eye line it ends 1.2 mm inside the outline, on the rim's own way out from the eye's centre, since pitched down a
+  eye line it ends 2.2 mm inside the outline, on the rim's own way out from the eye's centre, since pitched down a
   cap that filled it met the yaw bearing. Nothing else may cross that shell but
   in the belt behind the eye, between the two stowed lids, and between the eyes, where the lids' hubs are, so the yaw
   drive is laid out round it: each yoke has no
@@ -164,7 +166,7 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   pitch servo's stall, where a 1.5 mm strip of the sphere alone read 0.2); the tie-bar reaches each yoke's crank pin
   by a finger, under the crank, back and up inside the shell and level out through the belt to a cross-bar behind the
   eyes, with a tail down the midline to the yaw horn's pin, which stays with its horn and servo (the finger is as
-  thick as the cross-bar where the stalled servo twists it: SF 3.1). Each keeps 1.9 mm or more from what it passes,
+  thick as the cross-bar where the stalled servo twists it: SF 3.3). Each keeps 1.9 mm or more from what it passes,
   on the exact solids, and neither shares volume with the shell (`model/printed/test_gimbal.py`). The frame's plate
   starts behind the eyes and its bar, a beam the face sits on, hangs under them from a foot behind each cheek; the
   yaw servo hangs behind it too. Since #967 the frame hides inside Morty's Skin: the beam ends inside his cheeks, its
@@ -176,14 +178,14 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   palate to the cranium's base, so the bare skull is one piece (`gimbal.WINDOW_X`). Each eye has an
   upper and a lower lid on that one servo, hidden under his skin since #967 (Cansin, 2026-11-28): both in the one
   band, in his face's filament. Open, at the servo's centre, the lower lid's edge lies along the bottom rim where
-  the cap's bottom edge shows, cut to the rim's curve as the front sees it (the sliver of lid under the cap, 1.2 mm),
+  the cap's bottom edge shows, cut to the rim's curve as the front sees it (the sliver of lid under the cap, 2.2 mm),
   and the upper lid's, the same curve, is parked behind the top rim; shut they meet on that curve lifted, 6.5 deg
-  over the eye's middle, 0.6 mm apart. The lower lid turns 65.9 deg and the upper 76.8, read off the eye whites' cuts
+  over the eye's middle, 0.6 mm apart. The lower lid turns 63.5 deg and the upper 75.2, read off the eye whites' cuts
   on his Sculpt, and the servo has 4.5 deg more to open them wider, which the eye program's lid map needs over its
-  rest (a blink takes about 0.7 s: the servo's slew over 77 deg). Each lid covers 4 deg past the rim it hides behind; the upper lid's back edge is the top rim itself
+  rest (a blink takes about 0.7 s: the servo's slew over 75 deg). Each lid covers 4 deg past the rim it hides behind; the upper lid's back edge is the top rim itself
   for 5 mm either side of the eye's middle, where the bail's arm comes. The upper lid's crank is driven through the
   lid bar (a parallelogram), the lower lid's through a link from the lid horn's inner hole to a crank pointing down,
-  a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 54 deg or more). All
+  a crossed four-bar turning it against the upper (`gimbal.lower`; its link meets its crank at 55 deg or more). All
   four lids turn on one shank along the eye line, in a wall of the frame on the midline, each on a sleeve between
   the eyes; a spoke runs from each sleeve back to a tail of its lid's band, behind everything the cap's shell sweeps
   as its eye yaws in. No lid has a bearing at its outer end. The pitch push-rod's Hooke coupling is undone by the command map

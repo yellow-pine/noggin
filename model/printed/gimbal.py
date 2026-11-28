@@ -116,7 +116,7 @@ def bail_foot():
 
 
 # the relief on the core's top (#967): pitched down 15 deg, the leaned push-rod's underside passes 16.1 mm from the
-# core's centre, 2.1 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
+# core's centre, 0.8 mm inside its ball, and the rod swings about the yaw axis over the yaw; the ball is cut to a cone
 # round the lever's axis, its side this far from the centre and facing (out, up) this way, 2 mm under the rod's bar
 # wherever the eye turns (fitted to its underside over the pitch and the yaw)
 CORE_RELIEF = (14.0, (0.649, 0.760))

@@ -120,8 +120,8 @@ def _pinned(stage, posed, horn, pins):
 @pytest.mark.parametrize("side", "LR")
 def test_a_lid_horn_turns_its_lower_lid_on_the_lid_link(side):
     """#967: the lid link runs from the lid horn's inner hole to the lower lid's crank, a four-bar of its own beside the
-    bar's, so over the lid horn's range the lower lid turns as it has it (gimbal.lower: 65.9 deg against the upper's
-    76.8) and the link keeps its pin on the horn and its pin on the lower lid's crank."""
+    bar's, so over the lid horn's range the lower lid turns as it has it (gimbal.lower: 63.5 deg against the upper's
+    75.2) and the link keeps its pin on the horn and its pin on the lower lid's crank."""
     stage, horn, x = stages.STAGES["mech-back"], f"{side} lid horn", gimbal.EYE[side][0]
     lo, hi = stage.horns[horn].limits
     lower, link = f"{side} lower lid:1", f"{side} lid link:1"
