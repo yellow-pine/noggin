@@ -29,10 +29,13 @@ Shells there are.
   the temple end edge on, where a gap measured in the view would open to three times its size on the surface.
 - **A brow is glued in the face, on a tab behind each end** (ticket #850, made while away; proposed to Cansin on
   the ticket first). A brow is 8 mm across and a Seat 14, so it has none. Its own outline locates it, 0.2 mm off
-  the face all round instead of a seam's gap, since it never moves against the face. Behind its first 9 mm at the
-  nose and its last 12 mm at the temple the face runs on as a tab 1 mm thick, 0.4 mm under the brow for the glue.
-  Between the two there is none: over the eye #967's lids stow 1.1 mm behind a brow's inside. A brow comes off with
-  the face, as a pupil with its cap.
+  the face all round instead of a seam's gap, since it never moves against the face. Behind two stretches of it
+  the face runs on as a tab 1 mm thick, 0.4 mm under the brow for the glue: from 4.4 to 11.9 mm in from its nose
+  end, and its last 12 mm at the temple. A tab lies in the depth of the face's own wall beside the brow, which
+  stands proud of it, so the wall is thickened nowhere. Elsewhere there is none: under the nose end's tip the skull
+  stands 1.5 mm behind a brow's inside, and over the eye #967's lids stow 1.1 mm behind it. As built a tab keeps
+  1.1 mm from the worn skull and 2.4 mm from the lids' shell. A brow comes off with the face, as a pupil with its
+  cap.
 - **An eye's opening is the Sculpt's own dome's edge, exactly** (Cansin): the face is open inside each eye white's
   cut and no further. So the lids cannot hide whole behind the rim: an open lid's edge rests at the rim and shows
   there as a sliver (#967). The face's wall comes to 36.3 mm from each eye's centre at its nearest (38.0 before), and

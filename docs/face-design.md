@@ -72,8 +72,9 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   over the magnet (model/morty/shells.py `seated()`). *Upcoming (#850): the rest of Morty's Seats: the face's top
   and the hair on the skull, the chin on the jaw and the shirt on the Torso (#879).*
 - A brow has no Seat (`skin.GLUED`): it is 8 mm across, a Seat 14, and the lids stow 1.1 mm behind it over the eye.
-  It drops into its opening in the face, its own outline its key with 0.2 mm of play a side, onto a 1 mm tab of
-  face behind its nose end and its temple end, and is glued there. It comes off with the face.
+  It drops into its opening in the face, its own outline its key with 0.2 mm of play a side, onto two 1 mm tabs
+  of face, one behind it near its nose end and one behind its temple end, and is glued there. It comes off with
+  the face.
 - One polarity rule: the carrier's disc shows N to its Shell, reversed on the R Seat of each L/R pair (the caps), so
   a Shell on the other side's Seat is pushed off. Glue the discs in that way round.
 - The hold check (model/test_report.py): each Shell's Seats pull it on with Magpylib's force at the Seats' gap
