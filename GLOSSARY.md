@@ -46,8 +46,14 @@ _Avoid_: Base candidate (the two it replaced, #642), option, layout
 The Skeleton's linked eyes: each eyeball core turns up/down inside a yoke that turns left/right, one servo turns both
 yokes through a tie-bar, one turns both cores through push-rods, and each eye's upper and lower lid turn against each
 other about the up/down axis on that eye's own servo, between the eyes: the upper lid through the lid bar, the lower
-through a link off it. The eyeball caps (Shells) sit on the cores.
+through a link off it. The eyeball caps (Shells) sit on the cores, an eye liner inside each.
 _Avoid_: eye mech, eye frame, linked eyes (as a part name)
+
+**Eye liner**:
+The white part fixed to the gimbal frame inside each eyeball cap: it stands still while the cap turns, so an eye
+opening shows white, not the dark inside the head, where a turned cap has left it. An eye white like the cap, and no
+Shell: it never comes off with a Skin.
+_Avoid_: bowl, backdrop, inner cap, sclera
 
 **Shell**:
 One printed piece of a Skin, in PLA, held on the Skeleton by magnets: a piece of its Character's Sculpt, cut along the
@@ -363,7 +369,8 @@ The lever on a turning part that a Bar drives: the yaw yoke's, each upper lid's.
 A part we print, by our name (model/printed); the Skeleton's:
 - gimbal frame: the eye block's plate, carrying the eyes' pivots and the four eye servos;
 - yaw yoke: one per eye, turning left and right in the frame; tie-bar: joins both yokes to the yaw Horn;
-- eyeball core: turns up and down in its yoke, its eyeball cap (a Shell) on it;
+- eyeball core: turns up and down in its yoke, its eyeball cap (a Shell) on it; eye liner: the Eye liner, one per
+  eye, on the gimbal frame;
 - bail, push-rod, pitch bar: turn both cores up and down from the pitch Horn;
 - upper lid, lower lid: an eye's two lids; lid bar: the upper lid's Bar from its lid Horn; lid link: the lower lid's,
   from the same Horn's inner hole;

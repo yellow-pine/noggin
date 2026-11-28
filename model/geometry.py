@@ -170,6 +170,8 @@ PRINTED = {
     **{name: (group, "PETG HF") for group, names in _SKELETON.items() for name in names},
     "L eyeball cap": ("eye whites", "PLA Pure"),
     "R eyeball cap": ("eye whites", "PLA Pure"),
+    # each eye's liner (#967): white on the frame inside the cap's shell, seen where a turned cap has left its opening
+    **{f"{s} eye liner": ("eye whites", "PLA Pure") for s in "LR"},
     # each eye's lids (#967): his skin's own moving covers, in his face's filament
     **{f"{s} {lid} lid": ("face", "PLA Pure") for s in "LR" for lid in ("upper", "lower")},
 }

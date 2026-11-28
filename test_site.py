@@ -176,6 +176,7 @@ def test_each_stage_guide_lists_what_its_stage_adds_from_the_model():
     for row in [
         "| Core | 1 | bought |",
         f"| L eyeball cap | 1 | eye whites: {WHITES} |",
+        f"| L eye liner | 1 | eye whites: {WHITES} |",  # fixed to the frame inside its cap (#967)
         "| servo | 4 | bought |",
         "| M3 x 16 mm pivot screw | 22 | bought |",
         "| Shield | 1 | bought |",
@@ -203,7 +204,9 @@ def test_the_palettes_table_names_each_colour_groups_bambu_filament_from_the_mod
     for row in [
         "| Skeleton | robot | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
         "| Skeleton | black | Mounts | torso, torso lid, cranium tray | PETG Basic Black (30105) | #000000 |",
-        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap | PLA Basic Jade White (10100) | #FFFFFF |",
+        # each eye's cap and the liner inside it (#967)
+        "| Skin | morty | eye whites | L eyeball cap, R eyeball cap, L eye liner, R eye liner |"
+        " PLA Basic Jade White (10100) | #FFFFFF |",
         # Morty's Shells, cut from his Sculpt (#850)
         "| Skin | morty | hair | morty hair crown, morty hair back, morty L brow, morty R brow | PLA Basic Cocoa Brown"
         " (10802) | #6F5034 |",
