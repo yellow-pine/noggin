@@ -238,8 +238,8 @@ def finished():
 @functools.cache
 def loads():
     """{bone: its load}: each finished bone (g.SKULL) as it prints (mass()), its centre and its inertia about it in
-    the head's frame (mm, g mm2), and the carrier it rides (neck.BONE_CARRIERS): the skull the head, the mandible the
-    jaw, C1 to C7 the fixed cervical carrier (stages.RIDES)."""
+    the head's frame (mm, g mm2), and the carrier it rides (neck.BONE_CARRIERS): the skull and its calvaria the head,
+    the mandible the jaw, C1 to C7 the fixed cervical carrier (stages.RIDES)."""
     role = {"gimbal frame:1": "head", "jaw:1": "jaw", "cervical carrier:1": "fixed"}
     out = {}
     for stem in g.SKULL:

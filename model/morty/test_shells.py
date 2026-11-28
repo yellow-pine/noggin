@@ -323,12 +323,14 @@ def test_each_brow_is_keyed_in_the_face_and_lies_on_a_tab_behind_each_end(built,
 @pytest.mark.bones
 def test_no_tab_behind_a_brow_asks_the_skull_to_give_way(built, outer):
     """#850: a tab is the one place the face reaches deeper under Morty's surface than its wall. As built it keeps a
-    worn Shell's room (gm.LID_CLEAR_MM) from the worn skull as that stands (1.13 mm measured, at the nose end), so
+    worn Shell's room (gm.LID_CLEAR_MM) from the worn skull as that stands, its calvaria on (1.13 mm measured, at the nose end), so
     wearing the face asks nothing more of the bone there: the frontal bone's ring is at its thinnest just above
     (#874). Read on sampled surfaces, 0.3 mm apart."""
     under, _ = _tabs_under_sides(built["morty face"], outer)
-    skull = trimesh.load(stages.stl("worn skull"), process=False)
-    near = cKDTree(shells._points(skull.triangles, 0.3)).query(under, workers=-1)[0]
+    skull = [
+        trimesh.load(stages.stl(g.WORN[stem]), process=False).triangles for stem in (skeleton.CAPPED, skeleton.CAP)
+    ]
+    near = cKDTree(shells._points(np.vstack(skull), 0.3)).query(under, workers=-1)[0]
     assert near.min() > gm.LID_CLEAR_MM + 0.3, (near.min(), under[near.argmin()])
 
 

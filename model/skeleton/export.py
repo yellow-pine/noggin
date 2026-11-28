@@ -6,6 +6,7 @@ built, every finish run and each bone written as an STL in the head's frame.
 build.py imports swap() too, to put the Scene Mech in the scene it builds."""
 
 import json
+import math
 import os
 import struct
 import sys
@@ -15,6 +16,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 MECH, CARVE, OPENINGS, FINISHED, VAULT = "Mech", "Carve", "Openings", "Finished", "Vault"
+CAP, BOSSES, POCKETS, BALLS, GROOVES = "Cap", "Cap bosses", "Cap pockets", "Cap balls", "Cap grooves"  # #874
+SEAM = ("seam above", "seam below")  # the seam's cutters: what the skull loses, what its cap loses
 
 
 def collection(name, parent=None):
@@ -59,13 +62,59 @@ def _box(name, lo, hi, c):
     return o
 
 
+def _cap(cap, frame, lo, hi):
+    """The cap's helpers (job["cap"], the head's frame at `frame` in the document's, #874): the seam's two cutters,
+    each a box over the skull's (`lo` to `hi`), one from the skull's face of the seam up and one from its cap's face
+    down, the gap between them; at each Seat a ball boss on the seam and one pocket through both faces, a magnet
+    deep in each, and round it three balls on the skull's face (spared by its cutter, so they stand on it) and their
+    three V-grooves up into the cap's (a Seat's two halves, as model/printed/skin.py draws them)."""
+    c = collection(CAP, collection("helpers"))
+    z, half = frame.z + cap["seam"], cap["gap"] / 2
+    above = _box(SEAM[0], (lo.x, lo.y, z - half), hi, bpy.context.scene.collection)  # in view: a modifier is applied
+    _box(SEAM[1], lo, (hi.x, hi.y, z + half), c)
+    (bore, depth), (ring, ball), (reach, deep) = cap["bore"], cap["ball"], cap["groove"]
+    w = deep + 1.0  # a groove's cutter: its edge `deep` into the cap, 45 deg each side down past the cap's face
+    wedge = [(r, t, h) for r in (ring - reach, ring + reach) for t, h in ((-w, -1.0), (w, -1.0), (0.0, deep))]
+    for i, (x, y) in enumerate(cap["seats"]):
+        at = Vector((frame.x + x, frame.y + y, z))
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=cap["boss"], segments=48, ring_count=24, location=at)
+        _into(bpy.context.active_object, collection(BOSSES, c))
+        bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=bore, depth=2 * (half + depth), location=at)
+        _into(bpy.context.active_object, collection(POCKETS, c))
+        for deg in (0, 120, 240):
+            turn = Matrix.Rotation(math.radians(deg), 4, "Z")
+            on = at + turn @ Vector((ring, 0, -half))  # on the skull's face
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=ball, segments=32, ring_count=16, location=on)
+            _into(bpy.context.active_object, collection(BALLS, c))
+            me = bpy.data.meshes.new(f"groove {i} {deg}")
+            me.from_pydata(wedge, [], [(0, 2, 1), (3, 4, 5), (0, 1, 4, 3), (1, 2, 5, 4), (0, 3, 5, 2)])
+            groove = bpy.data.objects.new(me.name, me)
+            groove.matrix_world = Matrix.Translation(at + Vector((0, 0, half))) @ turn
+            collection(GROOVES, c).objects.link(groove)
+    spare = above.modifiers.new("Balls", "BOOLEAN")  # the skull keeps what its cutter spares
+    spare.operation, spare.operand_type, spare.collection = "DIFFERENCE", "COLLECTION", collection(BALLS, c)
+    with bpy.context.temp_override(object=above):
+        bpy.ops.object.modifier_apply(modifier=spare.name)
+    _into(above, c)
+    for o in c.all_objects:
+        o.display_type, o.hide_render = "WIRE", True
+
+
+def _into(o, c):
+    for old in list(o.users_collection):
+        old.objects.unlink(o)
+    c.objects.link(o)
+
+
 def swap(job, ratio=None):
     """The Scene Mech and every carve set from `job` (model/skeleton job()): each part at rest in the Mech layer,
-    each carving place an object sharing its part's mesh, the skull's openings; `ratio` decimates them (the committed
-    scene's light copy). Only the places near each bone's box are linked: the rest can't cut it."""
+    each carving place an object sharing its part's mesh, the skull's openings and its cap's helpers; `ratio`
+    decimates them (the committed scene's light copy). Only the places near each bone's box are linked: the rest
+    can't cut it."""
     _empty(collection(MECH))
     _empty(collection(CARVE, collection("helpers")))
     _empty(collection(OPENINGS, collection("helpers")))
+    _empty(collection(CAP, collection("helpers")))
     meshes = {}
     for path in job["files"].values():
         if path not in meshes:
@@ -82,6 +131,8 @@ def swap(job, ratio=None):
         ]
         lo = Vector([min(p[i] for p in box) for i in range(3)]) - Vector((2,) * 3)
         hi = Vector([max(p[i] for p in box) for i in range(3)]) + Vector((2,) * 3)
+        if bone in job["cap"]["of"]:
+            _cap(job["cap"], Vector(job["frame"]), lo, hi)
         for kind, places in kinds.items():
             near = []
             for name, at in places:
@@ -154,6 +205,29 @@ def _there_and_back(group, grid, name, sign):
     return grid
 
 
+def _all(group, c):
+    """The collection's objects as one geometry (a socket), each where it stands."""
+    N, L = group.nodes, group.links
+    info = N.new("GeometryNodeCollectionInfo")
+    info.transform_space = "RELATIVE"
+    info.inputs["Collection"].default_value = c
+    info.inputs["Separate Children"].default_value = False
+    real = N.new("GeometryNodeRealizeInstances")
+    L.new(info.outputs[0], real.inputs[0])
+    return real.outputs[0]
+
+
+def _grid(group, geometry):
+    """The mesh `geometry` (a socket) as an SDF grid at the group's Voxel, its band the group's other grids'."""
+    N, L = group.nodes, group.links
+    (band,) = {n.inputs["Band Width"].default_value for n in N if n.bl_idname == "GeometryNodeMeshToSDFGrid"}
+    sdf = N.new("GeometryNodeMeshToSDFGrid")
+    L.new(geometry, sdf.inputs["Mesh"])
+    L.new(next(n for n in N if n.bl_idname == "NodeGroupInput").outputs["Voxel"], sdf.inputs["Voxel Size"])
+    sdf.inputs["Band Width"].default_value = band
+    return sdf.outputs[0]
+
+
 def _thickened(group, bones, middle):
     """The bones' SDF `bones` (a socket) united with the vault's bones (the Vault collection) once more, each vertex
     moved toward `middle` (the cranium's, in the Finish's own frame) by what the bone lacks there of the group's input
@@ -182,12 +256,7 @@ def _thickened(group, bones, middle):
                 L.new(value, socket)
         return n.outputs[0]
 
-    info = N.new("GeometryNodeCollectionInfo")
-    info.transform_space = "RELATIVE"
-    info.inputs["Collection"].default_value = bpy.data.collections[VAULT]
-    info.inputs["Separate Children"].default_value = False
-    real = N.new("GeometryNodeRealizeInstances")
-    L.new(info.outputs[0], real.inputs[0])
+    real = _all(group, bpy.data.collections[VAULT]).node
     position = N.new("GeometryNodeInputPosition").outputs[0]
     into = vector("SCALE", N.new("GeometryNodeInputNormal").outputs[0])  # against the normal: through the bone
     into.inputs["Scale"].default_value = -1.0
@@ -248,9 +317,63 @@ def rounded(group, middle):
         L.new(_there_and_back(group, mean.inputs["Grid"].links[0].from_socket, "Round", -1.0), mean.inputs["Grid"])
 
 
+def capped(job):
+    """Each capped skull's Finish (job["cap"]["of"]: the bare one's and the worn one's) cut along the seam, and its
+    cap's made of it, a second Finished object on a copy of the group (#874, swap()'s Cap helpers). The Seats'
+    bosses are united with the shelled bones before the openings and the carve, so the mechanism's room is cut from
+    them as from any bone. The seam's cutter and each Seat's pocket (and, from the cap, its grooves) are cut from the
+    mesh, exactly, before its crumbs are dropped: the grid chamfers every edge by a voxel, and left a magnet
+    standing 0.7 mm proud on its pocket's floor. The group cuts what is above the skull's face, its copy what is
+    below the cap's. Older scenes' Finishes get it here, at export, as rounded()'s."""
+    for stem, cap in job["cap"]["of"].items():
+        o = bpy.data.objects[f"finished {stem}"]
+        group = o.modifiers["Finish"].node_group
+        N, L = group.nodes, group.links
+        if "Seam" not in N:
+            node = next(
+                n
+                for n in N
+                if n.bl_idname == "GeometryNodeCollectionInfo"
+                and n.inputs["Collection"].default_value == bpy.data.collections[OPENINGS]
+            )
+            for _ in range(3):  # the Openings, realized, their grid, and the boolean that cuts them
+                node = node.outputs[0].links[0].to_node
+            shelled = node.inputs["Grid 1"]
+            union = N.new("GeometryNodeSDFGridBoolean")
+            union.operation = "UNION"
+            for grid in (shelled.links[0].from_socket, _grid(group, _all(group, bpy.data.collections[BOSSES]))):
+                L.new(grid, union.inputs["Grid 2"])  # a union's grids all go into its one many-input socket
+            L.new(union.outputs[0], shelled)
+            mesh = next(n for n in N if n.bl_idname == "GeometryNodeGridToMesh").outputs[0]
+            readers = [link.to_socket for link in mesh.links]
+            seam = N.new("GeometryNodeObjectInfo")
+            seam.name, seam.transform_space = "Seam", "RELATIVE"
+            cut = N.new("GeometryNodeMeshBoolean")
+            cut.name, cut.operation, cut.solver = "Cut", "DIFFERENCE", "MANIFOLD"
+            L.new(mesh, cut.inputs["Mesh 1"])
+            for cutter in (seam.outputs["Geometry"], _all(group, bpy.data.collections[POCKETS])):
+                L.new(cutter, cut.inputs["Mesh 2"])
+            for socket in readers:
+                L.new(cut.outputs["Mesh"], socket)
+        twin = bpy.data.objects.get(f"finished {cap}")
+        if not twin:
+            twin = o.copy()
+            twin.data = o.data.copy()  # its own mesh: the review bakes each Finish into its object's
+            twin.name = twin.data.name = f"finished {cap}"
+            for c in o.users_collection:
+                c.objects.link(twin)
+            twin.hide_set(o.hide_get())
+            mine = twin.modifiers["Finish"].node_group = group.copy()
+            mine.name = f"Finish {cap}"
+            mine.links.new(_all(mine, bpy.data.collections[GROOVES]), mine.nodes["Cut"].inputs["Mesh 2"])
+        for piece, cutter in zip((o, twin), SEAM, strict=True):  # swap() made the cutters anew
+            piece.modifiers["Finish"].node_group.nodes["Seam"].inputs["Object"].default_value = bpy.data.objects[cutter]
+
+
 def numbers(job):
     """The finish's numbers (model/skeleton: PITCH, CLEAR_MM, WALL, KEEP, the skull's Thick, Seal and Round) on
-    every finish."""
+    every finish, the skull's cap's among them (capped())."""
+    capped(job)
     middle = Vector(job["frame"]) + Vector(job["vault"]["middle"])  # the job's is in the head's frame
     for o in bpy.data.collections[FINISHED].objects:  # on the modifier: it keeps its own copy of each input
         mod = o.modifiers["Finish"]
@@ -262,15 +385,23 @@ def numbers(job):
 
 
 def _stl(path, me):
-    """The mesh as a binary STL at `path`, triangulated (Blender's own exporter evaluates the whole scene again)."""
+    """The mesh as a binary STL at `path`, triangulated (Blender's own exporter evaluates the whole scene again),
+    without the folds the cap's exact cut leaves along the seam's edges (a dozen a piece): a sliver of the wall lying
+    in the seam's plane, back to back with a sliver of its face on the same three points, 0.0005 mm2 each. Both go,
+    and a reader that merges vertices finds every edge between two faces."""
     me.calc_loop_triangles()
-    n = len(me.loop_triangles)
     v = np.empty(len(me.vertices) * 3, np.float32)
     me.vertices.foreach_get("co", v)
-    tri = np.empty(n * 3, np.int32)
+    tri = np.empty(len(me.loop_triangles) * 3, np.int32)
     me.loop_triangles.foreach_get("vertices", tri)
+    points = v.reshape(-1, 3)[tri.reshape(-1, 3)]
+    order = np.lexsort((points[:, :, 2], points[:, :, 1], points[:, :, 0]))
+    same = np.take_along_axis(points, order[:, :, None], axis=1).reshape(-1, 9)
+    _, where, count = np.unique(same, axis=0, return_inverse=True, return_counts=True)
+    points = points[count[where.ravel()] == 1]
+    n = len(points)
     rec = np.zeros(n, [("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")])
-    rec["v"] = v.reshape(-1, 3)[tri.reshape(-1, 3)]
+    rec["v"] = points
     with open(path, "wb") as f:
         f.write(b"\0" * 80 + struct.pack("<I", n) + rec.tobytes())
 

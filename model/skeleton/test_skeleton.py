@@ -2,18 +2,23 @@
 0025): on the Mech's eyes and neck, under Morty's skin (envelope.py), one piece each; the scene itself committed
 light, its one source under its own licence."""
 
+import functools
 import itertools
 import os
 import subprocess
 
+import manifold3d as m3
 import numpy as np
 import pytest
 import trimesh
+from scipy.spatial import cKDTree
 
 from model import geometry as g
 from model import gimbal as gm
+from model import mjcf, skeleton, stages
 from model import neck as nk
-from model import skeleton, stages
+from model import skin as sk
+from model.morty import shells
 from model.skeleton import envelope, fit
 
 SCENE = os.path.join(stages.REPO, skeleton.SCENE)
@@ -41,6 +46,24 @@ def test_the_bones_sit_under_their_sources_licence():
     assert not os.path.exists(os.path.join(stages.REPO, "model/skull"))
 
 
+def test_the_exporter_cuts_the_calvaria_off_each_skulls_own_finish():
+    """#874: the calvaria has no bones of its own in the scene and no carving of its own. The exporter gets it as the
+    skull's cap (job()["cap"]): the bare and the worn skull each with its calvaria, the seam level in the head's
+    frame over the lids' shell (the eyes at z 0), the two faces a Seat's gap apart, and three Seats on it, well
+    apart, in the Skin's own sizes (model/skin.py)."""
+    job = skeleton.job()
+    assert set(job["bones"]) == set(g.SKULL) - {skeleton.CAP}
+    cap = job["cap"]
+    assert cap["of"] == {"skull": "calvaria", "worn skull": "worn calvaria"}
+    assert cap["seam"] - cap["gap"] / 2 > skeleton.LID_SHELL + skeleton.CLEAR_MM + skeleton.FLOOR
+    spots = np.array(cap["seats"])
+    assert spots.shape == (3, 2)
+    assert min(np.linalg.norm(a - b) for a, b in itertools.combinations(spots, 2)) > 100.0
+    assert (cap["gap"], cap["boss"], cap["bore"]) == (sk.GAP, sk.PAD_R, [sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]])
+    assert (cap["ball"], cap["groove"]) == ([sk.RING, sk.BALL_R], [sk.GROOVE, sk.GROOVE_D])
+
+
+@functools.cache
 def _bones():
     return {stem: trimesh.load(stages.stl(stem), force="mesh") for stem in g.BONES}
 
@@ -112,7 +135,8 @@ def test_the_vault_is_closed_from_the_sides_the_back_and_above():
     and the Finish rounded them away: it now thickens the vault's bones inward first (skeleton.THICK; Cansin,
     2026-11-27, #893)."""
     rng = np.random.default_rng(0)
-    p = np.asarray(trimesh.sample.sample_surface(_bones()["skull"], 2_000_000, seed=rng)[0]) - (0.0, 70.0, 0.0)
+    whole = trimesh.util.concatenate([_bones()[stem] for stem in (skeleton.CAPPED, skeleton.CAP)])  # its cap on
+    p = np.asarray(trimesh.sample.sample_surface(whole, 2_000_000, seed=rng)[0]) - (0.0, 70.0, 0.0)
     az = np.degrees(np.arctan2(p[:, 0], p[:, 1]))  # 0 behind, 90 at his left
     el = np.degrees(np.arcsin(p[:, 2] / np.linalg.norm(p, axis=1)))
     seen = np.zeros((120, 45), bool)  # az -120 to 120, el 0 to 90
@@ -122,6 +146,183 @@ def test_the_vault_is_closed_from_the_sides_the_back_and_above():
     # skulls left a bin of it empty by chance (#1075: 3 of 120 on a whole crown, none at 12 million samples)
     seen[:, -1] = seen[:, -1].any()
     assert [(int(a) * 2 - 119, int(e) * 2 + 1) for a, e in np.argwhere(~seen)] == []
+
+
+CAPS = [(skeleton.CAPPED, skeleton.CAP), (g.WORN[skeleton.CAPPED], g.WORN[skeleton.CAP])]  # bare, and worn
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("skull,cap", CAPS)
+def test_the_calvaria_comes_off_the_skull_along_a_level_seam(skull, cap):
+    """#874: the skull ends flat at the seam (skeleton.SEAM_Z, in the head's frame), but for its Seats' balls, and its
+    calvaria starts flat a Seat's gap above (skin.GAP, half from each), so the cap lifts off and prints lying on its
+    rim. The two flat faces are one ring's two sides: as large as each other, and over 2000 mm2 (a ring about 515 mm
+    round and 5 mm wide, measured, with its three bosses). Each piece is closed: every edge between two faces."""
+    bones = _bones()
+    below, above = skeleton.SEAM_Z - sk.GAP / 2, skeleton.SEAM_Z + sk.GAP / 2
+    assert bones[skull].bounds[1][2] == pytest.approx(below + sk.BALL_R, abs=0.02)  # a ball's top
+    assert bones[cap].bounds[0][2] == pytest.approx(above, abs=0.02)
+    assert bones[skull].is_watertight and bones[cap].is_watertight
+
+    def face(mesh, z, up):
+        on = (np.abs(mesh.triangles_center[:, 2] - z) < 0.02) & (mesh.face_normals[:, 2] * up > 0.99)
+        return mesh.area_faces[on].sum()
+
+    rim, seat = face(bones[cap], above, -1.0), face(bones[skull], below, 1.0)
+    assert rim > 2000.0 and rim == pytest.approx(seat, rel=0.02)
+
+
+def _share(bone, solid):
+    """How much of `solid` (manifold3d) is the bone's."""
+    return (bone ^ solid).volume() / solid.volume()
+
+
+@pytest.fixture(scope="module")
+def solids():
+    """{piece: its solid (manifold3d)}, each skull and its calvaria: built once, 5 s of the four."""
+    return {stem: shells._solid(_bones()[stem].vertices, _bones()[stem].faces) for pair in CAPS for stem in pair}
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("skull,cap", CAPS)
+@pytest.mark.parametrize("spot", range(len(skeleton.SEATS)))
+def test_the_calvaria_sits_on_a_seat_at_each_boss(skull, cap, spot, solids):
+    """#874: at each of skeleton.SEATS the skull and its calvaria have a Seat's two halves (model/skin.py, the Skin's
+    own). Each has a pocket open from its face of the seam, a magnet deep (skin.MAGNET, its fit round), so the pair
+    stands face to face skin.GAP apart, with the print floor of bone (skeleton.FLOOR) round it and behind it, in the
+    wall or the boss on its inner side (round it in the calvaria from its grooves' depth on). Three balls stand on the skull's face round its pocket and rest in three
+    V-grooves in the calvaria's: each ball whole, the two pieces sharing nothing, and a ball 0.05 mm larger already
+    in the groove's sides. And the boss stays inside the wall: straight out from the Seat the skull's outer face is
+    nowhere nearer its middle than the boss's radius and half a mm."""
+    x, y = skeleton.SEATS[spot]
+    bore, depth = sk.MAGNET[0] / 2 + sk.FIT, sk.MAGNET[1]
+    out = np.array([x, y]) - fit.MIDDLE[:2]
+    out /= np.linalg.norm(out)
+    solid = solids
+    for stem, up in ((skull, -1.0), (cap, 1.0)):  # the pocket runs down into the skull, up into its calvaria
+
+        def disc(r, z0, z1, up=up):
+            """A disc of radius r on the Seat's axis, from z0 to z1 into the piece from its face of the seam."""
+            lo, hi = sorted(skeleton.SEAM_Z + up * (sk.GAP / 2 + z) for z in (z0, z1))
+            return m3.Manifold.cylinder(hi - lo, r, circular_segments=96).translate((x, y, lo))
+
+        assert _share(solid[stem], disc(sk.MAGNET[0] / 2, -0.05, depth)) < 1e-3  # the magnet's room, flush
+        top = sk.GROOVE_D + 0.01 if stem == cap else 0.0  # a Seat's grooves start 0.9 mm from its pocket
+        assert _share(solid[stem], disc(bore + skeleton.FLOOR, top, depth) - disc(bore, -1.0, depth + 1.0)) > 0.99
+        assert _share(solid[stem], disc(bore, depth + 0.01, depth + skeleton.FLOOR)) > 0.99
+        v = _bones()[stem].vertices
+        outer = v[(v[:, :2] - (x, y)) @ out > sk.RING + sk.GROOVE + 0.2]  # past the Seat's own grooves
+        assert np.linalg.norm(outer - (x, y, skeleton.SEAM_Z), axis=1).min() >= sk.PAD_R + 0.5
+    assert (solid[skull] ^ solid[cap]).volume() < 0.1
+    for deg in (0, 120, 240):
+        at = (
+            x + sk.RING * np.cos(np.radians(deg)),
+            y + sk.RING * np.sin(np.radians(deg)),
+            skeleton.SEAM_Z - sk.GAP / 2,
+        )
+        above = m3.Manifold.sphere(sk.BALL_R, 48).translate(at).trim_by_plane((0, 0, 1), at[2] + 0.01)
+        assert _share(solid[skull], above) > 0.99
+        assert (solid[cap] ^ m3.Manifold.sphere(sk.BALL_R + 0.05, 48).translate(at)).volume() > 0
+
+
+def test_the_seats_magnets_hold_the_calvaria_on_whichever_way_up_the_head_is():
+    """#874: the three pairs, skin.GAP apart, pull the calvaria on with at least skin.SF times its printed weight
+    (inferred, like every Seat's hold: no build settles one yet)."""
+    pytest.importorskip("magpylib")
+    if not os.path.exists(stages.stl(skeleton.CAP)):
+        pytest.skip("no finished calvaria here (just ours, with Blender)")
+    mesh = trimesh.load(stages.stl(skeleton.CAP), force="mesh")
+    newtons = mjcf.mass(mesh, stages.printed(skeleton.CAP)) / 1000 * 9.81
+    assert len(skeleton.SEATS) * sk.hold_n() >= sk.SF * newtons
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("stem", g.BONES)
+def test_each_bone_fits_the_printers_bed(stem):
+    """#874's acceptance: every piece whole on the bed (g.BED each way), the calvaria split off its skull."""
+    lo, hi = trimesh.load(stages.stl(stem), force="mesh").bounds
+    assert (hi - lo).max() <= g.BED
+
+
+@pytest.mark.model
+@pytest.mark.bones
+def test_the_calvaria_lifts_straight_off_the_mechanism():
+    """#874: the cap is there so the head's mechanism can be reached. At rest nothing of the document but the
+    skull's own bones stands over any of the calvaria, bosses and all: it lifts straight up, and comes down the same
+    way. Read in plan on a 1 mm grid: the lowest of the calvaria in each square against the highest of each part."""
+    stage = stages.STAGES[skeleton.DOC]
+    worn = g.WORN[skeleton.CAP]
+    head = np.linalg.inv(stage.parts[f"{worn}:1"].matrix)  # the document's frame into the calvaria's own
+    cap = trimesh.load(stages.stl(worn), force="mesh")
+    lowest = {}
+    for (i, j), z in zip(map(tuple, np.floor(cap.vertices[:, :2]).astype(int)), cap.vertices[:, 2], strict=True):
+        lowest[i, j] = min(z, lowest.get((i, j), z))  # its vertices are a voxel apart, under the grid's 1 mm
+    over = set()
+    for name, part in stage.parts.items():
+        if stages.stem(part.file) in (*g.BONES, *sk.SHELLS):
+            continue
+        mesh = trimesh.load(part.file, force="mesh").apply_transform(head @ part.matrix)
+        if mesh.bounds[1][2] < cap.bounds[0][2]:
+            continue
+        points = np.asarray(trimesh.sample.sample_surface(mesh, int(4 * mesh.area), seed=0)[0])
+        points = points[points[:, 2] > cap.bounds[0][2]]
+        squares = map(tuple, np.floor(points[:, :2]).astype(int))
+        if any(z > lowest.get(ij, np.inf) for ij, z in zip(squares, points[:, 2], strict=True)):
+            over.add(name)
+    assert over == set()
+
+
+def _poses():
+    """{pose: {part: 4x4}}: the document at rest and at each servo's ends."""
+    stage = stages.STAGES[skeleton.DOC]
+    out = {"rest": {n: p.matrix for n, p in stage.parts.items()}}
+    for horn, h in stage.horns.items():
+        out |= {f"{horn} {deg:.0f}": stages.pose(stage, horn, deg).parts for deg in h.limits}
+    return out
+
+
+@pytest.mark.model
+@pytest.mark.bones
+@pytest.mark.parametrize("skull,cap", CAPS[1:])  # the worn pair: the bones the document carries
+def test_the_skull_clears_the_mechanism_at_every_servo_end_with_its_calvaria_on(skull, cap):
+    """#874's acceptance: at rest and at each servo's ends, the skull and its calvaria keep skeleton.CLEAR_MM, to the
+    Finish's voxel, from every part of the mechanism that moves against them (whatever rides the head with them is
+    let into the bone instead). Read on the bones' vertices, a voxel apart, and a part's points about 0.5 mm apart."""
+    stage, poses = stages.STAGES[skeleton.DOC], _poses()
+    carrier = stages.RIDES[f"{skull}:1"]
+    rest = poses["rest"]
+    still = {  # what never moves against the skull: its carrier and whatever rides with it
+        n
+        for n in stage.parts
+        if all(
+            np.allclose(np.linalg.inv(m[carrier]) @ m[n], np.linalg.inv(rest[carrier]) @ rest[n], atol=1e-6)
+            for m in poses.values()
+        )
+    }
+    moving = [
+        n for n in stage.parts if n not in still and stages.stem(stage.parts[n].file) not in (*sk.SHELLS, *g.BONES)
+    ]
+    clouds = {}
+    for n in moving:
+        mesh = trimesh.load(stage.parts[n].file, force="mesh")
+        clouds[n] = np.asarray(trimesh.sample.sample_surface(mesh, int(4 * mesh.area), seed=0)[0])
+    near = []
+    for stem in (skull, cap):
+        bone = trimesh.load(stages.stl(stem), force="mesh")
+        tree, (lo, hi) = cKDTree(bone.vertices), bone.bounds
+        for pose, mats in poses.items():
+            into = np.linalg.inv(mats[f"{stem}:1"])
+            for n in moving:
+                p = trimesh.transform_points(clouds[n], into @ mats[n])
+                p = p[((p > lo - skeleton.CLEAR_MM) & (p < hi + skeleton.CLEAR_MM)).all(axis=1)]  # in the bone's box
+                if len(p) and tree.query(p, distance_upper_bound=skeleton.CLEAR_MM)[0].min() < (
+                    skeleton.CLEAR_MM - skeleton.PITCH
+                ):
+                    near.append((stem, n, pose, round(float(tree.query(p)[0].min()), 2)))
+    assert near == []
 
 
 @pytest.mark.model
