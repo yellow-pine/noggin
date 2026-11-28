@@ -42,7 +42,8 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     only Shells a document wears; Morty's, cut from his Sculpt (g.SHELLS), are printed in PLA Pure, each in its Colour
     group, and worn by no document until the gates on a worn Shell pass (g.SKINS)."""
     groups = {group for palette in g.THEMES["Skin palette"].values() for group in palette}
-    assert set(skin.SHELLS) == {f"{s} eyeball cap" for s in "LR"} and skin.DRAWN == [] and g.SKINS == {}
+    assert set(skin.SHELLS) == {*(f"{s} eyeball cap" for s in "LR"), "morty face"}  # the Shells on Seats so far
+    assert skin.DRAWN == [] and g.SKINS == {}
     assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
         "hair": ("hair", "PLA Pure"),
         "L brow": ("hair", "PLA Pure"),
@@ -53,6 +54,21 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     }
     for stem in skin.SHELLS:
         assert g.PRINTED[stem][0] in groups, stem
+
+
+def test_the_face_sits_on_the_gimbal_frames_beam_and_comes_off_forward():
+    """#850: the face's two lower Seats are in the front of the gimbal frame's beam, under the eyes, one each side,
+    facing forward: the pocket and the grooves fit the beam's front whole (its flat, clear of its cut corners), and the
+    Seat stands on a boss in from the face's wall. Neither is an L/R pair's: both show N."""
+    seats = [s for s in skin.SEATS if s.shell == "morty face"]
+    assert {(s.carrier, s.normal, s.polarity, s.pad) for s in seats} == {("gimbal frame", (0.0, -1.0, 0.0), 1, 0.0)}
+    assert sorted(s.at[0] for s in seats) == [-42.0, 42.0]
+    reach = skin.RING + skin.GROOVE  # the grooves' far ends
+    for s in seats:
+        assert s.at[1] == gm.CHEEK_Y[0] and s.at[2] == pytest.approx(sum(gm.BEAM_Z) / 2)
+        assert abs(s.at[0]) + skin.PAD_R <= gm.BEAM_X - gm.BEAM_CUT
+        assert gm.BEAM_Z[0] <= s.at[2] - reach and s.at[2] + reach <= gm.BEAM_Z[1]
+        assert s.boss > 0
 
 
 def test_a_shell_comes_off_along_its_seats_normal():

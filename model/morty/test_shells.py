@@ -3,6 +3,7 @@ model/build/ours, in the head's frame at rest, held to the Sculpt git holds."""
 
 import os
 
+import manifold3d as m3
 import numpy as np
 import pytest
 import trimesh
@@ -192,6 +193,48 @@ def _solids(built):
         n: shells._solid(*(lambda m: (m.vertices, m.faces))(trimesh.Trimesh(m.vertices, m.faces)))
         for n, m in built.items()
     }
+
+
+SEATS = [s for s in skin.SEATS if s.shell in NAMES]
+
+
+@pytest.mark.parametrize("seat", SEATS, ids=lambda s: f"{s.shell} on {s.carrier} {s.at[0]:+.0f}")
+def test_a_shells_half_of_a_seat_is_a_boss_three_balls_and_its_magnets_pocket(built, seat):
+    """#850, model/skin.py: in the Seat's own frame, z out of its carrier's face. The Shell's boss comes in from its
+    wall to a flat face skin.GAP off the carrier's, whole round the magnet out past the balls. Three balls stand out
+    of that face, to rest in the carrier's grooves. The magnet's pocket is open from the face, the magnet's depth and
+    its fit round, with at least skin.SKIN of the Shell left over it. Nothing else of the Shell comes nearer the
+    carrier's face than the boss's, as far round as the boss reaches. And the Shell meets its carrier nowhere: the
+    balls rest in the grooves (under 0.1 mm3 shared, as drawn)."""
+    shell = _solids({seat.shell: built[seat.shell]})[seat.shell]
+    to = np.array(skin.frame(seat))[:3]
+
+    def share(solid):
+        """How much of `solid`, drawn in the Seat's frame, is the Shell's."""
+        return (shell ^ solid.transform(to)).volume() / solid.volume()
+
+    def disc(r, z0, z1):
+        return m3.Manifold.cylinder(z1 - z0, r, circular_segments=96).translate((0, 0, z0))
+
+    bore = skin.MAGNET[0] / 2 + skin.FIT
+    balls = [
+        m3.Manifold.sphere(skin.BALL_R, 48).translate(
+            (skin.RING * np.cos(np.radians(deg)), skin.RING * np.sin(np.radians(deg)), skin.GAP)
+        )
+        for deg in (0, 120, 240)
+    ]
+    for ball in balls:
+        assert share(ball) > 0.99
+    face = disc(skin.RING + skin.BALL_R, skin.GAP, skin.GAP + 1.0) - disc(bore + 0.05, skin.GAP - 1, skin.GAP + 2)
+    assert share(face) > 0.999
+    assert share(disc(skin.MAGNET[0] / 2, -1.0, skin.GAP + skin.MAGNET[1])) < 1e-6  # the magnet's way in, and its room
+    assert share(disc(bore, skin.GAP + skin.MAGNET[1] + 0.01, skin.GAP + skin.MAGNET[1] + skin.SKIN)) > 0.999
+    under = disc(skin.PAD_R, -3.0, skin.GAP - 0.01)
+    for ball in balls:
+        under -= ball
+    assert share(under) < 1e-6
+    carrier = trimesh.load(stages.stl(seat.carrier), force="mesh")  # merged: an STL's vertices are each facet's own
+    assert (shell ^ shells._solid(carrier.vertices, carrier.faces)).volume() < 0.1
 
 
 def test_shells_that_ride_together_keep_the_seams_gap(built):
