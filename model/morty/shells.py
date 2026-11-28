@@ -8,11 +8,11 @@ pocket's walls is the Skin's. The inside is the surface skin.WALL under the oute
 each point's distance to it, meshed where that is WALL (scikit-image's marching cubes), then made lighter within FLAT.
 The wall has no floor at the base. It is open inside each eye white's cut, the Sculpt's own dome's edge and no
 larger (#893): the eyeballs, the mechanism's own, are the eye whites. Then it is split along skin.cuts(): the shirt under the collar, the hair above
-and behind the hairline, the chin under the mouth line, each brow's ridge inside its outline, and the face. Solids
-are cut with manifold3d.
+and behind the hairline, the chin under the mouth line, each brow's ridge inside its outline, and the face. The hair
+is cut again, level, into its crown and its back (LEVEL). Solids are cut with manifold3d.
 
-Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair and the chin, and
-the shirt from the collar; and where Shells move against each other the one that stands still gives way (cleared()):
+Every seam is a gap of SEAM (docs/adr/0029): at rest the face steps back from the hair and the chin, the shirt from
+the collar, and the hair's two pieces half of it each from their level; and where Shells move against each other the one that stands still gives way (cleared()):
 the shirt to the head through tilt, pan and the jaw's range together, the face to the opening chin. A brow is glued
 in the face (skin.GLUED): keyed by its own outline, FIT off the face, on a tab of face behind a stretch of each end.
 
@@ -46,6 +46,12 @@ KEEP = 0.01  # a crumb a cut leaves, of its Shell's volume, under which it is dr
 # steps back this far from the hair and the chin, and the shirt from the collar; where the head's Shells turn into the
 # shirt, the shirt gives way (cleared())
 SEAM = 0.8
+# Morty's hair is two Shells (Cansin, 2026-11-28, #893): a hood no straight way takes off the skull whole, cut on a
+# level seam at this height in the head's frame, mm. The crown, above, lifts straight up; the back, below, slides
+# straight back (skin.DIRECTIONS). Cansin picked "about eye level, z 0 to 20"; 10 is the highest there at which the
+# back comes no nearer the worn skull on its way off than where it rests (2.5 mm; at 20 it passes 0.4 mm from it:
+# measured, model/morty/test_shells.py holds it)
+LEVEL = 10.0
 # A brow is glued in the face (skin.GLUED), so it takes no seam's gap: its outline locates it, FIT off the face all
 # round (inferred, as a pupil's play in its cap). The face runs on behind its ends as a tab TAB thick, GLUE under the
 # brow (the glue's room, and what two surfaces meshed on a PITCH grid can misread: at 0.2 they met in places). A tab
@@ -403,7 +409,13 @@ def shells():
     moving = wall - cuts["collar"]
     hairs = grown("hairline", SEAM)  # the hair's, and its seam's gap
     skinned = moving - hairs
-    out = {"hair": moving ^ cuts["hairline"], "chin": skinned ^ cuts["mouth"], "face": skinned - grown("mouth", SEAM)}
+    hair = moving ^ cuts["hairline"]
+    out = {
+        "hair crown": hair.trim_by_plane((0, 0, 1), LEVEL + SEAM / 2),
+        "hair back": hair.trim_by_plane((0, 0, -1), SEAM / 2 - LEVEL),
+        "chin": skinned ^ cuts["mouth"],
+        "face": skinned - grown("mouth", SEAM),
+    }
     # each brow keyed in the face (FIT) on a tab behind a stretch of each end (TABS), measured round the brows alone
     low, high = np.array(BROWS)
     near = whole ^ m3.Manifold.cube(high - low).translate(low)
@@ -417,7 +429,7 @@ def shells():
         out[brow] = skinned ^ cuts[brow]
         # cut through from outside, as a seam is: a cut that ends on the Sculpt's own surface leaves slivers of it
         out["face"] = out["face"] + tab - (grown(brow, FIT) - under_a_brow)
-    out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), out["hair"], out["chin"])
+    out["face"], out["shirt"] = cleared(out["face"], wall ^ grown("collar", -SEAM), hair, out["chin"])
     assert set(out) == set(g.SHELLS["morty"]), sorted(out)
     return {f"morty {name}": _mesh(_whole(name, seated(f"morty {name}", solid, whole))) for name, solid in out.items()}
 

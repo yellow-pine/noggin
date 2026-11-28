@@ -45,7 +45,8 @@ def test_the_caps_are_the_only_shells_worn_and_mortys_are_printed_in_skin_colour
     assert set(skin.SHELLS) == {*(f"{s} eyeball cap" for s in "LR"), "morty face"}  # the Shells on Seats so far
     assert skin.DRAWN == [] and g.SKINS == {}
     assert {n: g.PRINTED[f"morty {n}"] for n in g.SHELLS["morty"]} == {
-        "hair": ("hair", "PLA Pure"),
+        "hair crown": ("hair", "PLA Pure"),
+        "hair back": ("hair", "PLA Pure"),
         "L brow": ("hair", "PLA Pure"),
         "R brow": ("hair", "PLA Pure"),
         "face": ("face", "PLA Pure"),
@@ -84,6 +85,15 @@ def test_a_shell_comes_off_along_its_seats_normal():
         assert skin.DIRECTIONS[s.shell] == s.normal
 
 
+def test_mortys_hair_comes_off_in_two_pieces_the_crown_up_and_the_back_back():
+    """#893 (Cansin, 2026-11-28): no straight way takes the hair off the skull in one piece, so it is two Shells: the
+    crown lifts straight up and the back slides straight back, in the head's frame. Their Seats, in bone, are not
+    built yet (#874's cap)."""
+    assert skin.DIRECTIONS["morty hair crown"] == (0.0, 0.0, 1.0)
+    assert skin.DIRECTIONS["morty hair back"] == (0.0, 1.0, 0.0)
+    assert {"hair crown", "hair back"} <= g.SHELLS["morty"].keys() and "hair" not in g.SHELLS["morty"]
+
+
 def test_every_shell_belongs_to_one_motion_region():
     """#969: each Shell moves with the Motion region its name shows: the head's on the head (a brow rides the face), the
     chin on the jaw, a lid cover on its lid, a cap or pupil on its eye, the shirt on the fixed torso. The neck's skin
@@ -93,7 +103,8 @@ def test_every_shell_belongs_to_one_motion_region():
     assert skin.MOTION["neck"] == skin.MOTION["head"] == "gimbal frame"
     for shell, region in {
         "morty face": "head",
-        "morty hair": "head",
+        "morty hair crown": "head",
+        "morty hair back": "head",
         "morty L brow": "head",
         "morty chin": "jaw",
         "morty L upper lid cover": "L upper lid",

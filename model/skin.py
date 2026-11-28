@@ -150,7 +150,11 @@ SEATS = [
 # A brow is 8 mm across, a Seat 14, and the lids stow 1.1 mm behind it over the eye (#850)
 GLUED = {f"morty {s} brow": "morty face" for s in "LR"}
 SHELLS = list(dict.fromkeys(s.shell for s in SEATS))
-DIRECTIONS = {s.shell: s.normal for s in SEATS}  # each Shell's Assembly direction, in its carrier's frame
+# Each Shell's Assembly direction, in its carrier's frame: its Seats' normal. Morty's hair comes off in two pieces
+# (Cansin, 2026-11-28, #893), its crown straight up and its back straight back: their Seats, in bone, are not built
+# yet (#874's cap) and will face these ways
+DIRECTIONS = {"morty hair crown": (0.0, 0.0, 1.0), "morty hair back": (0.0, 1.0, 0.0)}
+DIRECTIONS |= {s.shell: s.normal for s in SEATS}
 # A Skin's Shells physics draws whole (#665): uncut and colliding with nothing, their mass on their drawn mesh (#830), so
 # the servos carry the Skin and the sim collides the Skeleton (and the eyeball caps, the gimbal's own gates read) alone;
 # their hold is checked against the peak acceleration of where they sit (model/mujoco_report.py). None until a

@@ -105,11 +105,11 @@ def test_a_candidates_cut_shells_are_listed_with_their_filaments_colour_and_none
     assert latest.shells(str(tmp_path)) == []
     ours = tmp_path / "model/build/ours"
     ours.mkdir(parents=True)
-    for name in ("morty hair", "morty shirt", "gimbal frame"):
+    for name in ("morty hair crown", "morty shirt", "gimbal frame"):
         (ours / f"{name}.stl").write_bytes(b"")
     palette = g.THEMES["Skin palette"]["default"]  # Cansin's owned filaments, the review's
     assert latest.shells(str(tmp_path)) == [
-        ["morty hair", str(ours / "morty hair.stl"), palette["hair"][3]],
+        ["morty hair crown", str(ours / "morty hair crown.stl"), palette["hair"][3]],
         ["morty shirt", str(ours / "morty shirt.stl"), palette["clothes"][3]],
     ]
 
