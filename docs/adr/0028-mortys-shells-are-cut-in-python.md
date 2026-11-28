@@ -56,8 +56,11 @@ Shells there are.
   from 0.6 to 1.3 mm out. Today the face's wall comes to 36.3 mm from each eye's centre, inside that shell. The
   eyeball's cap and the lids move 0.9 mm in (the cap to 34.9 mm, 2.2 mm under his eye's own surface; the shell to
   36.7 mm, #967), and the face's wall is thinned to that shell round each opening: 0.45 mm of it is left on the
-  outline at its thinnest. The openings stay the Sculpt's. The thinning is built once the sunk lids are on main
-  (#850).
+  outline at its thinnest. The openings stay the Sculpt's. Built (`shells.shells()`): the wall less a ball about
+  each eye's centre, the shell's radius and 0.02 mm, which is what two rounds meshed to 0.02 mm read short of
+  their clearance (0.496 mm at the shell itself). The face stays one piece and loses 26 mm³ of its inside; its
+  outside is untouched. It keeps 0.52 mm from each lid's own solid over the lids' travel (0.07 mm before) and
+  1.8 mm from each eyeball cap.
 - **The collar is the head's lower seam** (confirmed by Cansin). On this Sculpt the head meets the shirt at the
   collar's crease, with no neck showing between. So everything above the collar turns with the head, the neck's skin
   too, sliding round the neck's bones, which never move; and the shirt is the whole fixed body.
