@@ -195,8 +195,8 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   bars Bones between their pins, the frame's uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
-  it prints upright); the core, a ball under its cap, has none, nor the tie-bar since #967 (flat arms through the belt behind each eye,
-  printed on its cross-bar's back edge; its Bones are #1052's; model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
+  it prints upright), the tie-bar (#1052: its cross-bar a Bone on its print bed, the cross-bar's back edge, each finger a chain of
+  three Bones in its slab and the tail one, each as wide as its flat arm so the arm's sides cut it); the core, a ball under its cap, has none (model/printed UNSTYLED). Every Bone is carved from its mechanical part (#809,
   model/printed/bone.py carved(): the Bones cut to within it, so they add nothing and its interfaces and clearances
   are the mechanical part's; the push-rod's mechanical rod a flat bar round the Bone's waist), or, where a Bone that
   prints as drawn cannot fit inside (the yaw yoke and the bail), the mechanical part takes it in

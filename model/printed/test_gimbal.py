@@ -284,9 +284,10 @@ def _pitch_loads():
 BAR_LOAD, ROD_LOAD = _pitch_loads()
 
 
-def test_the_tie_bar_keeps_its_three_pin_bores():
-    """Each bore takes the M3 shank (PIN_R) through the bar's 3 mm, with wall round it."""
-    tie = gimbal.tie_bar().val()
+@pytest.mark.parametrize("mechanical", [False, True])
+def test_the_tie_bar_keeps_its_three_pin_bores(mechanical):
+    """Each bore takes the M3 shank (PIN_R) through the bar's 3 mm, with wall round it, in both styles (#1052)."""
+    tie = gimbal.tie_bar(mechanical=mechanical).val()
     for x, y, z in TIE_PINS:
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             assert not tie.isInside(cq.Vector(x + dx * (gm.PIN_R - 0.05), y + dy * (gm.PIN_R - 0.05), z))
@@ -304,7 +305,7 @@ def test_the_pitch_bar_keeps_its_two_pin_bores():
 
 def test_each_push_rod_cup_closes_on_its_ball_under_the_equator():
     """The socket (0.1 over the ball) is clear, the cup's wall round it behind and to the sides, and its mouth open
-    2 mm past the ball's centre for the neck: the lever's cup's toward the lever's neck, under it on its bed, the
+    past the ball's centre for the neck (gimbal.CUP_MOUTH): the lever's cup's toward the lever's neck, under it on its bed, the
     bail's the other way, up the bail's neck (#967)."""
     rod = gimbal.push_rod().val()
     for at, mouth in zip(ROD_BALLS, ROD_MOUTHS):
@@ -316,11 +317,13 @@ def test_each_push_rod_cup_closes_on_its_ball_under_the_equator():
 
 
 def test_the_bones_print_as_drawn_with_no_overhang_past_45_deg():
-    """The tie-bar on its cross-bar's back edge (gimbal.tie_bed, #967: its fingers and its tail rising, its pins'
-    bores across the layers, their crowns excused); the push-rod on its bed (gimbal.rod_bed: the lever's cup's rim
-    and the bail's cup's skirt on it; each socket's crown, an exact interface, excused)."""
+    """The tie-bar on its cross-bar's back edge, as Bones and mechanical (gimbal.tie_bed, #967, #1052: its fingers and
+    its tail rising, its pins' bores across the layers, their crowns excused); the push-rod on its bed (gimbal.rod_bed:
+    the lever's cup's rim and the bail's cup's skirt on it; each socket's crown, an exact interface, excused)."""
     bore = lambda c: all(math.dist((gimbal.tie_bed() @ (*c, 1))[:2], p[:2]) > gm.PIN_R + 0.2 for p in TIE_PINS)  # noqa: E731
-    assert bone.overhang_deg(gimbal.tie_bar().val().moved(gimbal._at(TIE_BED)), keep=bore) <= 45
+    for mechanical in (False, True):
+        tie = gimbal.tie_bar(mechanical=mechanical).val().moved(gimbal._at(TIE_BED))
+        assert bone.overhang_deg(tie, keep=bore) <= 45, mechanical
     crown = lambda c: min(math.dist(gimbal.rod_bed() @ (*c, 1), (*b, 1)) for b in ROD_BALLS) > gm.BALL_R + 0.2  # noqa: E731
     assert bone.overhang_deg(gimbal.push_rod().val().moved(gimbal._at(ROD_BED)), keep=crown) <= 45
 
@@ -392,7 +395,7 @@ def test_the_tie_bar_holds_the_yaw_servo_at_stall(where):
     is bent across its width, and the finger is twisted too where it leaves the eye's sphere level, 10 mm over its
     pin (so it is as thick as the cross-bar there)."""
     at, way, pin = TIE_SECTIONS[where]
-    assert _twisted_sf(gimbal.tie_bar().val(), at, (0.0, *way), pin) >= beams.MIN_SF
+    assert _twisted_sf(gimbal.tie_bar(mechanical=True).val(), at, (0.0, *way), pin) >= beams.MIN_SF
 
 
 def _bent_sf(solid, at, normal, load_at, force):
