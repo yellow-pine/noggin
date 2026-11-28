@@ -366,11 +366,12 @@ def test_each_shell_in_bone_comes_off_straight(piece):
 def test_the_face_keeps_a_moving_parts_room_from_each_lid_through_its_travel(built, side):
     """#850, #967 (Cansin's way C, 2026-11-28): thinned round each eye opening, the face keeps gm.LID_CLEAR_MM from
     the lids' own solids, not only from their shell: each lid of this eye at seven places over its servo's range,
-    and its eyeball cap with them. Exact solids, each part's mesh closed as physics closes it."""
+    and its eyeball cap and the liner behind it with them. Exact solids, each part's mesh closed as physics closes
+    it."""
     face = _solids({"morty face": built["morty face"]})["morty face"]
     stage, eyes = review.worn(), stages.align(*stages.DOCS[morty.DOC]["eyes"])
     horn, near = f"{side} lid horn", {}
-    for name in (f"{side} upper lid:1", f"{side} lower lid:1", f"{side} eyeball cap:1"):
+    for name in (f"{side} {part}:1" for part in ("upper lid", "lower lid", "eyeball cap", "eye liner")):
         mesh = mjcf._mesh(stage.parts[name].file, None)
         part = shells._solid(mesh.vertices, mesh.faces)
         for deg in np.linspace(*stage.horns[horn].limits, 7):
