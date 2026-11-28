@@ -14,6 +14,7 @@ from scipy.spatial import ConvexHull
 
 from model import envelopes, fits, gates, linkage, neck
 from model import gimbal as gm
+from model import skin as sk
 from model.envelopes import box
 from model.printed import bone
 
@@ -287,11 +288,12 @@ def link(a, b, x, mechanical=False, sizes=LID_BONE):
     return holes(lid_arms([a, b], x, mechanical, sizes), (a, b), x)
 
 
-def holes(out, pins, x):
-    """`out` with the M3 shank's bore along x through the slab `x` at each (y, z) of `pins`, in a boss the slab's full
-    thickness: a Bone's dome stops short of its far face, and the part pinned there meets this one face to face."""
+def holes(out, pins, x, r=ARM / 2):
+    """`out` with the M3 shank's bore along x through the slab `x` at each (y, z) of `pins`, in a boss `r` in radius
+    the slab's full thickness: a Bone's dome stops short of its far face, and the part pinned there meets this one face
+    to face."""
     for y, z in pins:
-        out = out.union(cyl("x", (0, y, z), ARM / 2, x))
+        out = out.union(cyl("x", (0, y, z), r, x))
         out = out.cut(cyl("x", (0, y, z), gm.PIN_R, (x[0] - 1, x[1] + 1)))  # past the faces: no slivers on them
     return out
 
@@ -335,78 +337,166 @@ def pitch_bar(mechanical=False):
     return link((hy + gm.CRANK, hz), gm.BAIL_TIP, gm.PITCH_BAR_X, mechanical)
 
 
-def _slab(name, side=1):
-    """The LID_X slab outboard (side 1) or inboard (-1) of the L eye's centre, as an x span."""
-    return tuple(sorted(side * u for u in gm.LID_X[name]))
+# The lid drives' arms (#967): LID_ARM wide, and LID_BOSS round a pin where two of them or the cap's shell pass close
+# (the lid horn's two pins are 6 mm apart; the link's end is 7.6 mm from the eye line, the lids' sleeves on it).
+# The bar and the link lie side by side on the horn's face, so each leaves the horn by a jog (the bar up, the link
+# down), which keeps it LID_CLEAR_MM off the other's boss as the horn's arm swings between them
+LID_ARM, LID_BOSS = 5.0, 2.5
+BAR_JOG, LINK_JOG = (-8.0, 4.5), (-8.0, -2.5)  # (y, z) from each one's pin on the horn to its bend
 
 
-@bone.carved
-def lid_bar(mechanical=False):
-    """One lid's bar (drawn centred on x 0): the upper lid's crank pin back over the link's pin (#698), bent there, to its
-    horn's behind the eye (#838). Mechanical or as Bones (#704)."""
+def _bar(points, bosses):
+    """A lid drive's arm through the (y, z) `points` in turn, centred on x 0 in its slab, a pin's boss `bosses` in
+    radius at its first point and at its last."""
     w = (gm.LID_X["bar"][1] - gm.LID_X["bar"][0]) / 2
+    out = lid_mechanical(points, (-w, w), LID_ARM)
+    for pin, r in zip((points[0], points[-1]), bosses, strict=True):
+        out = holes(out, [pin], (-w, w), r)
+    return out
+
+
+def lid_bar():
+    """One upper lid's bar (drawn centred on x 0): its crank's pin back to the lid horn's, with the horn's arm a
+    parallelogram (#698); bent up by the horn, over the link's pin on it (#967)."""
     horn = tuple(np.add(gm.LID_HORN, gm.LID_PIN))
-    out = lid_arms([gm.LID_PIN, gm.LINK_PIN, horn], (-w, w), mechanical)
-    return holes(out, (gm.LID_PIN, gm.LINK_PIN, horn), (-w, w))
+    return _bar([gm.LID_PIN, tuple(np.add(horn, BAR_JOG)), horn], (ARM / 2, LID_BOSS))
 
 
-@bone.carved
-def lid_link(mechanical=False):
-    """One lower lid's link (drawn centred on x 0): from its pin on the lid bar to the lower lid's crank pin (#698).
-    Mechanical or as Bones (#704)."""
-    w, pins = (gm.LID_X["link"][1] - gm.LID_X["link"][0]) / 2, (gm.LINK_PIN, gm.LOWER_PIN)
-    # its heads 0.2 mm lower than LID_BONE's: a crown 0.1 mm under the slab's face fused invalid on aarch64's OCCT (#890)
-    return holes(lid_arms(pins, (-w, w), mechanical, ((4.0, 2.7), LID_BONE[1])), pins, (-w, w))
+def lid_link():
+    """One lower lid's link (drawn centred on x 0): its crank's pin, under the eye line, back to the lid horn's inner
+    hole (#967); bent down by the horn, under the bar's pin on it."""
+    return _bar([gm.LOWER_PIN, tuple(np.add(gm.LINK_PIN, LINK_JOG)), gm.LINK_PIN], (LID_BOSS, LID_BOSS))
 
 
-def _lid(radii, span, spokes, boss, pin, mechanical):
-    """An L lid: its shell wedge about x from `span` (deg from forward toward up) between the caps' sides, and in two
-    slabs a spoke out to the shell at `spokes` deg (outboard, inboard), the shell reaching round to it there: outboard
-    from the `boss` on the frame's shank, inboard from its crank `pin` (#698), `mechanical` or as Bones (#704). The outboard
-    spoke stays behind (or under) the cap yawed out and pitched over the lid's whole range; the inboard one is past the
-    cap's reach. Everything within the outer radius."""
-    ri, ro = radii
+@functools.cache
+def opening(side):
+    """The `side` eye opening seen from the front: its outline (n, 2), (x, z) about its eye's centre as the L eye's
+    (the R eye's mirrored), mm. The eye white's cut on Morty's Sculpt (model/skin.py cuts()): the opening in his face is
+    the Sculpt's own (#893)."""
+    view, region = sk.cuts()[f"{side} eye white"]
+    assert view == "front"
+    return (np.asarray(region, float) - (gm.EYE[side][0], 0.0)) * ((1, 1) if side == "L" else (-1, 1))
 
-    def wedge(a, b, x):
-        arc = np.radians(np.linspace(a, b, 24))
-        fan = [(0.0, 0.0)] + [(-(ro + 5) * math.cos(t), (ro + 5) * math.sin(t)) for t in arc]
-        return cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
 
-    shell, outer, inner = ball(ro).cut(ball(ri)), _slab(boss), _slab("ear", -1)
-    main_x = gm.LID_SHELL_X[boss.removesuffix(" boss")]
-    out = shell.intersect(wedge(*span, main_x))
-    for x, spoke in zip((outer, inner), spokes):
-        reach = (min(spoke - 10, span[1] - 1), spoke + 10) if spoke > 0 else (spoke - 10, max(spoke + 10, span[0] + 1))
-        r = math.sqrt(((ri + ro) / 2) ** 2 - (sum(x) / 2) ** 2)  # the shell's middle in the slab
-        end = (-r * math.cos(math.radians(spoke)), r * math.sin(math.radians(spoke)))
-        # The upper's narrowed body still joins its own ear through this tab.
-        tab_x = (x[0], main_x[0]) if x == inner else x
-        out = out.union(shell.intersect(wedge(*reach, tab_x))).union(
-            lid_arms([pin if x == inner else (0, 0), end], x, mechanical)
+def _offset(outline, by):
+    """`outline` (closed, smooth, its middle inside it) with each point moved `by` mm (one size, or one a point) out
+    along its normal."""
+    t = np.roll(outline, -1, axis=0) - np.roll(outline, 1, axis=0)
+    n = np.stack([t[:, 1], -t[:, 0]], axis=1) / np.linalg.norm(t, axis=1)[:, None]
+    n *= np.sign(((outline - outline.mean(axis=0)) * n).sum(axis=1))[:, None]
+    return outline + n * np.reshape(by, (-1, 1))
+
+
+def prism(outline, depth=60.0):
+    """All the front sees inside `outline` (x, z): it swept forward from the eyes' plane."""
+    return cq.Workplane("XZ").polyline([tuple(map(float, p)) for p in outline]).close().extrude(depth)
+
+
+def cone(outline):
+    """Every way out from the eye's centre that the front sees inside `outline` (x, z) on Morty's eyeball
+    (gm.MORTY_BALL_R): a solid out past the lids' band, its apex the centre, its sides flat between the outline's
+    points. A lid's hidden edges are cut along it, so each lies at one lid angle through the band's depth (the prism,
+    cut along the view, lies 5 deg further round on the band's inside at the top rim)."""
+    x, z = outline.T
+    p = np.stack([x, -np.sqrt(gm.MORTY_BALL_R**2 - x**2 - z**2), z], axis=1) * (60.0 / gm.MORTY_BALL_R)
+    far = p.mean(axis=0) * (60.0 / np.linalg.norm(p.mean(axis=0)))
+
+    def face(*corners):
+        return cq.Face.makeFromWires(cq.Wire.makePolygon([cq.Vector(*map(float, c)) for c in corners], close=True))
+
+    faces = [
+        f for a, b in zip(p, np.roll(p, -1, axis=0), strict=True) for f in (face((0, 0, 0), a, b), face(far, b, a))
+    ]
+    return cq.Workplane().add(cq.Solid.makeSolid(cq.Shell.makeShell(faces)))
+
+
+def _up(shape, deg):
+    """`shape` turned `deg` up about the eye line, as a lid turns."""
+    return _placed(shape, linkage.rotation((1, 0, 0), -deg))
+
+
+def _wedge(deg, x, r=45.0):
+    """The lid angles `deg` (from, to: from forward toward up) out to `r` from the eye line, between the planes `x`."""
+    arc = np.radians(np.linspace(*deg, 24))
+    fan = [(0.0, 0.0)] + [(-r * math.cos(t), r * math.sin(t)) for t in arc]
+    return cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline(fan).close().extrude(x[1] - x[0])
+
+
+def _spoke(deg, back, x, w):
+    """A lid's spoke in the slab `x`, `w` wide: one edge on the line from the eye line at `deg`, the other
+    `back` (1 or -1: toward greater lid angles, or lesser) of it, out to the band's outer face."""
+    e, n = (np.array([-math.cos(math.radians(d)), math.sin(math.radians(d))]) for d in (deg, deg + back * 90.0))
+    arm = [(0.0, 0.0), 45.0 * e, 45.0 * e + w * n, w * n]
+    arm = cq.Workplane("YZ", origin=(x[0], 0, 0)).polyline([tuple(map(float, q)) for q in arm]).close()
+    return arm.extrude(x[1] - x[0]).intersect(ball(gm.LID_R[1]))
+
+
+# Each lid's tail (#967): its band running on behind its inner end to its spoke, under his skin. Between the planes
+# TAIL_X (from the eye's centre: the upper's from its spoke's slab, 0.2 mm off the bar's and the link's, which cross
+# the band's radius beside it, out to short of the yaw bearing's neck; the lower's from its spoke's slab out to its band) and
+# the lid angles TAIL_DEG (shut)
+TAIL_X = {"upper": (-gm.LID_X["upper"][1], -21.5), "lower": (-gm.LID_X["lower"][1] + 0.05, -31.0)}
+TAIL_DEG = {"upper": (20.0, 131.0), "lower": (-134.0, 28.0)}
+CRANK_W = {"upper": 8.0, "lower": 7.0}  # each lid's crank's width, for its servo's stall at SF 2 (a hand sum)
+# A lid's edges follow every third point of its opening's outline, 6 mm apart, straight between them (0.13 mm inside
+# the outline at most): each point is a face on the lid, and the lid drives' sweep reads every face (#1053)
+RIM_EVERY = 3
+
+
+@functools.cache
+def _bands(side):
+    """(upper, lower): the `side` eye's two lids' bands, shut, about the L eye's centre (gm.LID_R), between two cones
+    about the eye line (gm.LID_ENDS). Shut, the two fill their opening as the front sees it, and each runs on
+    gm.LID_COVER deg past the rim it hides behind (the upper not along the top rim's middle, gm.COVER_FREE) and
+    gm.LID_TIPS past the opening's inner corner. The opening's outline, its lower half drawn in to the cap's bottom edge
+    (gm.CAP_LOW) and all of it lifted gm.LOWER_TRAVEL about the eye line, parts them: the lower lid under it (its edge
+    is the bottom rim's own curve), the upper inside it, gm.LID_SLIT in. Each has its tail."""
+    rim = opening(side)[::RIM_EVERY]
+    band = ball(gm.LID_R[1]).cut(ball(gm.LID_R[0]))
+    ended = band
+    for deg, way in zip(gm.LID_ENDS, (-1, 1), strict=True):
+        reach = 45.0 / math.tan(math.radians(abs(deg)))
+        ended = ended.cut(
+            cq.Workplane().add(cq.Solid.makeCone(0.0, reach, 45.0, cq.Vector(0, 0, 0), cq.Vector(way, 0, 0)))
         )
-    out = out.union(cyl("x", (0, 0, 0), 4.0, outer)).intersect(ball(ro))
-    return holes(out, [pin], inner).cut(cyl("x", (0, 0, 0), gm.PIN_R, outer))
+    seen, (past, height) = cone(rim), gm.LID_TIPS
+    tips = prism(_offset(rim, past)).intersect(box((-60, 0), (-70, 1), (-height, height)))  # the outer one is a pole
+    over = _up(seen, gm.LID_COVER).cut(box((-gm.COVER_FREE, gm.COVER_FREE), (-70, 70), (-70, 70)))
+    # the two lids' edges that show are cut as the front sees them, along the view, when the lower lid is open: along
+    # the cap's bottom edge
+    low = np.where(rim[:, 1:] < 0, rim * gm.CAP_LOW, rim)
+    lifted, inside = _up(prism(low), gm.LOWER_TRAVEL), _up(prism(_offset(low, -gm.LID_SLIT)), gm.LOWER_TRAVEL)
+    tails = {k: band.intersect(_wedge(TAIL_DEG[k], TAIL_X[k])) for k in TAIL_X}
+    upper = ended.intersect(seen.union(tips).union(over)).union(tails["upper"]).intersect(inside)
+    upper = upper.union(tails["upper"].cut(seen))  # on past its own back edge, over the top rim
+    lower = ended.intersect(seen.union(tips).union(_up(seen, -gm.LID_COVER))).union(tails["lower"]).cut(lifted)
+    return upper, lower
 
 
-@bone.carved
-def upper_lid(side, mechanical=False):
-    """The `side` upper lid (drawn for L, the R its mirror): its edge at LID_REST, LID_SPAN up; its boss on the shank
-    nearer the eye, its crank pin LID_PIN on the lid bar."""
-    out = _lid(gm.LID_R, (gm.LID_REST, gm.LID_REST + gm.LID_SPAN), (112.0, 90.0), "upper boss", gm.LID_PIN, mechanical)
+def _lid(band, travel, which, name, pin, side):
+    """A lid (#967), at rest (open): its `band` (shut) turned `travel` open, and between the eyes its spoke from the
+    band's tail to its sleeve on the lids' shank, and its crank (in the slab `name`'s) to `pin`, whose boss reaches
+    the bar's and the link's slab. Drawn for the L eye, the R its mirror."""
+    back = 1 if which == "upper" else -1
+    slab, sleeve, crank = (tuple(sorted(-u for u in gm.LID_X[k])) for k in (which, which + " sleeve", name))
+    out = _up(band, travel).union(_spoke(gm.SPOKES[which] + travel, back, slab, gm.SPOKE_W[which]))
+    out = out.union(cyl("x", (0, 0, 0), gm.HUB_R, sleeve)).union(lid_mechanical([(0, 0), pin], crank, CRANK_W[which]))
+    reach = (min(crank[0], -gm.LID_X["bar"][0]), max(crank[1], -gm.LID_X["bar"][1]))  # to the bar's, the link's face
+    out = holes(out, [pin], reach, CRANK_W[which] / 2)
+    out = out.cut(cyl("x", (0, 0, 0), gm.PIN_R, (sleeve[0] - 1, sleeve[1] + 1)))
     return out if side == "L" else out.mirror("YZ")
 
 
-@bone.carved
-def lower_lid(side, mechanical=False):
-    """The `side` lower lid (drawn for L, the R its mirror): its edge at LOWER_REST, LOWER_SPAN down, outside the upper
-    lid; its boss on the shank beside the upper's, its crank pin LOWER_PIN on the link."""
-    span = (gm.LOWER_REST - gm.LOWER_SPAN, gm.LOWER_REST)
-    # outboard behind the cap, inboard over it: the rear-down route crossed the tie-bar as the lid closed (#937).
-    # Inboard at 150 deg (160 before, #967): with the crank pin where the moved lid servo puts it, Linux's OCCT built
-    # no Bone to 160 as one span and carved it empty as two; to 150 it builds and carves as on macOS, and the shut
-    # lid passes 6.0 mm over the tie-bar (1.2 at 160)
-    out = _lid(gm.LOWER_R, span, (-131.0, 150.0), "lower boss", gm.LOWER_PIN, mechanical)
-    return out if side == "L" else out.mirror("YZ")
+def upper_lid(side):
+    """The `side` upper lid (#967): at rest, open behind its opening's top rim, its crank's pin gm.LID_PIN on the lid bar,
+    its spoke behind the eye line."""
+    return _lid(_bands(side)[0], gm.UPPER_TRAVEL, "upper", "upper", gm.LID_PIN, side)
+
+
+def lower_lid(side):
+    """The `side` lower lid (#967): open, its edge on its opening's bottom rim; its crank's pin gm.LOWER_PIN on the lid
+    link, in its own slab further from the midline than its spoke's."""
+    return _lid(_bands(side)[1], -gm.LOWER_TRAVEL, "lower", "crank", gm.LOWER_PIN, side)
 
 
 # Each yaw bearing (#967, model/gimbal.py RAIL_R), about the plane of the yaw axis and the bearing's way out of the
@@ -418,6 +508,9 @@ def lower_lid(side, mechanical=False):
 # sides from that tip in x and y, a buttress forward from PYLON_KNEE (z) down to PYLON_TOE (y from the tip) on the plate
 RAIL_LAT, WEB_LAT, PAD_LAT = (-5.0, 3.0), (-3.0, 1.0), (-16.0, 16.0)
 RAIL_WEB, RAIL_NECK, RAIL_OUT, RAIL_ROOM = 27.0, 16.0, 39.0, 2.0
+# the pad's front corner toward the other eye is cut back to the yaw axis' plane, from PAD_IN inboard of the axis on:
+# yawed in and pitched down, the cap's rim, which reaches its opening's bottom rim, swept 0.2 mm from it (#967)
+PAD_IN = 6.0
 PYLON, PYLON_KNEE, PYLON_TOE = ((-5.0, 1.0), (-2.5, 2.5)), -23.0, -9.0
 
 
@@ -453,7 +546,8 @@ def rail():
     web = web.cut(cyl("z", (eye[0], 0, 0), boss, (under, 0.0)))
     out = out.union(web.cut(cyl("z", (eye[0], 0, 0), head, (gm.YAW_CRANK_Z[0] - RAIL_ROOM, 0.0))))
     pad = ball(r1, tuple(eye)).intersect(fan(0.0, end, PAD_LAT))
-    out = out.union(pad.intersect(box((eye[0] - r1, eye[0] + r1), (-gm.POST_R, r1), (-r1, under))))
+    pad = pad.intersect(box((eye[0] - r1, eye[0] + r1), (-gm.POST_R, r1), (-r1, under)))
+    out = out.union(pad.cut(box((eye[0] - r1, eye[0] - PAD_IN), (-gm.POST_R - 1.0, 0.0), (-r1, under))))
     out = out.union(shell(r0, RAIL_OUT).intersect(fan(end, end + neck)))
     tip = eye + RAIL_OUT * way
     (x0, x1), (y0, y1) = PYLON
@@ -470,8 +564,9 @@ def rail():
 def frame(mechanical=False):
     """The gimbal frame (Skeleton): a plate under the eyes' drives, up between the realistic skull's coronoids and condyles
     (#838, model/gimbal.py PLATE_Z), with a yaw bearing under each yoke, on a pylon behind its eye (#967, rail), the
-    bail's and the lids' uprights with the shanks' bores (the lids' feet hanging a beam under the lower lids' sweep,
-    #901, its ends and the feet inside Morty's cheeks, #967), the
+    bail's uprights with the shanks' bores, a foot behind each cheek hanging a beam under the eyes (#901, its ends and
+    the feet inside Morty's cheeks, #967), the lids' carrier, a wall on the midline from their shank between the eyes
+    back to a post on the plate (#967, model/gimbal.py WALL_Z), the
     jaw's lugs on risers at the condyles (model/neck.py JAW, their shanks' tapping holes), a collar on posts round each
     servo at its tab plate (the yaw and the mouth servo hanging under the plate, through it where they pass), a window
     either side of the yaw servo's for the realistic skull's maxillae (#967, model/gimbal.py WINDOW_X), and the holes
@@ -485,23 +580,22 @@ def frame(mechanical=False):
     # each bail upright in section (y, z), mechanical: twice as deep on the plate as at its boss, as it stands half
     # as tall again as it did (#967)
     upright = [(by - 8, top), (by + 8, top), (by + 4, bz), (by + 4, bz + 4), (by - 4, bz + 4), (by - 4, bz)]
-    (y0, y1), edge = gm.PLATE_Y, c + gm.LID_X["upright"][1]
+    (y0, y1), edge = gm.PLATE_Y, c + gm.FOOT_X[1]
     jy, jz = neck.JAW
     out = box((-gm.PLATE_X, gm.PLATE_X), (y0, gm.BACK_Y), gm.PLATE_Z)
     out = out.union(box((-gm.BACK_X, gm.BACK_X), (gm.BACK_Y, y1), gm.PLATE_Z))
-    out = out.union(box((-edge, edge), (y0, y0 + 4), gm.PLATE_Z))  # its front out to the lids' uprights
+    out = out.union(box((-edge, edge), (y0, y0 + 4), gm.PLATE_Z))  # its front out to the feet
     out = out.union(box((-gm.BEAM_X, gm.BEAM_X), gm.CHEEK_Y, gm.BEAM_Z))  # the bar, a beam (#852) under the lids (#901)
     bearing = rail()
     for s in (-1, 1):
         bx = sorted((s * (c + gm.BAIL_END), s * (c + gm.BAIL_END + 4)))
-        ux = sorted(s * (c + u) for u in gm.LID_X["upright"])
+        ux = sorted(s * (c + u) for u in gm.FOOT_X)
         lx = sorted(s * u for u in neck.JAW_LUG_X)
         # the cheek curves in under the beam's end: its lower outer corner cut back BEAM_CUT, the arm and the foot that
         # far up
         z0, z1 = gm.BEAM_Z[0] + gm.BEAM_CUT, gm.BEAM_Z[1]
-        # the lid upright's foot behind the cheek, an arm from it to the beam's end, and its rail on the plate's level
-        # from under the upright back to the plate's front (#967)
-        out = out.union(box(ux, gm.FOOT_Y, (z0, top))).union(box(ux, (0, y0 + 4), gm.PLATE_Z))
+        # the foot behind the cheek, and an arm from it to the beam's end (#967)
+        out = out.union(box(ux, gm.FOOT_Y, (z0, top)))
         end = [(s * x, y) for x in (gm.BEAM_X - 6.0, gm.BEAM_X) for y in gm.CHEEK_Y]
         arm = np.array(end + [(x, y) for x in ux for y in (gm.FOOT_Y[0], gm.FOOT_Y[0] + 4.0)])
         arm = [tuple(map(float, arm[i])) for i in ConvexHull(arm).vertices]
@@ -512,33 +606,25 @@ def frame(mechanical=False):
         out = out.union(bearing if s == 1 else bearing.mirror("YZ"))  # each yoke's (#967): both styles
         if mechanical:
             out = out.union(cq.Workplane("YZ", origin=(bx[0], 0, 0)).polyline(upright).close().extrude(bx[1] - bx[0]))
-            # leaning back, round on top as its Bone: a square top's front corner would near the temple's Skin (#967)
-            out = out.union(box(ux, (-4, 4), (-12, 0))).union(cyl("x", (0, 0, 0), 4.0, ux))
-            out = out.union(box(ux, (0, 8), (top, -6)))  # up behind the head: the two meet over 6 mm
             out = out.union(box(lx, (jy - neck.JAW_FIXED_R, jy + neck.JAW_FIXED_R), tuple(sorted((top, jz))))).union(
                 cyl("x", (0, jy, jz), neck.JAW_FIXED_R, lx)
             )
         else:  # from inside the plate, flat on top under the yoke's stem; each upright and riser up its slab's middle
-            # the lid upright leaning back to the plate, behind the cheek (#967)
-            for xs, y, foot, z, r in (
-                (bx, by, by, bz, 4.0),
-                (ux, 0.0, 4.0, 0.0, 4.0),
-                (lx, jy, jy, jz, neck.JAW_FIXED_R),
-            ):
+            for xs, y, foot, z, r in ((bx, by, by, bz, 4.0), (lx, jy, jy, jz, neck.JAW_FIXED_R)):
                 # a waisted strut, a round boss at its top (a light mesh); its sides 0.25 mm in from its slab's, as a
                 # strut's flush on the plate's edge reads back from Linux's STEP crossing the plate's (#851)
                 x, h = sum(xs) / 2, (xs[1] - xs[0]) / 2 - 0.25
                 out = out.union(strut((x, foot, top - 1), (x, y, z), (r, h), (r - 1.0, h))).union(
                     cyl("x", (0, y, z), r, xs)
                 )
-        out = holes(holes(out, [(by, bz)], bx), [(0, 0)], ux).cut(cyl("x", (0, jy, jz), TAP_R, lx))
-        # the lid upright's head flat in front, inside the temple's Skin (#967): cut, as a head drawn smaller came back
-        # null or in pieces from Linux's OCCT at 3.5, 3.6 and 3.0 mm
-        out = out.cut(box(ux, (-5.0, -gm.UPRIGHT_FLAT), (-12, 5)))
-        # and its outer front edge cut back: his temple's Skin is nearest there since his eyes sit on ours (#967)
-        xo, y, cut = s * edge, -gm.UPRIGHT_FLAT, gm.UPRIGHT_EDGE
-        corner = [(xo - s * cut, y), (xo, y), (xo, y + cut)]
-        out = out.cut(cq.Workplane("XY", origin=(0, 0, -12)).polyline(corner).close().extrude(17))
+        out = holes(out, [(by, bz)], bx).cut(cyl("x", (0, jy, jz), TAP_R, lx))
+    # the lids' carrier (#967): both styles, as the yaw bearings
+    (wy0, wy1), half = gm.WALL_POST
+    wall = box((-gm.WALL_X, gm.WALL_X), (0.0, wy1), gm.WALL_Z).union(
+        box((-half, half), (wy0, wy1), (top, gm.WALL_Z[1]))
+    )
+    wall = wall.union(cyl("x", (0, 0, 0), gm.HUB_R, (-gm.WALL_X, gm.WALL_X)))
+    out = out.union(wall).cut(cyl("x", (0, 0, 0), gm.PIN_R, (-gm.WALL_X - 1, gm.WALL_X + 1)))
     for x, y in neck.HEAD_SCREWS:  # the head mount's screws (model/printed/neck.py)
         out = out.cut(cyl("z", (x, y, 0), 1.7, gm.PLATE_Z))
     out = out.cut(cyl("z", (0, neck.HEAD_AXES["pan"][0][1], 0), neck.FRAME_OPEN_R, gm.PLATE_Z))
@@ -643,8 +729,8 @@ def _placed(shape, m):
 
 
 def at_rest(mechanical=False):
-    """{eyes part: its solid where model/stages.py places it}, each lid's pivot shank beside them (the M3 steel
-    shank from the frame's upright through the lid's boss); `mechanical`: the Skeleton mechanical (#704)."""
+    """{eyes part: its solid where model/stages.py places it}, the lids' shank beside them (the M3 steel shank along
+    the eye line through the frame's wall and each lid's sleeve); `mechanical`: the Skeleton mechanical (#704)."""
     from model import stages
     from model.printed import PARTS, styled  # here: model.printed imports this module
 
@@ -652,16 +738,15 @@ def at_rest(mechanical=False):
     for name, p in stages.eyes_sub().parts.items():
         stem = styled(stages.stem(p.file), mechanical)
         out[name] = (PARTS.get(stem) or envelopes.ENVELOPES[stem])().val().moved(_at(p.matrix))
-    for s, sign in (("L", 1), ("R", -1)):
-        x = sorted(gm.EYE[s][0] + sign * u for u in (gm.LID_X["upper boss"][0] + 2, gm.LID_X["upright"][1]))
-        out[f"{s} lid shank"] = cyl("x", (0, 0, 0), gm.PIN_R - fits.CLEARANCE[0], x).val()
+    reach = gm.SPACING / 2 - gm.LID_X["upper"][0]
+    out["lid shank"] = cyl("x", (0, 0, 0), gm.PIN_R - fits.CLEARANCE[0], (-reach, reach)).val()
     return out
 
 
 # the parts moved() carries by a pin on another moving part: each turns on that part's pin
 COUPLED = {
     **{f"{s} lid bar:1": f"{s} lid horn:1" for s in "LR"},
-    **{f"{s} lid link:1": f"{s} lid bar:1" for s in "LR"},
+    **{f"{s} lid link:1": f"{s} lid horn:1" for s in "LR"},
     **{f"{s} push-rod:1": "bail:1" for s in "LR"},
     "pitch bar:1": "pitch horn:1",
 }
@@ -727,20 +812,23 @@ def _path(segments, step):
 
 
 def sweep(n_lid=9, n_pitch=7, within=5.0, step=0.1):
-    """The lid drives' sweep (#650), on the Skeleton mechanical (#809: the Bones carved from it): each lid, its bar, its horn and its
-    shank against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
-    Every pair at least LID_CLEAR_MM apart at rest
+    """The lid drives' sweep (#650), on the Skeleton mechanical (#809: the Bones carved from it): each lid, its bar, its link, its
+    horn and the lids' shank against every other part over the lid x pitch grid (both lid servos together, yaw 0; model/gimbal.py moved()).
+    Every pair over LID_CLEAR_MM apart at rest
     is certified to stay so along the grid's lines that turn it (#655, lines(): gates.certify on skeleton()'s hinges,
     reading the exact solids, the bounding boxes' gap past `within` mm), rows `step` deg apart; the closest it read is
     reported. Every pair closer at rest (a pin, a face sliding on a face, the boss on its shank) is checked for overlap
     at the grid's samples: every move here turns about x, so one of two lifts 0.01 mm along x parts a pair that only
     touches."""
     rest = at_rest(mechanical=True)
-    names = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1", "lid horn:1", "lid shank")
-    drives = [f"{s} {n}" for s in "LR" for n in names]
+    names = ("upper lid:1", "lower lid:1", "lid bar:1", "lid link:1", "lid horn:1")
+    drives = [f"{s} {n}" for s in "LR" for n in names] + ["lid shank"]
     spline = {(f"{s} lid horn:1", f"{s} lid servo:1") for s in "LR"}  # the horn's hub on its spline
     pairs = [(a, b) for i, a in enumerate(drives) for b in rest if b not in drives[: i + 1] and (a, b) not in spline]
-    near = {(a, b) for a, b in pairs if _gap(rest[a], rest[b]) < gm.LID_CLEAR_MM > rest[a].distance(rest[b])}
+    # a lid's band is LID_CLEAR_MM over its cap by its radii, wherever either turns (gimbal.report): no closer, so
+    # checked for overlap with the pairs that touch
+    room = gm.LID_CLEAR_MM + 0.01
+    near = {(a, b) for a, b in pairs if _gap(rest[a], rest[b]) < room > rest[a].distance(rest[b])}
     lids, pitches = (
         np.linspace(*np.subtract(gm.LID_EDGES, gm.LID_REST), n_lid),
         np.linspace(-gm.PITCH, gm.PITCH, n_pitch),

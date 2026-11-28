@@ -36,9 +36,9 @@ TOUCH = {
             ("bail:1", "gimbal frame:1"),
             *[(f"{s} lid horn:1", f"{s} lid bar:1") for s in "LR"],
             *[(f"{s} upper lid:1", f"{s} lid bar:1") for s in "LR"],
-            *[(f"{s} lid bar:1", f"{s} lid link:1") for s in "LR"],
+            *[(f"{s} lid horn:1", f"{s} lid link:1") for s in "LR"],
             *[(f"{s} lid link:1", f"{s} lower lid:1") for s in "LR"],
-            *[(f"{s} upper lid:1", f"{s} lower lid:1") for s in "LR"],  # bosses side by side on the shank
+            *[(f"{s} upper lid:1", f"{s} lower lid:1") for s in "LR"],  # sleeves end to end on the shank
             *[(f"{s} yaw yoke:1", p) for s in "LR" for p in ("tie-bar:1", "gimbal frame:1")],
             *[(f"{s} eyeball cap:1", f"{s} eyeball core:1") for s in "LR"],
         ]

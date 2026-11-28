@@ -81,8 +81,8 @@ def commands(motion):
     """The motion as the eye program writes it, from rest, through the Mech's eye gimbal (#663): the program's
     yaw over the gimbal's yaw range to the yaw and pitch servos (gimbal.servos, the Hooke error taken out), the
     gaze level (the program turns the eyes about one axis); each lid level to its upper lid's edge, closed shut where
-    the lower lid meets it (gimbal.LID_SHUT, #698), rest just over the pupil, open (gimbal.LID_EDGES), the lid following
-    the pitch (#51); under its calibration
+    the lower lid meets it (gimbal.LID_SHUT, #698), rest and open both open, hidden behind the opening's rim (gimbal.LID_EDGES,
+    #967); under its calibration
     (HEAD_CAL) the head joins wide gaze shifts (#688): the pan, in the eyes' degrees, scaled as the yaw, through the
     pan's four-bar (neck.servo_for), each Core's writes DELAY_MS late. ([(ms, horn, servo degrees from centre)] in time
     order, rest's writes before ms 0; the frame times), as commands()."""
@@ -99,7 +99,7 @@ def commands(motion):
             out += [(t, "yaw horn", round(yaw, 2)), (t, "pitch horn", round(pitch_servo, 2))]
         elif "lid" in s:
             edge = float(np.interp(a, levels, edges))
-            out.append((t, f"{s[0].upper()} lid horn", round(edge - gimbal.LID_REST + gimbal.LID_FOLLOW * pitch, 2)))
+            out.append((t, f"{s[0].upper()} lid horn", round(edge - gimbal.LID_REST, 2)))
         elif s == "pan":
             out.append((t, "pan horn", round(neck.servo_for("pan", a / half * gimbal.YAW), 2)))
     return sorted(out, key=lambda w: w[0]), range(0, end + max(DELAY_MS.values()) + FRAME_MS + 1, FRAME_MS)

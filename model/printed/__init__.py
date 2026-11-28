@@ -47,8 +47,7 @@ PARTS = {
 # same interfaces; PARTS holds it under the stem's mechanical name (geometry.MECHANICAL)
 STYLED = {
     **{stem: PARTS[stem] for stem in ("yaw yoke", "tie-bar", "bail", "push-rod", "pitch bar")},
-    **{stem: PARTS[stem] for stem in ("lid bar", "lid link", "gimbal frame")},
-    **{f"{s} {lid}": PARTS[f"{s} {lid}"] for s in "LR" for lid in ("upper lid", "lower lid")},
+    "gimbal frame": PARTS["gimbal frame"],
     **{stem: PARTS[stem] for stem in ("jaw", "jaw bar")},
     **{stem: PARTS[stem] for stem in ("torso", "torso lid", "test stand")},
 }
@@ -56,6 +55,9 @@ STYLED = {
 UNSTYLED = {
     "eyeball core": "the eyeball's ball under its cap: none",
     "cranium tray": "hidden in the realistic skull's cranium: none (#858)",
+    **dict.fromkeys(
+        ("lid bar", "lid link"), "re-laid side by side on the lid horn's face (#967): #1097 draws their Bones"
+    ),
     **dict.fromkeys(
         (
             "cervical carrier",
