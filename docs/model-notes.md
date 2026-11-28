@@ -194,8 +194,9 @@ The model is the ground truth, then the Mech you build (CLAUDE.md). What we plan
   pilot), the yaw yokes (a cradle round the core flaring from its flat foot at 40 deg, the crank a Bone), the bail (its rod
   and input arm flat-bottomed, its arms round struts): each prints as drawn (the leaned push-rod and the bail on their
   own beds, `rod_bed` and `bail_bed`, #967) with no overhang past 45 deg, its bores across the layers where its pins
-  are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars, links and the lids' spokes (#698,
-  each lying in its 3 mm slab). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
+  are not along Z (the yoke's pitch axle, the bail's three); so are the lid bars and links (#698, #1097:
+  a Bone along each one's long span, fuller than its 3 mm slab and its 5 mm arm, which cut it flat on top and at the
+  sides; the jog by the horn stays flat). Since #708 every other Skeleton part has its Bones too: the pitch, jaw and neck
   bars Bones between their pins, the frame's uprights round Bones, the neck
   mount's column waisted, the yoke's cheeks Bones, the head mount's flange a chain of Bones flat on the plate from
   screw to screw, the jaw's arms and chin one chain, the Torso's corners round and its walls windowed (lancet heads, so
