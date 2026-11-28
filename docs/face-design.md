@@ -67,13 +67,19 @@ What the model has of them today (model/skin.py, model/printed/skin.py):
   flush in its pocket and three V-grooves round it; on the Shell its disc and three balls resting in the grooves,
   which take the shear and hold the discs 0.21 mm apart, so the magnets only preload it. Every Seat is flush in its
   carrier's surface, no pad raised on any Skeleton part, so the bare Skeleton shows at most a small circle (#852).
-  The model has the eyeball caps' Seats, in the cores' faces, and the face's two lower ones, in the front of the
-  gimbal frame's beam under the eyes, 84 mm apart: the face comes off forward. A Shell cut from a sculpt stands on a
+  The model has the eyeball caps' Seats, in the cores' faces, and the face's three: two in the front of the
+  gimbal frame's beam under the eyes, 84 mm apart, and one in the skull's forehead, on the midline 104 mm above
+  them, so the face comes off forward. The hair's crown has three facing up on the skull's calvaria, and comes off
+  upward; the hair's back has three facing back on the occiput, and slides off backward, with the head near
+  straight (the collar stands in its way once the head is turned past about 22° or nodded far). A Seat in bone is a
+  flat cut into the bone, so nothing stands proud on the bare skull, with the bone made solid behind its magnet.
+  They sit near the midline, where the bone faces the Shell's way off. A Shell cut from a sculpt stands on a
   boss in from its wall at each Seat, cut at the sculpt's surface, with at least 0.6 mm of its own surface left
   over the magnet (model/morty/shells.py `seated()`). The realistic skull's calvaria sits on three Seats of the
   same sizes on its skull's rim, each on a boss inside the wall, the balls on the skull and the grooves in the cap
-  (model/skeleton, #874). *Upcoming (#850): the rest of Morty's Seats: the face's top
-  and the hair on the skull, the chin on the jaw and the shirt on the Torso (#879).*
+  (model/skeleton, #874). The crown's three pairs and the cap's three pull equally, so a lift on the crown may
+  bring the cap with it; both lift straight up and part by hand. *Upcoming (#850): the rest of Morty's Seats: the
+  chin on the jaw (#968) and the shirt on the Torso (#879).*
 - A brow has no Seat (`skin.GLUED`): it is 8 mm across and a Seat 14. It is 0.6 mm thick and is laid on the face,
   in a bed 1 mm deep in the outside of the face's wall, its own outline its key with 0.2 mm of play a side, and
   glued there. The face runs on under it, 0.6 mm thick, its inside where the wall's always is. It comes off with
